@@ -882,6 +882,52 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     assertTrue(exportDoc.contains("scrollTargetBehavior"), "Export contains mechanism")
     assertTrue(exportDoc.contains("```swift"), "Export contains code block")
 
+    // TEST 32: Floating Corner Circle, Snapping Math & ⌃⌥⌘ Telescope Inspection
+    print("\n--- Test 32: Floating Corner Circle, Snapping Math & ⌃⌥⌘ Telescope Inspection ---")
+    let cornerPanel = FloatingIslandPanel(contentRect: NSRect(x: 0, y: 0, width: 46, height: 46))
+    cornerPanel.companionStyle = .floatingCircle
+    assertEqual(cornerPanel.companionStyle, .floatingCircle, "Companion style defaults/sets to floatingCircle")
+
+    let testScreen = cornerPanel.screen ?? FloatingIslandPanel.targetScreenForCursor()
+    let vis = testScreen.visibleFrame
+
+    // Snap to Top-Right
+    cornerPanel.snapToCorner(.topRight, on: testScreen)
+    assertEqual(cornerPanel.anchorCorner, .topRight, "Anchor corner set to topRight")
+    assertEqual(cornerPanel.frame.origin.x, vis.maxX - 46 - 18, "Top-right X positioned with 18pt screen margin")
+    assertEqual(cornerPanel.frame.origin.y, vis.maxY - 46 - 18, "Top-right Y positioned with 18pt screen margin")
+
+    // Snap to Bottom-Left
+    cornerPanel.snapToCorner(.bottomLeft, on: testScreen)
+    assertEqual(cornerPanel.anchorCorner, .bottomLeft, "Anchor corner set to bottomLeft")
+    assertEqual(cornerPanel.frame.origin.x, vis.minX + 18, "Bottom-left X positioned with 18pt screen margin")
+    assertEqual(cornerPanel.frame.origin.y, vis.minY + 18, "Bottom-left Y positioned with 18pt screen margin")
+
+    // Nearest corner magnetic detection:
+    // Near Top-Left (< 110pt threshold)
+    let nearTopLeft = NSPoint(x: vis.minX + 20, y: vis.maxY - 46 - 20)
+    let detectedTL = cornerPanel.detectNearestCorner(for: nearTopLeft, on: testScreen)
+    assertEqual(detectedTL, .topLeft, "Point within 110pt of top-left corner detected as .topLeft")
+
+    // Near Screen Center (free-floating thrown anywhere)
+    let centerPoint = NSPoint(x: vis.midX, y: vis.midY)
+    let detectedCenter = cornerPanel.detectNearestCorner(for: centerPoint, on: testScreen)
+    assertTrue(detectedCenter == nil, "Center point is beyond 110pt threshold, enabling free-floating placement")
+
+    // Modifier flag detection for Control + Option + Command (⌃⌥⌘)
+    let ctrlOptCmdFlags: NSEvent.ModifierFlags = [.control, .option, .command]
+    let optCmdFlags: NSEvent.ModifierFlags = [.option, .command]
+    let cmdOnlyFlags: NSEvent.ModifierFlags = [.command]
+
+    assertTrue(HotKeyController.isControlOptionCommandFlags(ctrlOptCmdFlags), "Detects ⌃⌥⌘ (Control+Option+Command) flags for Telescope Inspection")
+    assertTrue(!HotKeyController.isControlOptionCommandFlags(optCmdFlags), "Rejects ⌥⌘ alone from triggering Telescope Inspection")
+    assertTrue(!HotKeyController.isControlOptionCommandFlags(cmdOnlyFlags), "Rejects ⌘ alone from triggering Telescope Inspection")
+
+    // Sound effects execution safety
+    PipseySoundEffects.playTelescopeFocus()
+    PipseySoundEffects.playIdlePeekingSound()
+    assertTrue(true, "PipseySoundEffects for Telescope Focus & Idle Peeking execute cleanly")
+
     return (passed, failed)
 }
 

@@ -25,6 +25,39 @@
 
 ## Engineering log
 
+### 2026-11-10 — Floating Corner Companion, 30s Idle Curiosity Peeking & ⌃⌥⌘ Telescope Inspection Mode
+- **Goal and exact changes:**
+  1. **Floating Circle Desktop Corner Companion (`.floatingCircle`):**
+     - Sits in any screen corner (default Top-Right, or Top-Left, Bottom-Right, Bottom-Left) instead of being locked to the notch.
+     - Resting idle state is a pristine, unobtrusive 46×46pt circular glass orb (`Circle()`) with corner radius 23pt.
+     - When hovered, smoothly springs out into a 175×46pt pill with mascot on the leftmost side, `⌃⌥⌘` key badges in the center, and settings gear on the rightmost side.
+  2. **30-Second Idle Curiosity Peeking Loop:**
+     - An automated timer triggers every 30 seconds when resting idle:
+       - Phase 1: Pipsey peeks over the circular rim and glances left (+12°).
+       - Phase 2: Glances right (-12°).
+       - Phase 3: Centers with a cheerful bounce and playful sound.
+       - Phase 4: Settles back into calm resting posture.
+  3. **"Thrown Away Anywhere" Free Draggability & Magnetic Corner Snapping:**
+     - Pipsey can be dragged freely to any coordinate on the screen.
+     - When dropped/tossed within 110pt of any screen corner (`.topRight`, `.topLeft`, `.bottomRight`, `.bottomLeft`), it magnetically snaps into place with a 18pt display margin.
+     - Center screen drops remain free-floating as an interactive desktop widget.
+  4. **Telescope Inspection Mode (Control + Option + Command / `⌃⌥⌘`):**
+     - When `⌃⌥⌘` is pressed or triggered, Pipsey enters Telescope Inspection Mode:
+       - 380×54pt high-precision optical HUD with cyan/teal glowing border.
+       - Mascot avatar surrounded by a continuously rotating radar sweep ring (`AngularGradient` stroke).
+       - Optical crosshair HUD (`Image(systemName: "scope")`), "TELESCOPE INSPECTION" badge, target UI scanning telemetry, live 5-bar audio waveform, and elapsed timer.
+       - High-precision "Analyze" action triggering VLM inspection.
+  5. **Settings & Menu Bar Integration:**
+     - `SettingsView.swift`: Form factor picker between "Floating Corner Circle (Desktop Robot)" and "Screen Notch Island (Top Center)", Screen Anchor Corner picker, and 30s Idle Curiosity Peeking toggle.
+     - `MenuBarController.swift`: Added "Telescope Inspection (⌃⌥⌘)" and "Trigger Peeking Curiosity Glance".
+  6. **Interactive Landing Page Sync:**
+     - Updated `docs/index.html` and `pipsey_landing_page.html` with interactive simulator controls: Corner Circle Orb toggle, 30s Peek Glance animation, and ⌃⌥⌘ Telescope Radar inspection.
+  7. **Verification & Tests:**
+     - Added **Test 32** to `PipseyTests/main.swift` validating corner snapping coordinates across screen bounds, magnetic detection thresholds, and `⌃⌥⌘` modifier flag handling.
+     - Run: `swift run PipseyTests` -> **321/321 PASSED, 0 FAILED**.
+     - Built and signed `build/Pipsey.app` via `./scripts/build-app.sh`.
+     - Live on macOS: Verified running window bounds `[X: 1376, Y: 49, Width: 46, Height: 46]`.
+
 ### 2026-11-10 — Official Mascot Upgraded to Peeking Robot & Made Movable with Animated Video
 - **Goal and exact changes:**
   1. **Cleaned Text from New Official 3D Mascot:**

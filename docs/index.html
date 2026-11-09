@@ -16,6 +16,21 @@
     .animate-wave-4 { animation: wave-bounce 0.70s ease-in-out infinite 0.3s; }
     .animate-wave-5 { animation: wave-bounce 0.60s ease-in-out infinite 0.15s; }
 
+    @keyframes radar-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-radar { animation: radar-spin 2s linear infinite; }
+
+    @keyframes peek-glance {
+      0% { transform: translateY(0px) rotate(0deg) scale(1); }
+      20% { transform: translateY(-5px) rotate(12deg) scale(1.06); }
+      50% { transform: translateY(-5px) rotate(-12deg) scale(1.06); }
+      75% { transform: translateY(-6px) rotate(0deg) scale(1.10); }
+      100% { transform: translateY(0px) rotate(0deg) scale(1); }
+    }
+    .animate-peek { animation: peek-glance 2.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
     /* Native physical keycap styling following macOS HIG */
     .kbd-chip {
       display: inline-flex;
@@ -225,6 +240,44 @@
               </div>
             </div>
 
+            <!-- State 5: Telescope Inspection Mode (⌃⌥⌘ Control+Option+Command) -->
+            <div id="notchTelescope" class="hidden w-full items-center justify-between gap-2 px-1">
+              <!-- Leftmost: Mascot with Rotating Radar Sweep Ring -->
+              <div class="relative w-7 h-7 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border border-cyan-400/80 animate-radar border-t-transparent border-r-transparent"></div>
+                <div class="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center">
+                  <img src="assets/pipsey-mascot-anim-mini.gif" alt="Pipsey" class="w-full h-full object-contain">
+                </div>
+              </div>
+
+              <!-- Center / Middle: Optical Telescope HUD -->
+              <div class="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-cyan-950/30 border border-cyan-400/40 shadow-inner">
+                <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><line x1="12" y1="3" x2="12" y2="7" stroke-width="2"/><line x1="12" y1="17" x2="12" y2="21" stroke-width="2"/><line x1="3" y1="12" x2="7" y2="12" stroke-width="2"/><line x1="17" y1="12" x2="21" y2="12" stroke-width="2"/></svg>
+                <div class="flex flex-col text-left">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[9px] font-mono font-extrabold tracking-wider text-cyan-400">TELESCOPE RADAR</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                    <span id="telescopeTimer" class="text-[9px] font-mono font-medium text-white">00:02</span>
+                  </div>
+                  <span class="text-[9px] text-[#A1A1AA] truncate">Scanning UI element hierarchy & screen context...</span>
+                </div>
+                <!-- 5-bar reactive audio waveform -->
+                <div class="flex items-center gap-0.5 ml-1">
+                  <span class="w-0.5 bg-cyan-400 rounded-full animate-wave-1"></span>
+                  <span class="w-0.5 bg-cyan-400 rounded-full animate-wave-2"></span>
+                  <span class="w-0.5 bg-cyan-400 rounded-full animate-wave-3"></span>
+                  <span class="w-0.5 bg-cyan-400 rounded-full animate-wave-4"></span>
+                  <span class="w-0.5 bg-cyan-400 rounded-full animate-wave-5"></span>
+                </div>
+              </div>
+
+              <!-- Rightmost: Analyze & Cancel Actions -->
+              <div class="flex items-center gap-1.5">
+                <button class="text-[10px] font-bold bg-cyan-400 text-black px-2 py-0.5 rounded shadow-sm hover:bg-cyan-300">Analyze</button>
+                <button class="text-white/40 hover:text-white text-[10px]">✕</button>
+              </div>
+            </div>
+
           </div>
 
           <!-- Right fake menu bar items -->
@@ -236,18 +289,42 @@
         </div>
 
         <!-- Simulated Desktop Workspace -->
-        <div class="flex-1 p-8 flex flex-col items-center justify-center text-center">
-          <div class="max-w-md bg-[#18181B]/80 border border-white/[0.08] rounded-xl p-6 shadow-xl backdrop-blur-sm">
-            <h3 class="text-sm font-semibold text-white mb-1">Interactive Sandbox Demonstration</h3>
-            <p class="text-xs text-[#A1A1AA] mb-5">
-              Click below to test Pipsey's dynamic auto-expanding notch transition across live capture, audio waveform, VLM analysis, and code synthesis.
+        <div class="relative flex-1 p-6 flex flex-col items-center justify-center text-center">
+          
+          <!-- Floating Corner Circle Companion Preview (Anchored to top-right of simulated workspace) -->
+          <div id="cornerOrbContainer" class="hidden absolute top-4 right-4 z-10 flex-col items-center">
+            <div id="cornerCircleOrb" class="w-[46px] h-[46px] rounded-full bg-black/90 border border-white/30 shadow-2xl flex items-center justify-center cursor-pointer transition-transform duration-300 hover:scale-105" title="Click to trigger peek or drag anywhere">
+              <div id="cornerRobotAvatar" class="w-8 h-8 flex items-center justify-center">
+                <img src="assets/pipsey-mascot-anim-mini.gif" alt="Pipsey" class="w-full h-full object-contain">
+              </div>
+            </div>
+            <span class="mt-1.5 text-[10px] font-mono text-white/50">46×46 orb</span>
+          </div>
+
+          <div class="max-w-md bg-[#18181B]/80 border border-white/[0.08] rounded-xl p-5 shadow-xl backdrop-blur-sm z-20">
+            <h3 class="text-sm font-semibold text-white mb-1">Interactive Companion Sandbox</h3>
+            <p class="text-xs text-[#A1A1AA] mb-4">
+              Test Pipsey's new native modes: Floating Corner Circle, 30s curiosity peeking, and ⌃⌥⌘ optical telescope inspection.
             </p>
-            <div class="flex items-center justify-center gap-3">
-              <button id="runSimulationBtn" class="px-4 py-2 rounded-lg bg-[#EDEDED] hover:bg-white text-[#0B0C0E] font-medium text-xs transition flex items-center gap-2 shadow-sm border border-white/20">
-                <span class="w-2 h-2 rounded-full bg-[#0B0C0E]"></span>
-                <span>Trigger ⌥⌘ Simulation</span>
+            <div class="flex flex-wrap items-center justify-center gap-2">
+              <button id="toggleCircleBtn" class="px-3 py-1.5 rounded-lg bg-[#27272A] hover:bg-[#323238] border border-white/10 text-white font-medium text-xs transition flex items-center gap-1.5">
+                <span>🤖 Corner Circle Orb</span>
+              </button>
+              <button id="runPeekBtn" class="px-3 py-1.5 rounded-lg bg-[#27272A] hover:bg-[#323238] border border-white/10 text-white font-medium text-xs transition flex items-center gap-1.5">
+                <span>👀 30s Peek Glance</span>
+              </button>
+              <button id="runTelescopeBtn" class="px-3 py-1.5 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/40 border border-cyan-400/30 text-cyan-300 font-medium text-xs transition flex items-center gap-1.5">
+                <span>🔭 ⌃⌥⌘ Telescope Radar</span>
+              </button>
+              <button id="runSimulationBtn" class="px-3 py-1.5 rounded-lg bg-[#EDEDED] hover:bg-white text-[#0B0C0E] font-medium text-xs transition flex items-center gap-1.5 shadow-sm">
+                <span>⚡ ⌥⌘ Voice & Vision</span>
               </button>
             </div>
+            <div id="simStatus" class="mt-3 text-[11px] text-[#71717A] font-mono">
+              Ready · Resting in screen corner
+            </div>
+          </div>
+        </div>
             <div id="simStatus" class="mt-3 text-[11px] text-[#71717A] font-mono">
               Ready · Idle in hardware notch
             </div>
@@ -435,16 +512,24 @@
     const recording = document.getElementById('notchRecording');
     const processing = document.getElementById('notchProcessing');
     const explanation = document.getElementById('notchExplanation');
+    const telescope = document.getElementById('notchTelescope');
+    const cornerContainer = document.getElementById('cornerOrbContainer');
+    const cornerAvatar = document.getElementById('cornerRobotAvatar');
     const statusText = document.getElementById('simStatus');
     const runBtn = document.getElementById('runSimulationBtn');
     const resetBtn = document.getElementById('resetDemoBtn');
+    const toggleCircleBtn = document.getElementById('toggleCircleBtn');
+    const runPeekBtn = document.getElementById('runPeekBtn');
+    const runTelescopeBtn = document.getElementById('runTelescopeBtn');
 
     let timerInterval = null;
+    let isCornerMode = false;
 
     function resetToIdle() {
       if (timerInterval) clearInterval(timerInterval);
       notch.style.width = '175px';
       notch.style.height = '32px';
+      notch.classList.remove('border-cyan-400/80', 'shadow-[0_0_25px_rgba(34,211,238,0.35)]');
       idle.classList.remove('hidden');
       idle.classList.add('flex');
       recording.classList.add('hidden');
@@ -453,11 +538,71 @@
       processing.classList.remove('flex');
       explanation.classList.add('hidden');
       explanation.classList.remove('flex');
-      statusText.textContent = 'Ready · Idle in hardware notch';
+      if (telescope) {
+        telescope.classList.add('hidden');
+        telescope.classList.remove('flex');
+      }
+      statusText.textContent = isCornerMode ? 'Ready · Resting in screen corner' : 'Ready · Resting in top-center notch';
       runBtn.disabled = false;
     }
 
+    function triggerPeekGlance() {
+      const avatar = isCornerMode ? cornerAvatar : document.querySelector('#notchIdle img');
+      if (!avatar) return;
+      statusText.textContent = 'Curiosity glance: Peeking over edge & looking around...';
+      avatar.classList.add('animate-peek');
+      setTimeout(() => {
+        avatar.classList.remove('animate-peek');
+        statusText.textContent = 'Peeking complete · Settled back into resting calm';
+      }, 2600);
+    }
+
+    function triggerTelescopeMode() {
+      resetToIdle();
+      runBtn.disabled = true;
+      statusText.textContent = '⌃⌥⌘ Held: Telescope Optical Radar scanning UI...';
+      idle.classList.add('hidden');
+      idle.classList.remove('flex');
+      telescope.classList.remove('hidden');
+      telescope.classList.add('flex');
+      notch.style.width = '390px';
+      notch.style.height = '52px';
+      notch.classList.add('border-cyan-400/80', 'shadow-[0_0_25px_rgba(34,211,238,0.35)]');
+
+      let sec = 1;
+      const teleTimer = document.getElementById('telescopeTimer');
+      teleTimer.textContent = '00:01';
+      timerInterval = setInterval(() => {
+        sec++;
+        teleTimer.textContent = `00:0${sec}`;
+      }, 1000);
+
+      setTimeout(() => {
+        clearInterval(timerInterval);
+        statusText.textContent = 'Telescope Radar locked onto UI targets · Ready to analyze';
+      }, 3500);
+    }
+
+    function toggleCompanionStyle() {
+      isCornerMode = !isCornerMode;
+      if (isCornerMode) {
+        cornerContainer.classList.remove('hidden');
+        cornerContainer.classList.add('flex');
+        notch.classList.add('opacity-40');
+        toggleCircleBtn.innerHTML = '<span>🏝️ Screen Notch Island</span>';
+        statusText.textContent = 'Companion anchored in top-right corner orb (46×46)';
+      } else {
+        cornerContainer.classList.add('hidden');
+        cornerContainer.classList.remove('flex');
+        notch.classList.remove('opacity-40');
+        toggleCircleBtn.innerHTML = '<span>🤖 Corner Circle Orb</span>';
+        statusText.textContent = 'Companion anchored in top-center hardware notch';
+      }
+      resetToIdle();
+    }
+
     function runSimulation() {
+      resetToIdle();
       runBtn.disabled = true;
       
       // 1. Expand into Recording Mode (380px)
@@ -501,6 +646,13 @@
 
       }, 2500);
     }
+
+    runBtn.addEventListener('click', runSimulation);
+    if (resetBtn) resetBtn.addEventListener('click', resetToIdle);
+    toggleCircleBtn.addEventListener('click', toggleCompanionStyle);
+    runPeekBtn.addEventListener('click', triggerPeekGlance);
+    runTelescopeBtn.addEventListener('click', triggerTelescopeMode);
+    if (cornerContainer) cornerContainer.addEventListener('click', triggerPeekGlance);
 
     runBtn.addEventListener('click', runSimulation);
     resetBtn.addEventListener('click', resetToIdle);

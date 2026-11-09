@@ -11,9 +11,16 @@ public final class HotKeyController: @unchecked Sendable {
     private var flagsMonitor: Any?
     private var localFlagsMonitor: Any?
     private var isHoldingOptionCommand: Bool = false
+    private var isHoldingControlOptionCommand: Bool = false
     private var holdStartTime: Date?
     private var onHoldStart: ActionHandler?
     private var onHoldEnd: ActionHandler?
+    public var onTelescopeInspectionTrigger: (@Sendable (Bool) -> Void)?
+
+    public static func isControlOptionCommandFlags(_ flags: NSEvent.ModifierFlags) -> Bool {
+        let clean = flags.intersection(.deviceIndependentFlagsMask)
+        return clean.contains([.control, .option, .command])
+    }
 
     public init() {}
 
@@ -40,20 +47,30 @@ public final class HotKeyController: @unchecked Sendable {
         let handleFlags: (NSEvent) -> Void = { [weak self] event in
             guard let self = self else { return }
             let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            let isOptCmd = flags.contains([.option, .command])
+            let hasOptCmd = flags.contains([.option, .command])
+            let hasCtrl = flags.contains(.control)
+            let isCtrlOptCmd = hasOptCmd && hasCtrl
 
-            if isOptCmd {
+            if hasOptCmd {
+                let isTelescope = isCtrlOptCmd
                 if !self.isHoldingOptionCommand {
                     self.isHoldingOptionCommand = true
+                    self.isHoldingControlOptionCommand = isTelescope
                     self.holdStartTime = Date()
+                    self.onTelescopeInspectionTrigger?(isTelescope)
                     self.onHoldStart?()
+                } else if isTelescope != self.isHoldingControlOptionCommand {
+                    // Control was pressed or released while holding Option+Command
+                    self.isHoldingControlOptionCommand = isTelescope
+                    self.onTelescopeInspectionTrigger?(isTelescope)
                 }
             } else {
                 if self.isHoldingOptionCommand {
                     self.isHoldingOptionCommand = false
+                    self.isHoldingControlOptionCommand = false
                     let duration = Date().timeIntervalSince(self.holdStartTime ?? Date())
-                    // If held for >= 0.30s, release finishes capture automatically
-                    if duration >= 0.30 {
+                    // If held for >= 0.25s, release finishes capture automatically
+                    if duration >= 0.25 {
                         self.onHoldEnd?()
                     }
                 }

@@ -139,15 +139,107 @@ public struct SettingsView: View {
 struct GeneralSettingsPane: View {
     @State private var launchAtLogin: Bool = LaunchAtLogin.isEnabled
     @State private var showInDock: Bool = !UserDefaults.standard.bool(forKey: "pipsey_hide_dock_icon")
+    @State private var companionStyle: String = UserDefaults.standard.string(forKey: "companionStyle") ?? CompanionStyle.floatingCircle.rawValue
+    @State private var anchorCorner: String = UserDefaults.standard.string(forKey: "companionCorner") ?? CompanionCorner.topRight.rawValue
+    @State private var idlePeekingEnabled: Bool = UserDefaults.standard.object(forKey: "pipsey_idle_peeking") as? Bool ?? true
 
     var body: some View {
         Form {
+            Section("Companion Style & Placement") {
+                Picker("Companion Form Factor", selection: $companionStyle) {
+                    Text("Floating Corner Circle (Desktop Robot)").tag(CompanionStyle.floatingCircle.rawValue)
+                    Text("Screen Notch Island (Top Center)").tag(CompanionStyle.notchIsland.rawValue)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: companionStyle) { newStyle in
+                    UserDefaults.standard.set(newStyle, forKey: "companionStyle")
+                    if let panel = NSApp.windows.first(where: { $0 is FloatingIslandPanel }) as? FloatingIslandPanel {
+                        panel.companionStyle = CompanionStyle(rawValue: newStyle) ?? .floatingCircle
+                        panel.resetToDefaultPosition()
+                    }
+                }
+
+                if companionStyle == CompanionStyle.floatingCircle.rawValue {
+                    Picker("Screen Anchor Corner", selection: $anchorCorner) {
+                        Text("Top Right").tag(CompanionCorner.topRight.rawValue)
+                        Text("Top Left").tag(CompanionCorner.topLeft.rawValue)
+                        Text("Bottom Right").tag(CompanionCorner.bottomRight.rawValue)
+                        Text("Bottom Left").tag(CompanionCorner.bottomLeft.rawValue)
+                    }
+                    .onChange(of: anchorCorner) { newCorner in
+                        UserDefaults.standard.set(newCorner, forKey: "companionCorner")
+                        if let panel = NSApp.windows.first(where: { $0 is FloatingIslandPanel }) as? FloatingIslandPanel {
+                            panel.anchorCorner = CompanionCorner(rawValue: newCorner) ?? .topRight
+                            panel.snapToCorner(panel.anchorCorner)
+                        }
+                    }
+
+                    Toggle("30-Second Idle Curiosity Peeking", isOn: $idlePeekingEnabled)
+                        .onChange(of: idlePeekingEnabled) { enabled in
+                            UserDefaults.standard.set(enabled, forKey: "pipsey_idle_peeking")
+                        }
+                    Text("Pipsey gently peeks over the circular lip and looks left and right every 30 seconds when resting idle.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Reposition Companion")
+                            .font(.body).bold()
+                        Text("Drag Pipsey anywhere on your screen. Throwing near any screen corner magnetically snaps it in place.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Button(companionStyle == CompanionStyle.floatingCircle.rawValue ? "Snap to Anchor Corner" : "Snap to Top Center") {
+                        if let panel = NSApp.windows.first(where: { $0 is FloatingIslandPanel }) as? FloatingIslandPanel {
+                            panel.resetToDefaultPosition()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+
+            Section("Inspection Shortcuts") {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Telescope Inspection Mode")
+                            .font(.body).bold()
+                        Text("Hold ⌃⌥⌘ (Control + Option + Command) to trigger high-precision telescope visual radar inspection.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    HStack(spacing: 4) {
+                        KeyBadge("⌃", isAccent: false)
+                        KeyBadge("⌥", isAccent: true)
+                        KeyBadge("⌘", isAccent: true)
+                    }
+                }
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Quick Voice Capture")
+                            .font(.body).bold()
+                        Text("Hold ⌥⌘ (Option + Command) to talk and demonstrate an interaction.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    HStack(spacing: 4) {
+                        KeyBadge("⌥", isAccent: true)
+                        KeyBadge("⌘", isAccent: true)
+                    }
+                }
+            }
+
             Section("Startup & Visibility") {
                 Toggle("Launch Pipsey at Login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { enable in
                         LaunchAtLogin.setEnabled(enable)
                     }
-                Text("Automatically start Pipsey and anchor the companion island in your screen notch when your Mac turns on.")
+                Text("Automatically start Pipsey when your Mac turns on.")
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -158,28 +250,9 @@ struct GeneralSettingsPane: View {
                         NSApp.setActivationPolicy(show ? .regular : .accessory)
                         UserDefaults.standard.set(!show, forKey: "pipsey_hide_dock_icon")
                     }
-                Text("When enabled, Pipsey appears in your macOS Dock and App Switcher (⌘-Tab). When disabled, Pipsey lives purely in your Menu Bar and screen notch.")
+                Text("When enabled, Pipsey appears in your macOS Dock and App Switcher (⌘-Tab). When disabled, Pipsey lives purely in your Menu Bar.")
                     .font(.caption)
                     .foregroundColor(.secondary)
-            }
-
-            Section("Screen Island Placement") {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Top Notch Anchoring")
-                            .font(.body).bold()
-                        Text("Reset the companion island back to its default top-center notch position.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                    Button("Snap to Top Center") {
-                        if let panel = NSApp.windows.first(where: { $0 is FloatingIslandPanel }) as? FloatingIslandPanel {
-                            panel.resetToDefaultPosition()
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                }
             }
         }
         .formStyle(.grouped)

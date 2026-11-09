@@ -158,13 +158,45 @@ public struct CompanionIslandView: View {
             VStack(spacing: 0) {
                 notchContent
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .padding(.horizontal, viewModel.hasPhysicalNotch ? (viewModel.topCornerRadius + 8) : (viewModel.state == .idle && !viewModel.isHovering ? 6 : 12))
-                    .padding(.vertical, viewModel.state == .idle && !viewModel.isHovering ? 1 : 3)
+                    .padding(.horizontal, viewModel.companionStyle == .floatingCircle && viewModel.state == .idle && !viewModel.isHovering ? 0 : (viewModel.hasPhysicalNotch ? (viewModel.topCornerRadius + 8) : (viewModel.state == .idle && !viewModel.isHovering ? 6 : 12)))
+                    .padding(.vertical, viewModel.companionStyle == .floatingCircle && viewModel.state == .idle && !viewModel.isHovering ? 0 : (viewModel.state == .idle && !viewModel.isHovering ? 1 : 3))
             }
             .frame(width: viewModel.currentWidth, height: viewModel.currentHeight, alignment: .center)
             .background(
                 Group {
-                    if viewModel.hasPhysicalNotch {
+                    if viewModel.companionStyle == .floatingCircle {
+                        if viewModel.state == .idle && !viewModel.isHovering {
+                            // Circular Resting Orb (46x46)
+                            Circle()
+                                .fill(Color.black.opacity(0.92))
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.35), lineWidth: 1.0)
+                                )
+                        } else if viewModel.isTelescopeInspectionMode {
+                            // High-Tech Telescope HUD with Cyan / Teal Accent Outline
+                            RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
+                                .fill(Color.black.opacity(0.95))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [Color.cyan.opacity(0.85), Color.teal.opacity(0.5), Color.cyan.opacity(0.85)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1.5
+                                        )
+                                )
+                        } else {
+                            RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
+                                .fill(Color.black.opacity(0.92))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
+                                        .stroke(Color.white.opacity(0.35), lineWidth: 1.0)
+                                )
+                        }
+                    } else if viewModel.hasPhysicalNotch {
                         Color.black
                             .clipShape(NotchShape(
                                 topCornerRadius: viewModel.topCornerRadius,
@@ -205,10 +237,12 @@ public struct CompanionIslandView: View {
                 }
             )
             .shadow(
-                color: viewModel.state.isCapturing
-                    ? Color.white.opacity(0.20)
-                    : Color.black.opacity(0.45),
-                radius: viewModel.state.isCapturing ? 10 : (viewModel.state == .idle && !viewModel.isHovering ? 6 : 8),
+                color: viewModel.isTelescopeInspectionMode
+                    ? Color.cyan.opacity(0.35)
+                    : (viewModel.state.isCapturing
+                        ? Color.white.opacity(0.20)
+                        : Color.black.opacity(0.45)),
+                radius: viewModel.isTelescopeInspectionMode ? 12 : (viewModel.state.isCapturing ? 10 : (viewModel.state == .idle && !viewModel.isHovering ? 6 : 8)),
                 x: 0,
                 y: 2
             )
@@ -257,78 +291,150 @@ public struct CompanionIslandView: View {
         }
     }
 
-    // MARK: - Idle State (Sleek resting capsule, expands to Mascot on hover)
+    // MARK: - Idle State
     @ViewBuilder
     private var idleContent: some View {
-        if !viewModel.isHovering {
-            ZStack {
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: "0A84FF"),
-                                Color(hex: "0071E3"),
-                                Color(hex: "0A84FF")
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: 54, height: 3)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                Task { await viewModel.triggerSession() }
-            }
-            .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record, or drag to move)")
-        } else {
-            HStack(spacing: 0) {
-                // Leftmost: Mascot Avatar
-                Button(action: {
-                    Task { await viewModel.triggerSession() }
-                }) {
-                    PipseyMascotView(size: 20)
+        if viewModel.companionStyle == .floatingCircle {
+            if !viewModel.isHovering {
+                // Circular Resting Orb with 30s Idle Curiosity Peek
+                ZStack {
+                    PipseyMascotView(size: 32, isAnimated: true)
+                        .rotationEffect(.degrees(viewModel.idlePeekingAngle))
+                        .offset(y: viewModel.idlePeekingOffset)
+                        .scaleEffect(viewModel.idlePeekingScale)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Pipsey Mascot (Click to record)")
-
-                Spacer()
-
-                // Center / Middle: Shortcut badges
-                Button(action: {
+                .frame(width: 46, height: 46)
+                .contentShape(Circle())
+                .onTapGesture {
                     Task { await viewModel.triggerSession() }
-                }) {
-                    HStack(spacing: 3) {
-                        KeyBadge("⌥", isAccent: true)
-                        KeyBadge("⌘", isAccent: true)
+                }
+                .accessibilityLabel("Pipsey Corner Companion (Click to record, drag to move, ⌃⌥⌘ for telescope)")
+            } else {
+                HStack(spacing: 0) {
+                    // Leftmost: Mascot Avatar
+                    Button(action: {
+                        Task { await viewModel.triggerSession() }
+                    }) {
+                        PipseyMascotView(size: 24)
                     }
-                }
-                .buttonStyle(.plain)
-                .help("Hold Option+Command to record interaction; tap to toggle")
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Pipsey Mascot (Click to record)")
 
-                Spacer()
+                    Spacer()
 
-                // Rightmost: Clean settings control
-                Button(action: {
-                    SettingsWindowController.show()
-                }) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 11.5, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
-                        .frame(width: 20, height: 20)
+                    // Center / Middle: Shortcut Badges
+                    Button(action: {
+                        Task { await viewModel.triggerSession() }
+                    }) {
+                        HStack(spacing: 3) {
+                            KeyBadge("⌃", isAccent: false)
+                            KeyBadge("⌥", isAccent: true)
+                            KeyBadge("⌘", isAccent: true)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .help("Hold Control+Option+Command for Telescope Inspection, or Option+Command for Quick Voice")
+
+                    Spacer()
+
+                    // Rightmost: Clean settings control
+                    Button(action: {
+                        SettingsWindowController.show()
+                    }) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                            .frame(width: 22, height: 22)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Preferences (⌘,)")
                 }
-                .buttonStyle(.plain)
-                .help("Preferences (⌘,)")
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 10)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .contentShape(Rectangle())
+        } else {
+            // Notch Island Mode
+            if !viewModel.isHovering {
+                ZStack {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(hex: "0A84FF"),
+                                    Color(hex: "0071E3"),
+                                    Color(hex: "0A84FF")
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: 54, height: 3)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    Task { await viewModel.triggerSession() }
+                }
+                .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record, or drag to move)")
+            } else {
+                HStack(spacing: 0) {
+                    // Leftmost: Mascot Avatar
+                    Button(action: {
+                        Task { await viewModel.triggerSession() }
+                    }) {
+                        PipseyMascotView(size: 20)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Pipsey Mascot (Click to record)")
+
+                    Spacer()
+
+                    // Center / Middle: Shortcut badges
+                    Button(action: {
+                        Task { await viewModel.triggerSession() }
+                    }) {
+                        HStack(spacing: 3) {
+                            KeyBadge("⌥", isAccent: true)
+                            KeyBadge("⌘", isAccent: true)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .help("Hold Option+Command to record interaction; tap to toggle")
+
+                    Spacer()
+
+                    // Rightmost: Clean settings control
+                    Button(action: {
+                        SettingsWindowController.show()
+                    }) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 11.5, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                            .frame(width: 20, height: 20)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Preferences (⌘,)")
+                }
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+            }
         }
     }
 
-    // MARK: - Active Capturing State (Shortcut Hit -> Sound Recording Visualizer)
+    // MARK: - Active Capturing State
+    @ViewBuilder
     private var capturingContent: some View {
+        if viewModel.isTelescopeInspectionMode {
+            telescopeInspectionContent
+        } else {
+            standardCapturingContent
+        }
+    }
+
+    // Standard Capturing State (Shortcut Hit -> Sound Recording Visualizer)
+    private var standardCapturingContent: some View {
         HStack(spacing: 0) {
             // Leftmost: Mascot Avatar remains anchored on the leftmost side
             Button(action: {
@@ -404,6 +510,115 @@ public struct CompanionIslandView: View {
                         .font(.system(size: 8.5, weight: .bold))
                         .foregroundColor(.white.opacity(0.5))
                         .frame(width: 14, height: 14)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // Telescope Inspection HUD (Control+Option+Command ⌃⌥⌘)
+    private var telescopeInspectionContent: some View {
+        HStack(spacing: 0) {
+            // Leftmost: Mascot Avatar with Rotating Radar Sweep Ring
+            ZStack {
+                Circle()
+                    .stroke(
+                        AngularGradient(
+                            gradient: Gradient(colors: [
+                                Color.cyan.opacity(0.85),
+                                Color.teal.opacity(0.4),
+                                Color.clear,
+                                Color.cyan.opacity(0.85)
+                            ]),
+                            center: .center
+                        ),
+                        lineWidth: 2
+                    )
+                    .rotationEffect(.degrees(viewModel.telescopeRadarAngle))
+                    .frame(width: 32, height: 32)
+
+                PipseyMascotView(size: 22)
+            }
+            .frame(width: 34, height: 34)
+
+            Spacer()
+
+            // Center / Middle: Optical Telescope Crosshair HUD
+            HStack(spacing: 6) {
+                // Scope icon with cyan accent
+                Image(systemName: "scope")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(Color.cyan)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 4) {
+                        Text("TELESCOPE INSPECTION")
+                            .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                            .foregroundColor(Color.cyan)
+
+                        Circle()
+                            .fill(Color.cyan)
+                            .frame(width: 4, height: 4)
+
+                        Text(viewModel.formattedDuration)
+                            .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                            .foregroundColor(.white)
+                    }
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "eye.fill")
+                            .font(.system(size: 8))
+                            .foregroundColor(.white.opacity(0.6))
+                        Text("Scanning UI elements & screen context")
+                            .font(.system(size: 9, weight: .regular))
+                            .foregroundColor(.white.opacity(0.75))
+                            .lineLimit(1)
+                    }
+                }
+
+                // Live Audio Waveform
+                LiveWaveformView(audioPowerLevel: viewModel.audioPowerLevel)
+                    .padding(.leading, 4)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3.5)
+            .background(Color.white.opacity(0.08))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.cyan.opacity(0.35), lineWidth: 0.8)
+            )
+
+            Spacer()
+
+            // Rightmost: Done & Cancel buttons
+            HStack(spacing: 5) {
+                Button(action: {
+                    Task { await viewModel.stopCapture() }
+                }) {
+                    HStack(spacing: 2) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 8.5, weight: .bold))
+                        Text("Analyze")
+                            .font(.system(size: 9.5, weight: .bold))
+                    }
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.cyan)
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+
+                Button(action: {
+                    Task { await viewModel.cancel() }
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8.5, weight: .bold))
+                        .foregroundColor(.white.opacity(0.6))
+                        .frame(width: 16, height: 16)
                 }
                 .buttonStyle(.plain)
             }
@@ -1158,6 +1373,36 @@ public final class IslandViewModel: ObservableObject {
         }
     }
 
+    // Companion Form Factor & Positioning
+    @Published public var companionStyle: CompanionStyle {
+        didSet {
+            UserDefaults.standard.set(companionStyle.rawValue, forKey: "companionStyle")
+            updateDimensions()
+        }
+    }
+    @Published public var anchorCorner: CompanionCorner {
+        didSet {
+            UserDefaults.standard.set(anchorCorner.rawValue, forKey: "companionCorner")
+            updateDimensions()
+        }
+    }
+
+    // 30-Second Idle Curiosity Peeking Loop
+    private var idlePeekingTimer: Timer?
+    @Published public var isIdlePeeking: Bool = false
+    @Published public var idlePeekingAngle: Double = 0.0
+    @Published public var idlePeekingOffset: CGFloat = 0.0
+    @Published public var idlePeekingScale: CGFloat = 1.0
+
+    // Telescope Inspection Mode (Control+Option+Command ⌃⌥⌘)
+    @Published public var isTelescopeInspectionMode: Bool = false {
+        didSet {
+            updateDimensions()
+        }
+    }
+    @Published public var telescopeRadarAngle: Double = 0.0
+    private var telescopeRadarTimer: Timer?
+
     // Geometry matching boring.notch or Dynamic Island
     public let hasPhysicalNotch: Bool
     @Published public var currentWidth: CGFloat = 180
@@ -1202,10 +1447,24 @@ public final class IslandViewModel: ObservableObject {
         self.coordinator = coordinator
         let metrics = NotchMetrics.current()
         self.hasPhysicalNotch = metrics.hasPhysicalNotch
-        self.currentWidth = metrics.closedWidth
-        self.currentHeight = metrics.closedHeight
-        self.topCornerRadius = metrics.hasPhysicalNotch ? 6 : 16
-        self.bottomCornerRadius = metrics.hasPhysicalNotch ? 14 : 16
+
+        let savedStyleRaw = UserDefaults.standard.string(forKey: "companionStyle") ?? CompanionStyle.floatingCircle.rawValue
+        self.companionStyle = CompanionStyle(rawValue: savedStyleRaw) ?? .floatingCircle
+
+        let savedCornerRaw = UserDefaults.standard.string(forKey: "companionCorner") ?? CompanionCorner.topRight.rawValue
+        self.anchorCorner = CompanionCorner(rawValue: savedCornerRaw) ?? .topRight
+
+        if self.companionStyle == .floatingCircle {
+            self.currentWidth = 46
+            self.currentHeight = 46
+            self.topCornerRadius = 23
+            self.bottomCornerRadius = 23
+        } else {
+            self.currentWidth = metrics.closedWidth
+            self.currentHeight = metrics.closedHeight
+            self.topCornerRadius = metrics.hasPhysicalNotch ? 6 : 16
+            self.bottomCornerRadius = metrics.hasPhysicalNotch ? 14 : 16
+        }
 
         Task {
             await coordinator.addStateChangeHandler { [weak self] newState in
@@ -1214,6 +1473,9 @@ public final class IslandViewModel: ObservableObject {
                 }
             }
         }
+
+        // Start 30-second idle curiosity peek loop
+        startIdlePeekingTimer()
     }
 
     public func updateDimensions() {
@@ -1222,46 +1484,82 @@ public final class IslandViewModel: ObservableObject {
         let topR: CGFloat
         let botR: CGFloat
 
-        switch state {
-        case .idle:
-            if isHovering {
-                w = 175
-                h = 32
-                topR = hasPhysicalNotch ? 8 : 16
-                botR = 16
-            } else {
-                w = hasPhysicalNotch ? 185 : 130
-                h = hasPhysicalNotch ? 32 : 14
-                topR = hasPhysicalNotch ? 6 : 7
-                botR = hasPhysicalNotch ? 14 : 7
+        if companionStyle == .floatingCircle {
+            switch state {
+            case .idle:
+                if isHovering {
+                    w = 175
+                    h = 46
+                    topR = 23
+                    botR = 23
+                } else {
+                    w = 46
+                    h = 46
+                    topR = 23
+                    botR = 23
+                }
+            case .listeningAndCapturing:
+                w = isTelescopeInspectionMode ? 380 : 340
+                h = isTelescopeInspectionMode ? 54 : 44
+                topR = isTelescopeInspectionMode ? 27 : 22
+                botR = isTelescopeInspectionMode ? 27 : 22
+            case .processingVisual, .generatingResponse, .starting, .stopping, .cancelling:
+                let textLen = processingStatusText.count
+                let dynamicW = CGFloat(textLen * 8) + 120
+                w = min(560, max(380, dynamicW))
+                h = 48
+                topR = 24
+                botR = 24
+            case .readyForFollowup, .speaking:
+                w = 520
+                h = 160
+                topR = 22
+                botR = 22
+            case .error(let msg):
+                let dynamicW = CGFloat(msg.count * 8) + 120
+                w = min(560, max(380, dynamicW))
+                h = 50
+                topR = 22
+                botR = 22
             }
-        case .listeningAndCapturing:
-            // Balanced width for Left Mascot, Center Sound Recording Pill, and Right Done/Cancel
-            w = 340
-            h = 42
-            topR = hasPhysicalNotch ? 10 : 16
-            botR = 16
-        case .processingVisual, .generatingResponse, .starting, .stopping, .cancelling:
-            // Dynamically expand notch width based on status text so it never clips
-            let textLen = processingStatusText.count
-            let dynamicW = CGFloat(textLen * 8) + 120
-            w = min(560, max(380, dynamicW))
-            h = 46
-            topR = hasPhysicalNotch ? 10 : 18
-            botR = 18
-        case .readyForFollowup, .speaking:
-            // Spaciously formatted explanation pane
-            w = 520
-            h = 160
-            topR = hasPhysicalNotch ? 16 : 20
-            botR = 20
-        case .error(let msg):
-            // Dynamically expand notch width so error messages are fully readable
-            let dynamicW = CGFloat(msg.count * 8) + 120
-            w = min(560, max(380, dynamicW))
-            h = 50
-            topR = hasPhysicalNotch ? 10 : 18
-            botR = 18
+        } else {
+            switch state {
+            case .idle:
+                if isHovering {
+                    w = 175
+                    h = 32
+                    topR = hasPhysicalNotch ? 8 : 16
+                    botR = 16
+                } else {
+                    w = hasPhysicalNotch ? 185 : 130
+                    h = hasPhysicalNotch ? 32 : 14
+                    topR = hasPhysicalNotch ? 6 : 7
+                    botR = hasPhysicalNotch ? 14 : 7
+                }
+            case .listeningAndCapturing:
+                w = isTelescopeInspectionMode ? 380 : 340
+                h = isTelescopeInspectionMode ? 50 : 42
+                topR = hasPhysicalNotch ? 10 : 16
+                botR = 16
+            case .processingVisual, .generatingResponse, .starting, .stopping, .cancelling:
+                let textLen = processingStatusText.count
+                let dynamicW = CGFloat(textLen * 8) + 120
+                w = min(560, max(380, dynamicW))
+                h = 46
+                topR = hasPhysicalNotch ? 10 : 18
+                botR = 18
+            case .readyForFollowup, .speaking:
+                w = 520
+                h = 160
+                topR = hasPhysicalNotch ? 16 : 20
+                botR = 20
+            case .error(let msg):
+                let dynamicW = CGFloat(msg.count * 8) + 120
+                w = min(560, max(380, dynamicW))
+                h = 50
+                topR = hasPhysicalNotch ? 10 : 18
+                botR = 18
+            }
         }
 
         withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {
@@ -1273,6 +1571,90 @@ public final class IslandViewModel: ObservableObject {
         self.onGeometryChange?(w, h)
     }
 
+    public func startIdlePeekingTimer() {
+        idlePeekingTimer?.invalidate()
+        let interval: TimeInterval = 30.0
+        idlePeekingTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self, self.state == .idle else { return }
+                self.triggerIdlePeekingGlance()
+            }
+        }
+    }
+
+    public func stopIdlePeekingTimer() {
+        idlePeekingTimer?.invalidate()
+        idlePeekingTimer = nil
+        isIdlePeeking = false
+        idlePeekingAngle = 0.0
+        idlePeekingOffset = 0.0
+        idlePeekingScale = 1.0
+    }
+
+    public func triggerIdlePeekingGlance() {
+        guard state == .idle else { return }
+        self.isIdlePeeking = true
+        PipseySoundEffects.playIdlePeekingSound()
+
+        // Phase 1: Peek over circular lip and glance left (+12°)
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.65)) {
+            self.idlePeekingOffset = -5
+            self.idlePeekingAngle = 12.0
+            self.idlePeekingScale = 1.06
+        }
+
+        // Phase 2: Shift smoothly and glance right (-12°)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self, self.state == .idle else { return }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.65)) {
+                self.idlePeekingAngle = -12.0
+            }
+        }
+
+        // Phase 3: Center with cheerful bounce
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            guard let self = self, self.state == .idle else { return }
+            withAnimation(.spring(response: 0.30, dampingFraction: 0.55)) {
+                self.idlePeekingAngle = 0.0
+                self.idlePeekingOffset = -6
+                self.idlePeekingScale = 1.10
+            }
+        }
+
+        // Phase 4: Settle back into calm resting posture
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            guard let self = self else { return }
+            withAnimation(.spring(response: 0.40, dampingFraction: 0.8)) {
+                self.idlePeekingOffset = 0
+                self.idlePeekingAngle = 0.0
+                self.idlePeekingScale = 1.0
+                self.isIdlePeeking = false
+            }
+        }
+    }
+
+    public func startTelescopeRadar() {
+        stopTelescopeRadar()
+        telescopeRadarTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self, self.state.isCapturing else { return }
+                self.telescopeRadarAngle = (self.telescopeRadarAngle + 8.0).truncatingRemainder(dividingBy: 360.0)
+            }
+        }
+    }
+
+    public func stopTelescopeRadar() {
+        telescopeRadarTimer?.invalidate()
+        telescopeRadarTimer = nil
+        telescopeRadarAngle = 0.0
+    }
+
+    public func triggerTelescopeInspection() async {
+        self.isTelescopeInspectionMode = true
+        PipseySoundEffects.playTelescopeFocus()
+        await triggerSession()
+    }
+
     private func handleStateChange(_ newState: SessionState) {
         self.state = newState
         updateDimensions()
@@ -1282,9 +1664,18 @@ public final class IslandViewModel: ObservableObject {
         onKeyWindowPermissionChange?(sheetActive)
 
         if newState == .listeningAndCapturing {
+            stopIdlePeekingTimer()
             startTimer()
+            if isTelescopeInspectionMode {
+                startTelescopeRadar()
+            }
         } else {
             stopTimer()
+            stopTelescopeRadar()
+            if newState == .idle {
+                self.isTelescopeInspectionMode = false
+                startIdlePeekingTimer()
+            }
         }
     }
 

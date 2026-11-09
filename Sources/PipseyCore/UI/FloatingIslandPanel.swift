@@ -1,15 +1,31 @@
 import AppKit
 import SwiftUI
 
+public enum CompanionStyle: String, CaseIterable, Sendable {
+    case floatingCircle = "floatingCircle"
+    case notchIsland = "notchIsland"
+}
+
+public enum CompanionCorner: String, CaseIterable, Sendable {
+    case topRight = "topRight"
+    case topLeft = "topLeft"
+    case bottomRight = "bottomRight"
+    case bottomLeft = "bottomLeft"
+}
+
 @MainActor
 public final class FloatingIslandPanel: NSPanel {
     public private(set) var currentWidth: CGFloat = 340
     public private(set) var currentHeight: CGFloat = 64
     public var allowsKeyWindow: Bool = false
     public var customOrigin: NSPoint? = nil
+    public var companionStyle: CompanionStyle = .floatingCircle
+    public var anchorCorner: CompanionCorner = .topRight
     private var isProgrammaticReposition: Bool = false
 
     public init(contentRect: NSRect, level: NSWindow.Level = .floating) {
+        self.currentWidth = contentRect.width > 0 ? contentRect.width : 340
+        self.currentHeight = contentRect.height > 0 ? contentRect.height : 64
         super.init(
             contentRect: contentRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -86,9 +102,63 @@ public final class FloatingIslandPanel: NSPanel {
         let screen = self.screen ?? FloatingIslandPanel.targetScreenForCursor()
         let clampedX = max(screen.frame.minX + 4, min(screen.frame.maxX - currentWidth - 4, newOrigin.x))
         let clampedY = max(screen.visibleFrame.minY + 4, min(screen.frame.maxY - currentHeight, newOrigin.y))
-        let origin = NSPoint(x: clampedX, y: clampedY)
+        let targetOrigin = NSPoint(x: clampedX, y: clampedY)
+
+        // Check if tossed/dragged near any screen corner
+        if let corner = detectNearestCorner(for: targetOrigin, on: screen) {
+            self.snapToCorner(corner, on: screen)
+            PipseySoundEffects.playTelescopeFocus()
+        } else {
+            self.customOrigin = targetOrigin
+            self.setFrameOrigin(targetOrigin)
+        }
+    }
+
+    public func detectNearestCorner(for origin: NSPoint, on screen: NSScreen) -> CompanionCorner? {
+        let vis = screen.visibleFrame
+        let threshold: CGFloat = 110
+
+        let distTopRight = hypot(vis.maxX - (origin.x + currentWidth), vis.maxY - (origin.y + currentHeight))
+        let distTopLeft = hypot(origin.x - vis.minX, vis.maxY - (origin.y + currentHeight))
+        let distBottomRight = hypot(vis.maxX - (origin.x + currentWidth), origin.y - vis.minY)
+        let distBottomLeft = hypot(origin.x - vis.minX, origin.y - vis.minY)
+
+        let minDistance = min(distTopRight, distTopLeft, distBottomRight, distBottomLeft)
+        guard minDistance < threshold else { return nil }
+
+        if minDistance == distTopRight { return .topRight }
+        if minDistance == distTopLeft { return .topLeft }
+        if minDistance == distBottomRight { return .bottomRight }
+        return .bottomLeft
+    }
+
+    public func snapToCorner(_ corner: CompanionCorner, on targetScreen: NSScreen? = nil) {
+        self.anchorCorner = corner
+        let screen = targetScreen ?? self.screen ?? FloatingIslandPanel.targetScreenForCursor()
+        let vis = screen.visibleFrame
+        let inset: CGFloat = 18
+
+        let x: CGFloat
+        let y: CGFloat
+
+        switch corner {
+        case .topRight:
+            x = vis.maxX - currentWidth - inset
+            y = vis.maxY - currentHeight - inset
+        case .topLeft:
+            x = vis.minX + inset
+            y = vis.maxY - currentHeight - inset
+        case .bottomRight:
+            x = vis.maxX - currentWidth - inset
+            y = vis.minY + inset
+        case .bottomLeft:
+            x = vis.minX + inset
+            y = vis.minY + inset
+        }
+
+        let origin = NSPoint(x: x, y: y)
         self.customOrigin = origin
-        self.setFrameOrigin(origin)
+        self.setFrame(NSRect(origin: origin, size: NSSize(width: currentWidth, height: currentHeight)), display: true, animate: false)
     }
 
     public func resetToDefaultPosition() {
@@ -104,6 +174,30 @@ public final class FloatingIslandPanel: NSPanel {
         self.currentHeight = height
 
         let screen = targetScreen ?? FloatingIslandPanel.targetScreenForCursor()
+
+        if companionStyle == .floatingCircle && customOrigin == nil {
+            let vis = screen.visibleFrame
+            let inset: CGFloat = 18
+            let x: CGFloat
+            let y: CGFloat
+            switch anchorCorner {
+            case .topRight:
+                x = vis.maxX - width - inset
+                y = vis.maxY - height - inset
+            case .topLeft:
+                x = vis.minX + inset
+                y = vis.maxY - height - inset
+            case .bottomRight:
+                x = vis.maxX - width - inset
+                y = vis.minY + inset
+            case .bottomLeft:
+                x = vis.minX + inset
+                y = vis.minY + inset
+            }
+            self.setFrame(NSRect(x: x, y: y, width: width, height: height), display: true, animate: false)
+            return
+        }
+
         let metrics = NotchMetrics.current(for: screen)
         let screenRect = screen.frame
 

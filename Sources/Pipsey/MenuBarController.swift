@@ -8,17 +8,23 @@ public final class MenuBarController: NSObject {
     private let onCheckPermissions: () -> Void
     private let onOpenSettings: () -> Void
     private let onResetPosition: () -> Void
+    private let onTelescopeInspection: () -> Void
+    private let onPeekingGlance: () -> Void
 
     public init(
         onActivate: @escaping () -> Void,
         onCheckPermissions: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void = {},
-        onResetPosition: @escaping () -> Void = {}
+        onResetPosition: @escaping () -> Void = {},
+        onTelescopeInspection: @escaping () -> Void = {},
+        onPeekingGlance: @escaping () -> Void = {}
     ) {
         self.onActivate = onActivate
         self.onCheckPermissions = onCheckPermissions
         self.onOpenSettings = onOpenSettings
         self.onResetPosition = onResetPosition
+        self.onTelescopeInspection = onTelescopeInspection
+        self.onPeekingGlance = onPeekingGlance
         super.init()
         setupStatusItem()
     }
@@ -46,6 +52,14 @@ public final class MenuBarController: NSObject {
         activateItem.keyEquivalentModifierMask = [.option, .command]
         activateItem.target = self
         menu.addItem(activateItem)
+
+        let telescopeItem = NSMenuItem(title: "Telescope Inspection (⌃⌥⌘)", action: #selector(handleTelescopeInspection), keyEquivalent: "")
+        telescopeItem.target = self
+        menu.addItem(telescopeItem)
+
+        let peekItem = NSMenuItem(title: "Trigger Peeking Curiosity Glance", action: #selector(handlePeekingGlance), keyEquivalent: "")
+        peekItem.target = self
+        menu.addItem(peekItem)
 
         let holdItem = NSMenuItem(title: "Hold ⌥⌘ to Record Interaction", action: nil, keyEquivalent: "")
         holdItem.isEnabled = false
@@ -89,6 +103,14 @@ public final class MenuBarController: NSObject {
 
     @objc private func handleActivate() {
         onActivate()
+    }
+
+    @objc private func handleTelescopeInspection() {
+        onTelescopeInspection()
+    }
+
+    @objc private func handlePeekingGlance() {
+        onPeekingGlance()
     }
 
     @objc private func handleResetPosition() {

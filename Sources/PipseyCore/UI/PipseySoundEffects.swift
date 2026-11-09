@@ -21,4 +21,14 @@ public enum PipseySoundEffects: Sendable {
     public static func playCopyFeedback() {
         NSSound(named: "Bottle")?.play()
     }
+
+    @MainActor
+    public static func playTelescopeFocus() {
+        NSSound(named: "Ping")?.play()
+    }
+
+    @MainActor
+    public static func playIdlePeekingSound() {
+        NSSound(named: "Pop")?.play()
+    }
 }

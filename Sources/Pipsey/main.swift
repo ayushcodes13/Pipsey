@@ -18,20 +18,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Setup Standard macOS Main Application Menu (Edit, Window, Help, Preferences)
         setupMainMenu()
 
-        // Setup Floating Island Panel (anchored to notch on hardware notch, or floating capsule below menu bar on non-notch)
-        let metrics = NotchMetrics.current()
+        // Setup Floating Island Panel
         let islandLevel = NSWindow.Level(Int(CGWindowLevelForKey(.floatingWindow)) + 10)
         let panel = FloatingIslandPanel(
-            contentRect: NSRect(x: 0, y: 0, width: metrics.closedWidth, height: metrics.closedHeight),
+            contentRect: NSRect(x: 0, y: 0, width: viewModel.currentWidth, height: viewModel.currentHeight),
             level: islandLevel
         )
+        panel.companionStyle = viewModel.companionStyle
+        panel.anchorCorner = viewModel.anchorCorner
         let hostingView = DraggableIslandHostingView(rootView: CompanionIslandView(viewModel: viewModel))
         panel.contentView = hostingView
-        panel.reposition(width: metrics.closedWidth, height: metrics.closedHeight)
+        panel.reposition(width: viewModel.currentWidth, height: viewModel.currentHeight)
         panel.orderFrontRegardless()
         self.islandPanel = panel
 
-        // Dynamic geometry update when notch springs open or closes
+        // Dynamic geometry update when companion morphs, peeks, or expands
         viewModel.onGeometryChange = { [weak panel] width, height in
             panel?.updateGeometry(width: width, height: height)
         }
@@ -84,6 +85,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Task { @MainActor in
                     self?.islandPanel?.resetToDefaultPosition()
                 }
+            },
+            onTelescopeInspection: { [weak self] in
+                Task { @MainActor in
+                    await self?.viewModel.triggerTelescopeInspection()
+                }
+            },
+            onPeekingGlance: { [weak self] in
+                Task { @MainActor in
+                    self?.viewModel.triggerIdlePeekingGlance()
+                }
             }
         )
 
@@ -94,6 +105,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.islandPanel?.repositionTopCenter()
                 }
                 await self?.viewModel.triggerSession()
+            }
+        }
+
+        // Setup Telescope Inspection Trigger (Control + Option + Command ⌃⌥⌘)
+        hotKeyController.onTelescopeInspectionTrigger = { [weak self] isHolding in
+            Task { @MainActor in
+                guard let self = self else { return }
+                if isHolding {
+                    if self.viewModel.state == .idle {
+                        await self.viewModel.triggerTelescopeInspection()
+                    }
+                } else {
+                    if self.viewModel.state.isCapturing && self.viewModel.isTelescopeInspectionMode {
+                        await self.viewModel.stopCapture()
+                    }
+                }
             }
         }
 
@@ -122,8 +149,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         print("Pipsey started successfully!")
         print("  HotKey (⌥⌘P) registered: \(hotKeyRegistered)")
-        print("  Top-Center Notch presented: \(panel.isVisible)")
-        print("  Notch footprint: \(metrics.closedWidth)x\(metrics.closedHeight) (Physical notch: \(metrics.hasPhysicalNotch))")
+        print("  Companion Panel presented: \(panel.isVisible)")
+        print("  Footprint: \(panel.currentWidth)x\(panel.currentHeight) (Style: \(panel.companionStyle.rawValue))")
 
         // Observe Demo Simulation requests from Settings or Onboarding
         NotificationCenter.default.addObserver(forName: NSNotification.Name("PipseyTriggerDemoSimulation"), object: nil, queue: .main) { [weak self] _ in
