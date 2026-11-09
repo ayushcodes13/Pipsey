@@ -25,6 +25,22 @@
 
 ## Engineering log
 
+### 2026-11-10 — Notch Island Refinement: Text Removal & Dynamic Width Auto-Expansion
+- **Goal and exact changes:**
+  1. **Removed Text "Pipsey" from Notch Island:**
+     - Eliminated `Text("Pipsey")` from the closed / hover island header so the word is never truncated or cramped.
+     - Kept strictly the clean mascot icon avatar (`PipseyMascotView(size: 20)`), matching Dynamic Island hardware camera aesthetics.
+  2. **Dynamic Auto-Expanding Width for All Content:**
+     - In `CompanionIslandView.swift`, implemented dynamic width calculation in `updateDimensions()`:
+       - **Capturing (`listeningAndCapturing`):** Increased width to `380pt` (height `52pt`) to generously accommodate "Recording UI", live timer, 5-bar reactive audio waveform, prompt, and action buttons without clipping.
+       - **Processing (`processingVisual`, `generatingResponse`, etc.):** Dynamically computes width `min(560, max(380, CGFloat(processingStatusText.count * 8) + 120))`.
+       - Added `didSet { updateDimensions() }` on `processingStatusText` so the notch smoothly animates and expands whenever longer status updates arrive.
+       - **Error State (`error(let msg)`):** Dynamically scales width up to `560pt` based on error message length.
+       - **Explanation State (`readyForFollowup`, `speaking`):** Expanded width to `520pt` (height `160pt`) for a spacious, comfortable reading layout.
+  3. **Verification:**
+     - 308 / 308 tests passing.
+     - Release bundle recompiled, verified, and running live at `build/Pipsey.app`.
+
 ### 2026-11-10 — Dave Poon `macos-design` Skill Integration: Native <kbd> Badges, Layered Depth & HUD Feedback
 - **Goal and exact changes:**
   1. **Installed `macos-design` Skill:**

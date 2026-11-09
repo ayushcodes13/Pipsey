@@ -225,20 +225,16 @@ public struct CompanionIslandView: View {
             }
             .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record, or drag to move)")
         } else {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Button(action: {
                     Task { await viewModel.triggerSession() }
                 }) {
-                    HStack(spacing: 5) {
-                        PipseyMascotView(size: 18)
-                        Text("Pipsey")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
+                    PipseyMascotView(size: 20)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Pipsey Mascot (Click to record)")
 
-                Spacer(minLength: 2)
+                Spacer(minLength: 4)
 
                 Button(action: {
                     Task { await viewModel.triggerSession() }
@@ -255,7 +251,7 @@ public struct CompanionIslandView: View {
                     SettingsWindowController.show()
                 }) {
                     Image(systemName: "gearshape.fill")
-                        .font(.system(size: 10))
+                        .font(.system(size: 11))
                         .foregroundColor(.gray)
                 }
                 .buttonStyle(.plain)
@@ -265,7 +261,7 @@ public struct CompanionIslandView: View {
                     HistoryWindowController.shared.showHistory()
                 }) {
                     Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 10))
+                        .font(.system(size: 11))
                         .foregroundColor(.gray)
                 }
                 .buttonStyle(.plain)
@@ -1083,7 +1079,11 @@ public final class IslandViewModel: ObservableObject {
     }
     @Published public var isSpeaking: Bool = false
     @Published public var audioPowerLevel: CGFloat = 0.0
-    @Published public var processingStatusText: String = "Analyzing interaction & evidence..."
+    @Published public var processingStatusText: String = "Analyzing interaction & evidence..." {
+        didSet {
+            updateDimensions()
+        }
+    }
 
     // Geometry matching boring.notch or Dynamic Island
     public let hasPhysicalNotch: Bool
@@ -1153,7 +1153,7 @@ public final class IslandViewModel: ObservableObject {
         switch state {
         case .idle:
             if isHovering {
-                w = 190
+                w = 175
                 h = 32
                 topR = hasPhysicalNotch ? 8 : 16
                 botR = 16
@@ -1164,23 +1164,30 @@ public final class IslandViewModel: ObservableObject {
                 botR = hasPhysicalNotch ? 14 : 7
             }
         case .listeningAndCapturing:
-            w = 330
-            h = 50
+            // Generous width for "Recording UI", live timer, 5-bar waveform, prompt, Done & Cancel
+            w = 380
+            h = 52
             topR = hasPhysicalNotch ? 12 : 18
             botR = 18
         case .processingVisual, .generatingResponse, .starting, .stopping, .cancelling:
-            w = 300
-            h = 44
+            // Dynamically expand notch width based on status text so it never clips
+            let textLen = processingStatusText.count
+            let dynamicW = CGFloat(textLen * 8) + 120
+            w = min(560, max(380, dynamicW))
+            h = 46
             topR = hasPhysicalNotch ? 10 : 18
             botR = 18
         case .readyForFollowup, .speaking:
-            w = 460
-            h = 150
+            // Spaciously formatted explanation pane
+            w = 520
+            h = 160
             topR = hasPhysicalNotch ? 16 : 20
             botR = 20
-        case .error:
-            w = 320
-            h = 48
+        case .error(let msg):
+            // Dynamically expand notch width so error messages are fully readable
+            let dynamicW = CGFloat(msg.count * 8) + 120
+            w = min(560, max(380, dynamicW))
+            h = 50
             topR = hasPhysicalNotch ? 10 : 18
             botR = 18
         }
