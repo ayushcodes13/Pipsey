@@ -5,6 +5,7 @@ import SwiftUI
 public final class FloatingIslandPanel: NSPanel {
     public private(set) var currentWidth: CGFloat = 340
     public private(set) var currentHeight: CGFloat = 64
+    public var allowsKeyWindow: Bool = false
 
     public init(contentRect: NSRect, level: NSWindow.Level = .floating) {
         super.init(
@@ -31,11 +32,6 @@ public final class FloatingIslandPanel: NSPanel {
         )
     }
 
-    override public func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
-        // Return unconstrained frame so the notch anchors flush to the top bezel without being forced down by macOS
-        return frameRect
-    }
-
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
@@ -45,11 +41,16 @@ public final class FloatingIslandPanel: NSPanel {
     }
 
     override public var canBecomeKey: Bool {
-        return false
+        return allowsKeyWindow
     }
 
     override public var canBecomeMain: Bool {
         return false
+    }
+
+    override public func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        // Return unconstrained frame so the notch anchors flush to the top bezel without being forced down by macOS
+        return frameRect
     }
 
     public static func targetScreenForCursor() -> NSScreen {

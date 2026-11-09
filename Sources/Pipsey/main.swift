@@ -32,6 +32,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panel?.updateGeometry(width: width, height: height)
         }
 
+        // Allow keyboard focus when sheets (settings, follow-up, permissions) are active
+        viewModel.onKeyWindowPermissionChange = { [weak panel] allows in
+            panel?.allowsKeyWindow = allows
+            if allows {
+                panel?.makeKey()
+            }
+        }
+
         // Setup Menu Bar Item
         self.menuBarController = MenuBarController(
             onActivate: { [weak self] in
@@ -40,12 +48,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     await self?.viewModel.triggerSession()
                 }
             },
-            onCheckPermissions: {
-                let snapshot = PermissionCoordinator.shared.currentSnapshot()
-                print("Permission Status:")
-                print("  Screen Recording: \(snapshot.screenRecording.rawValue)")
-                print("  Microphone: \(snapshot.microphone.rawValue)")
-                print("  Speech Recognition: \(snapshot.speechRecognition.rawValue)")
+            onCheckPermissions: { [weak self] in
+                Task { @MainActor in
+                    self?.viewModel.showPermissionsSheet = true
+                }
+            },
+            onOpenSettings: { [weak self] in
+                Task { @MainActor in
+                    self?.viewModel.showSettingsSheet = true
+                }
             }
         )
 

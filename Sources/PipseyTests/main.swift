@@ -1,5 +1,8 @@
 import Foundation
 import AppKit
+import CoreGraphics
+import CoreImage
+import ImageIO
 import PipseyCore
 
 final class AtomicBox<T>: @unchecked Sendable {
@@ -356,8 +359,9 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     await captureService.cancel()
     assertEqual(await captureService.isCapturing, false, "Capture service safely idle after cancel")
 
-    // TEST 14: M3 Canonical Evaluation Scenarios (10/10 Matrix)
-    print("\n--- Test 14: Canonical 10/10 Evaluation Scenarios ---")
+    // TEST 14: M3 Canonical Evaluation Schema & Contract Fixtures (Contract Verification)
+    print("\n--- Test 14: Canonical Schema & Anti-Hallucination Fixture Validation (Synthetic Contract Check) ---")
+    print("  [FIXTURE NOTE] Verifying 10 reference interaction contract scenarios (E01-E10)")
     let m3SessionId = UUID()
     let frameSet: Set<String> = ["frame-001", "frame-002", "frame-003"]
     var successfulScenarios = 0
@@ -370,7 +374,7 @@ func runAllTests() async -> (passed: Int, failed: Int) {
             availableFrameIds: frameSet,
             sessionDurationMs: 2000
         )
-        assertTrue(result.isValid, "Scenario \(scenario.id) (\(scenario.name)) must pass schema & frame validation")
+        assertTrue(result.isValid, "Scenario \(scenario.id) (\(scenario.name)) passes contract validation")
         assertEqual(resp.observations.count, 1, "Scenario \(scenario.id) has 1 primary observation")
         assertEqual(resp.observations[0].before, scenario.expectedBefore, "Before state matches expected")
         assertEqual(resp.observations[0].after, scenario.expectedAfter, "After state matches expected")
@@ -382,7 +386,7 @@ func runAllTests() async -> (passed: Int, failed: Int) {
 
         successfulScenarios += 1
     }
-    assertEqual(successfulScenarios, 10, "Target ≥9/10 met: exactly 10/10 canonical scenarios validated")
+    assertEqual(successfulScenarios, 10, "10/10 canonical schema fixtures pass contract validation")
 
     // TEST 15: M3 VLM Frame Limit Safety Gate
     print("\n--- Test 15: VLM Frame Limit Safety Gate ---")
@@ -455,6 +459,95 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     assertTrue(metrics.closedWidth >= 180, "Closed notch width is >= 180pt")
     assertTrue(metrics.closedHeight >= 20, "Closed notch height is >= 20pt")
     print("Detected screen metrics: width=\(metrics.closedWidth), height=\(metrics.closedHeight), physicalNotch=\(metrics.hasPhysicalNotch)")
+
+    // TEST 20: Real Image Frame Pipeline & Multi-Modal VLM Request Preparation
+    print("\n--- Test 20: Real Image Frame Pipeline & VLM Client Verification ---")
+    func makeTestImage(color: CGColor) -> Data {
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(data: nil, width: 64, height: 64, bitsPerComponent: 8, bytesPerRow: 64 * 4, space: cs, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return Data() }
+        ctx.setFillColor(color)
+        ctx.fill(CGRect(x: 0, y: 0, width: 64, height: 64))
+        guard let img = ctx.makeImage() else { return Data() }
+        let ci = CIImage(cgImage: img)
+        return CIContext().jpegRepresentation(of: ci, colorSpace: cs, options: [:]) ?? Data()
+    }
+
+    let img1 = makeTestImage(color: CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+    let img2 = makeTestImage(color: CGColor(red: 0, green: 0, blue: 1, alpha: 1))
+    assertTrue(!img1.isEmpty, "Generated valid JPEG test image 1")
+    assertTrue(!img2.isEmpty, "Generated valid JPEG test image 2")
+    assertTrue(img1 != img2, "Image 1 and Image 2 have distinct pixel payloads")
+
+    let testDir = FileManager.default.temporaryDirectory.appendingPathComponent("pipsey-test-\(UUID().uuidString)")
+    try? FileManager.default.createDirectory(at: testDir, withIntermediateDirectories: true)
+    let testSampler = FrameSampler(maxFrames: 5, sessionDirectory: testDir)
+    let realF1 = await testSampler.sampleFrame(relativeTimeMs: 100, width: 64, height: 64, jpegData: img1)
+    let realF2 = await testSampler.sampleFrame(relativeTimeMs: 700, width: 64, height: 64, jpegData: img2)
+    assertTrue(realF1 != nil && realF2 != nil, "Sampler successfully accepted real frame byte buffers")
+
+    let loadedFrames = await testSampler.loadSampledFrames()
+    assertEqual(loadedFrames.count, 2, "Sampler returned exactly 2 loaded frames")
+    assertEqual(loadedFrames[0].rawImageData?.count, img1.count, "Frame 1 preserved full image byte payload")
+    assertEqual(loadedFrames[1].rawImageData?.count, img2.count, "Frame 2 preserved full image byte payload")
+    try? FileManager.default.removeItem(at: testDir)
+
+    // Test VLM client fails safely with unauthorized without valid API key rather than inventing fake observations
+    let unauthedClient = HostedVLMClient(config: VLMConfiguration(apiKey: ""))
+    let realManifest = EvidenceManifest(capture: CaptureInfo(targetType: .display, targetId: "d1", dimensions: Dimensions(width: 64, height: 64), startedAtMonotonicMs: 0, durationMs: 600, permissionState: "granted"))
+    do {
+        _ = try await unauthedClient.observe(manifest: realManifest, frames: loadedFrames)
+        print("❌ FAIL: Empty API key should fail without sending or fabricating")
+        failed += 1
+    } catch ObserverError.unauthorized {
+        assertTrue(true, "VLM client strictly enforces API key requirement (zero unauthenticated fabrication)")
+    } catch {
+        // If it throws another valid client/server error rather than fabricating, verify it didn't succeed
+        assertTrue(true, "VLM client failed safely with \(error) without fabricating observations")
+    }
+
+    // TEST 21: Adversarial Hallucination Defense & Schema Rejection
+    print("\n--- Test 21: ObservationValidator Adversarial Hallucination Defense ---")
+    let validFrameIds: Set<String> = ["f-real-1", "f-real-2"]
+
+    // Hallucination 1: Referencing unknown frames not in manifest
+    let hallucinatedFrameObs = ObserverResponse(
+        schemaVersion: "0.1",
+        sessionId: m3SessionId.uuidString,
+        requestId: "r1",
+        observations: [
+            Observation(id: "o1", startMs: 50, endMs: 200, kind: "change", before: "a", after: "b", evidenceFrameIds: ["f-hallucinated-999"])
+        ],
+        coverage: TimeCoverage(startMs: 0, endMs: 500),
+        unknowns: []
+    )
+    let hallResult1 = validator.validate(response: hallucinatedFrameObs, expectedSessionId: m3SessionId, availableFrameIds: validFrameIds, sessionDurationMs: 500)
+    assertTrue(!hallResult1.isValid, "ObservationValidator rejects responses citing uncited/invented frame IDs")
+
+    // Hallucination 2: Timestamps beyond session duration
+    let futureTimeObs = ObserverResponse(
+        schemaVersion: "0.1",
+        sessionId: m3SessionId.uuidString,
+        requestId: "r2",
+        observations: [
+            Observation(id: "o2", startMs: 50, endMs: 9999, kind: "change", before: "a", after: "b", evidenceFrameIds: ["f-real-1"])
+        ],
+        coverage: TimeCoverage(startMs: 0, endMs: 500),
+        unknowns: []
+    )
+    let hallResult2 = validator.validate(response: futureTimeObs, expectedSessionId: m3SessionId, availableFrameIds: validFrameIds, sessionDurationMs: 500)
+    assertTrue(!hallResult2.isValid, "ObservationValidator rejects observations claiming time beyond session ceiling")
+
+    // Hallucination 3: Session ID spoofing
+    let spoofedObs = ObserverResponse(
+        schemaVersion: "0.1",
+        sessionId: UUID().uuidString,
+        requestId: "r3",
+        observations: [],
+        coverage: TimeCoverage(startMs: 0, endMs: 500),
+        unknowns: []
+    )
+    let hallResult3 = validator.validate(response: spoofedObs, expectedSessionId: m3SessionId, availableFrameIds: validFrameIds, sessionDurationMs: 500)
+    assertTrue(!hallResult3.isValid, "ObservationValidator rejects responses with spoofed/mismatched session IDs")
 
     return (passed, failed)
 }

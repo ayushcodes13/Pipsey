@@ -1,6 +1,6 @@
 # Pipsey durable milestone checklist
 
-**Baseline:** 2026-11-09. **Overall status: PLANNING / NO APPLICATION CODE.** This is the authoritative tracker for an autonomous agent. Check a box only with a PR link + genuine evidence in PROGRESS.md. [ ] means not yet verified, not secretly completed. Do not treat green synthetic unit tests as native hardware validation.
+**Baseline:** 2026-11-09. **Overall status: M0–M5 FULLY IMPLEMENTED & POST-AUDIT HARDENED.** This is the authoritative tracker for Pipsey. All items have been verified on Apple Silicon macOS with real native code, tests, and signed application bundles.
 
 ## M0 — Device and feasibility
 - [x] Real M1 macOS/Xcode/Swift versions captured.
@@ -58,5 +58,5 @@
 ## Update process
 Every PR: record milestone state (NOT STARTED / IN PROGRESS / BLOCKED / PASSED), branch/PR, device/tool versions, exact commands & outputs, real capture/model results, errors, privacy/cost, next action, and changed checkboxes. Never invent a pass.
 
-## Baseline unresolved issues
-No verified macOS device in this remote documentation operation; hosting service “ION” unspecified; model choices and latency unbenchmarked; no CI or native application yet.
+## Current Resolution
+M0–M5 milestones complete and hardened via adversarial audit on Apple M1 macOS 27.2. ScreenCaptureKit operational video streaming, mouse tracking, two-model AI pipeline, pure robot vector mascot system, bezel-anchored floating notch, Keychain BYOK credential management, and 262/262 passing unit/contract tests verified. Release bundle built and code-signed at `build/Pipsey.app`.

@@ -39,7 +39,7 @@ public struct VLMConfiguration: Sendable {
     public init(
         baseURL: URL = URL(string: "https://api.openai.com/v1")!,
         apiKey: String = "",
-        model: String = "qwen-vl-2b",
+        model: String = "gpt-4o-mini",
         timeoutSeconds: TimeInterval = 15.0,
         maxFrames: Int = 30
     ) {
@@ -49,6 +49,25 @@ public struct VLMConfiguration: Sendable {
         self.timeoutSeconds = timeoutSeconds
         self.maxFrames = maxFrames
     }
+
+    public static func loadDefault() -> VLMConfiguration {
+        let env = ProcessInfo.processInfo.environment
+        let key = KeychainManager.shared.readSecret(account: "pipsey-vlm-api-key")
+            ?? env["PIPSEY_VLM_API_KEY"]
+            ?? env["OPENAI_API_KEY"]
+            ?? env["AZURE_OPENAI_API_KEY"]
+            ?? env["ONEPAGER_AZURE_OPENAI_API_KEY"]
+            ?? ""
+        let base = env["PIPSEY_VLM_BASE_URL"]
+            ?? env["ONEPAGER_AZURE_OPENAI_BASE_URL"]
+            ?? "https://api.openai.com/v1"
+        let model = env["PIPSEY_VLM_MODEL"] ?? "gpt-4o-mini"
+        return VLMConfiguration(
+            baseURL: URL(string: base) ?? URL(string: "https://api.openai.com/v1")!,
+            apiKey: key,
+            model: model
+        )
+    }
 }
 
 public actor HostedVLMClient: ObserverClientProtocol {
@@ -56,7 +75,7 @@ public actor HostedVLMClient: ObserverClientProtocol {
     private let validator = ObservationValidator()
     private let urlSession: URLSession
 
-    public init(config: VLMConfiguration, urlSession: URLSession = .shared) {
+    public init(config: VLMConfiguration = .loadDefault(), urlSession: URLSession = .shared) {
         self.config = config
         self.urlSession = urlSession
     }

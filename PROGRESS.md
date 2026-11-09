@@ -2,22 +2,51 @@
 
 > Maintain this file after every real engineering session. This is an authoritative record of empirical results.
 
-## Snapshot — 2026-11-09
+## Snapshot — 2026-11-09 (Post-Audit & Product Polish Recovery)
 - **Project:** Pipsey — native macOS Feature Mode companion.
-- **Phase:** M0–M5 COMPLETE (All milestones implemented, tested, and verified on Apple Silicon).
-- **Application:** Real native macOS application bundle (`build/Pipsey.app`) built with SwiftUI and AppKit. Features top-center non-activating floating island, menu bar controller, Carbon global hotkey `⌥⌘P`, multi-display targeting, ScreenCaptureKit bounded capture, SHA256 frame deduplication, mouse-only EventRecorder, SpeechService, Hosted VLM Observer, Conversational Text LLM, Apple native TTS, macOS Keychain BYOK credential storage, and GitHub Actions CI.
-- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 247/247 tests passed, 0 failures).
-- **Release application bundle:** VERIFIED PASS (`scripts/build-app.sh` -> `build/Pipsey.app` with `Info.plist`, entitlements, resources).
+- **Phase:** RECOVERY, ADVERSARIAL AUDIT & PRODUCT POLISH COMPLETE.
+- **Application:** Real native macOS application bundle (`build/Pipsey.app`) built with SwiftUI, AppKit, ScreenCaptureKit, CoreImage, and Apple Silicon hardware acceleration.
+- **Key fixes delivered:**
+  - P0-1: Operational ScreenCaptureKit video stream (`SCStream`, `SCContentFilter`, `SCStreamConfiguration`, `CaptureStreamOutputHandler`) receiving live frames and compressing to JPEG via `CIContext`.
+  - P0-2: Connected real VLM pipeline, eliminated all synthetic observations in production capture, and implemented honest redemonstration prompts on zero-frame captures.
+  - P0-3: Clarified synthetic contract fixtures (E01-E10) and added empirical frame pipeline & adversarial hallucination tests.
+  - P0-4: Passive system mouse tracking via `NSEvent` global/local monitors with 15 Hz rate limiting and micro-interaction burst triggers.
+  - P0-5: Real image byte marshaling from `FrameSampler.loadSampledFrames()` into `HostedVLMClient`.
+  - P0-6: In-app `SettingsSheetView` with macOS Keychain BYOK credential management and live connection tests.
+  - P1-1: Dynamic `allowsKeyWindow` toggling so text fields in modal sheets receive focus without breaking background non-activating island behavior.
+  - P1-2: Pure robot mascot asset system (no burned-in text) across `AppIcon.icns`, menu bar template, and SwiftUI views.
+  - UI Polish: Bezel-anchored notch (`Y = 0`, layer `.mainMenu + 3`), 5-bar live reactive audio waveform, and native tactile feedback sounds.
+- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 262/262 tests passed, 0 failures).
+- **Release application bundle:** VERIFIED PASS (`./scripts/build-app.sh` -> codesigned `build/Pipsey.app`).
 - **Hardware performance (Apple M1):**
-  - Process footprint: 59 MB RSS (0.7% of 8GB memory).
-  - Idle CPU: < 0.1%.
-  - App launch latency: < 200ms.
-- **Model inference and hosting:** Two independent roles (small VLM observer + conversational text LLM); zero hardcoded vendor locks; current host spend: $0.00.
-- **Privacy and security:** Verified fail-closed permissions, prompt injection defense, generation ID cancellation, Keychain secret management, and automatic purging of ephemeral capture artifacts.
+  - Footprint: ~60 MB RSS, < 0.1% CPU idle, flush notch window at `X=622, Y=0, W=195, H=33`.
 
 ---
 
 ## Engineering log
+
+### 2026-11-09 — Autonomous Recovery, Adversarial Audit & Product Polish
+- **Goal and exact changes:**
+  1. Replaced inactive `SCStream` with working ScreenCaptureKit stream in `CaptureService.swift` using `SCStreamOutputType.screen`, `CVPixelBuffer` extraction, and hardware `CIContext` JPEG encoding.
+  2. Implemented `SystemMouseMonitor` bridge on `@MainActor` in `EventRecorder.swift` capturing mouse moves (15 Hz rate-limited) and clicks (`mouseDown`, `mouseUp`) with zero keystroke logging.
+  3. Added `loadSampledFrames()` to `FrameSampler.swift` for retrieving complete `SampledFrame` objects with raw image byte payloads.
+  4. Rewired `stopCapture()` in `CompanionIslandView.swift` to pass real frames through `HostedVLMClient`, run `ObservationValidator`, and honestly report zero-frame captures.
+  5. Implemented `SettingsSheetView` in `CompanionIslandView.swift` with Keychain API key storage (`pipsey-vlm-api-key`, `pipsey-text-api-key`) and test connection ping.
+  6. Added `allowsKeyWindow` toggling in `FloatingIslandPanel.swift` so text fields can be focused during settings and follow-ups.
+  7. Extracted the robot mascot from `pipsey-logo.webp`, generated scalable vector assets (`Assets/pipsey-mascot.svg`, `Assets/pipsey-app-icon.svg`, `Assets/pipsey-menubar-template.svg`), rendered high-res iconsets, and generated `Assets/AppIcon.icns`.
+  8. Created `PipseyMascotView` replacing emoji placeholders with native robot mascot graphics.
+  9. Added live reactive 5-bar audio waveform (`LiveWaveformView`) powered by real RMS audio power metering in `SpeechService.swift`.
+  10. Added native macOS sound effects (`PipseySoundEffects` with Tink, Pop, Glass, Bottle) for interactive feedback.
+  11. Anchored notch flush to the display bezel (`Y = 0`) at layer `.mainMenu + 3` by overriding `constrainFrameRect` in `FloatingIslandPanel`.
+  12. Added multi-provider Claude messages API support (`api.anthropic.com/v1/messages`) alongside OpenAI-compatible endpoints.
+  13. Clarified fixture contract status of Test 14 and added Test 20 (real frame image pipeline) and Test 21 (adversarial hallucination defense), bringing test suite to 262 passing tests.
+- **Device hardware / macOS / Xcode / Swift:**
+  - Hardware: Apple M1 (MacBookPro17,1), 8 GB RAM, macOS 27.2.
+  - Swift: Apple Swift version 6.3.3.
+- **Actual commands and pass/fail outputs:**
+  - `swift run PipseyTests` -> TOTAL TESTS: 262 | PASSED: 262 | FAILED: 0 | VERDICT: PASS
+  - `./scripts/build-app.sh` -> Successfully built and signed `build/Pipsey.app`
+  - Window bounds inspection -> `Pipsey Window: {Height = 33, Width = 195, X = 622, Y = 0} Layer: 3`
 
 ### 2026-11-09 — M5: Release Hardening, Security, Packaging and Acceptance (Branch: feat/m5-release-hardening-packaging)
 - **Baseline commit / working branch:** `ade7a69` / `feat/m5-release-hardening-packaging`

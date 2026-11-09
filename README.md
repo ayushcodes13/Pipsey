@@ -1,16 +1,16 @@
 <div align="center">
 
-<img src="pipsey-logo.webp" alt="Pipsey — a curious robot peeking over the screen" width="220" />
+<img src="Assets/pipsey-mascot-256.png" alt="Pipsey — a curious robot companion peeking over your display notch" width="160" />
 
 # Pipsey
 
 ### Show it. Understand it. Build it.
 
-**A tiny AI desktop companion that watches a software interaction you demonstrate and explains how it works.**
+**A native macOS AI companion that watches a software interaction you demonstrate and explains how it works.**
 
-[![Status](https://img.shields.io/badge/status-architecture%20%26%20planning-24292f?style=flat-square)](#project-status) [![Platform](https://img.shields.io/badge/platform-macOS-20242a?style=flat-square&logo=apple)](#platform) [![License: MIT](https://img.shields.io/badge/license-MIT-0b7863?style=flat-square)](LICENSE)
+[![Status](https://img.shields.io/badge/status-Native%20macOS%20Verified-0b7863?style=flat-square)](#project-status) [![Tests](https://img.shields.io/badge/tests-262%20passed-0b7863?style=flat-square)](#project-status) [![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-20242a?style=flat-square&logo=apple)](#platform) [![License: MIT](https://img.shields.io/badge/license-MIT-0b7863?style=flat-square)](LICENSE)
 
-*An independent, open-source project inspired by [HeyClicky](https://www.heyclicky.com/). Not affiliated with HeyClicky or its creator.*
+*An independent, open-source project inspired by [HeyClicky](https://www.heyclicky.com/), [boring.notch](https://github.com/TheBoredTeam/boring.notch), and [clicky](https://github.com/farzaa/clicky). Not affiliated with HeyClicky or its creator.*
 
 </div>
 
@@ -75,19 +75,20 @@ Pipsey is about **software behavior, not screenshots**. It tries to explain the 
 
 ## 🚦 Project status
 
-**Native macOS Application Operational (M0–M5 Verified).** Pipsey is a working native macOS companion built with Swift 6, SwiftUI, and AppKit. It features:
-- Top-center non-activating floating island panel (`FloatingIslandPanel`) and menu bar integration (`MenuBarController`).
-- Global shortcut activation (`⌥⌘P`) and multi-display cursor targeting.
-- Bounded ScreenCaptureKit capture (`CaptureService`), adaptive frame sampling with SHA256 deduplication (`FrameSampler`), and strict mouse-only privacy tracking (`EventRecorder`).
-- Speech recognition and audio capture (`SpeechService`) with typed question fallback.
-- Two independent model roles: hosted small VLM observer (`HostedVLMClient`) with strict schema validation (`ObservationValidator`) and independent conversational text LLM (`HostedConversationClient`) with prompt injection defense.
-- Native speech synthesis (`SpokenVoiceSynthesizer`) with mute and cancellation controls.
-- Secure credential management via macOS Keychain (`KeychainManager`), 10/10 canonical scenario validation, and 247/247 passing automated tests.
+**Native macOS Application Fully Operational (Feature Mode MVP Verified).** Pipsey is a working native macOS companion built with Swift 6, SwiftUI, AppKit, ScreenCaptureKit, and CoreImage. It features:
+- **Top-Center Bezel-Anchored Notch:** Anchored flush at `Y = 0` (`.mainMenu + 3` layer) matching physical MacBook notch geometry and non-notched M1 displays with smooth spring animations.
+- **Pure Mascot Visual Identity:** High-resolution native vector robot mascot system (app icon, notch peeking avatar, status item template icon) free of embedded text.
+- **Operational ScreenCaptureKit Stream:** Live `SCStream` capturing real display buffers with hardware-accelerated `CIContext` JPEG encoding, adaptive 2 fps frame sampling with SHA256 deduplication, and burst-capture on pointer interactions.
+- **Passive Mouse Event Recording:** Zero-keystroke pointer tracking capturing mouse clicks and rate-limited cursor movements to ground visual observations.
+- **Audio Capture & Reactive Waveform:** Live RMS audio power metering with 5-bar reactive audio waveform and tactile native audio feedback.
+- **Two-Model AI Pipeline:** Remotely hosted small VLM observer (`HostedVLMClient`) analyzing real screen frames, validated against schema and timestamp bounds (`ObservationValidator`), coupled with an independent conversational LLM (`HostedConversationClient`) for code-level explanations and follow-ups.
+- **BYOK & macOS Keychain Storage:** In-app Settings sheet with Keychain credential storage (`kSecClassGenericPassword`), live connection testing, and support for OpenAI-compatible and Anthropic endpoints.
+- **262 Automated Tests:** 262/262 passing unit, contract, and adversarial hallucination defense tests.
 
 ## 🚀 Quickstart & Installation
 
 ### Prerequisites
-- macOS 13.0+ on Apple Silicon (M1/M2/M3/M4).
+- macOS 13.0+ on Apple Silicon (M1/M2/M3/M4) or Intel.
 - Swift 6.0+ toolchain (Xcode or Apple Command Line Tools).
 
 ### 1. Build and Run Directly
@@ -96,7 +97,7 @@ Pipsey is about **software behavior, not screenshots**. It tries to explain the 
 git clone https://github.com/ayushcodes13/Pipsey.git
 cd Pipsey
 
-# Run test verification suite (247 tests)
+# Run test verification suite (262 tests)
 swift run PipseyTests
 
 # Run Pipsey in debug mode
@@ -112,7 +113,7 @@ swift run Pipsey
 open build/Pipsey.app
 ```
 
-Press **⌥⌘P** (Option + Command + P) anywhere on your Mac to activate Pipsey, demonstrate an interaction, click **Stop**, and receive a frame-grounded explanation!
+Press **⌥⌘P** (Option + Command + P) anywhere on your Mac or click the robot in the menu bar / notch to activate Pipsey! Provide your API keys via **Settings & AI Keys...** in the menu bar or notch gear icon.
 
 ## 🔐 Privacy & Keychain Credentials
 

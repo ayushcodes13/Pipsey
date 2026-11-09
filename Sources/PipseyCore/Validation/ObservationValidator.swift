@@ -48,7 +48,7 @@ public struct ObservationValidator: Sendable {
                 errors.append("End time before start time in observation \(obs.id): [\(obs.startMs), \(obs.endMs)]")
             }
             if sessionDurationMs > 0 && obs.endMs > sessionDurationMs + 1000 {
-                warnings.append("Observation \(obs.id) extends beyond session duration (\(obs.endMs)ms > \(sessionDurationMs)ms)")
+                errors.append("Observation \(obs.id) extends beyond session duration (\(obs.endMs)ms > \(sessionDurationMs)ms)")
             }
 
             // Check frame references

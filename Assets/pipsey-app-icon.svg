@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient for App Icon Squircle -->
+    <linearGradient id="iconBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E2631"/>
+      <stop offset="50%" stop-color="#11161D"/>
+      <stop offset="100%" stop-color="#080B0F"/>
+    </linearGradient>
+
+    <!-- Outer Border Glow -->
+    <linearGradient id="iconBorder" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#50F1CB" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0.5"/>
+    </linearGradient>
+
+    <!-- Helmet Metallic/Ceramic Shading -->
+    <linearGradient id="helmetGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="40%" stop-color="#F1F5F9"/>
+      <stop offset="100%" stop-color="#CBD5E1"/>
+    </linearGradient>
+
+    <linearGradient id="visorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#030608"/>
+      <stop offset="100%" stop-color="#091117"/>
+    </linearGradient>
+
+    <radialGradient id="mintEyeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#A7F3D0" stop-opacity="1"/>
+      <stop offset="45%" stop-color="#50F1CB" stop-opacity="0.95"/>
+      <stop offset="80%" stop-color="#10B981" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#059669" stop-opacity="0.0"/>
+    </radialGradient>
+
+    <filter id="eyeGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <clipPath id="squircleClip">
+      <rect x="32" y="32" width="448" height="448" rx="100" ry="100"/>
+    </clipPath>
+  </defs>
+
+  <!-- macOS Squircle Canvas -->
+  <g clip-path="url(#squircleClip)">
+    <!-- Obsidian Background -->
+    <rect x="32" y="32" width="448" height="448" fill="url(#iconBg)"/>
+
+    <!-- Subtle Radial Background Glow behind Mascot -->
+    <circle cx="256" cy="300" r="180" fill="#50F1CB" opacity="0.08"/>
+
+    <!-- Mascot Robot (Scaled & Centered within Icon) -->
+    <g transform="translate(0, 50)">
+      <!-- Back Head / Helmet Dome -->
+      <path d="M 126 360 C 126 160, 196 95, 256 95 C 316 95, 386 160, 386 360 Z" fill="url(#helmetGrad)" filter="drop-shadow(0px 10px 24px rgba(0,0,0,0.6))"/>
+
+      <!-- Ear Pods -->
+      <rect x="110" y="240" width="22" height="66" rx="11" fill="#94A3B8"/>
+      <rect x="113" y="244" width="16" height="58" rx="8" fill="#E2E8F0"/>
+      <rect x="380" y="240" width="22" height="66" rx="11" fill="#94A3B8"/>
+      <rect x="383" y="244" width="16" height="58" rx="8" fill="#E2E8F0"/>
+
+      <!-- Visor Well -->
+      <path d="M 140 360 C 140 196, 196 150, 256 150 C 316 150, 372 196, 372 360 Z" fill="#010304"/>
+      <!-- Visor Glass -->
+      <path d="M 146 360 C 146 204, 200 158, 256 158 C 312 158, 366 204, 366 360 Z" fill="url(#visorGrad)"/>
+
+      <!-- Glass Sheen -->
+      <path d="M 165 240 C 195 190, 235 174, 280 174 C 240 180, 205 202, 185 245 Z" fill="#FFFFFF" opacity="0.14"/>
+
+      <!-- Left Mint Eye -->
+      <g filter="url(#eyeGlow)">
+        <ellipse cx="202" cy="275" rx="32" ry="23" fill="#50F1CB" opacity="0.4"/>
+        <ellipse cx="202" cy="275" rx="23" ry="16" fill="url(#mintEyeGlow)"/>
+        <ellipse cx="202" cy="274" rx="12" ry="8" fill="#F0FDF4"/>
+      </g>
+
+      <!-- Right Mint Eye -->
+      <g filter="url(#eyeGlow)">
+        <ellipse cx="310" cy="275" rx="32" ry="23" fill="#50F1CB" opacity="0.4"/>
+        <ellipse cx="310" cy="275" rx="23" ry="16" fill="url(#mintEyeGlow)"/>
+        <ellipse cx="310" cy="274" rx="12" ry="8" fill="#F0FDF4"/>
+      </g>
+
+      <!-- Bezel Bar -->
+      <rect x="80" y="360" width="352" height="18" rx="6" fill="#1E293B"/>
+      <rect x="80" y="360" width="352" height="3" fill="#64748B"/>
+
+      <!-- Hands Gripping Bezel -->
+      <ellipse cx="180" cy="362" rx="24" ry="15" fill="#F8FAFC" filter="drop-shadow(0px 3px 6px rgba(0,0,0,0.4))"/>
+      <ellipse cx="180" cy="361" rx="18" ry="10" fill="#E2E8F0"/>
+      <ellipse cx="332" cy="362" rx="24" ry="15" fill="#F8FAFC" filter="drop-shadow(0px 3px 6px rgba(0,0,0,0.4))"/>
+      <ellipse cx="332" cy="361" rx="18" ry="10" fill="#E2E8F0"/>
+    </g>
+
+    <!-- Subtle Inner Border -->
+    <rect x="33" y="33" width="446" height="446" rx="99" ry="99" fill="none" stroke="url(#iconBorder)" stroke-width="2"/>
+  </g>
+</svg>

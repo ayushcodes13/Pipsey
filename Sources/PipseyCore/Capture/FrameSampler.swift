@@ -15,6 +15,7 @@ public struct SampledFrame: Sendable {
 
 public actor FrameSampler {
     public private(set) var sampledFrames: [FrameMetadata] = []
+    private var pendingBurst: Bool = false
     private var lastSampleMonotonicMs: Int64 = -1
     private let targetFps: Double
     private let maxFrames: Int
@@ -29,6 +30,10 @@ public actor FrameSampler {
         try? FileManager.default.createDirectory(at: sessionDirectory, withIntermediateDirectories: true)
     }
 
+    public func requestBurstNext() {
+        self.pendingBurst = true
+    }
+
     public func sampleFrame(
         relativeTimeMs: Int64,
         width: Int,
@@ -38,10 +43,12 @@ public actor FrameSampler {
     ) -> FrameMetadata? {
         guard sampledFrames.count < maxFrames else { return nil }
 
-        if !forceBurst && lastSampleMonotonicMs >= 0 && (relativeTimeMs - lastSampleMonotonicMs) < minIntervalMs {
+        let isBurst = forceBurst || pendingBurst
+        if !isBurst && lastSampleMonotonicMs >= 0 && (relativeTimeMs - lastSampleMonotonicMs) < minIntervalMs {
             return nil
         }
 
+        self.pendingBurst = false
         lastSampleMonotonicMs = relativeTimeMs
         let frameIndex = sampledFrames.count + 1
         let frameId = String(format: "frame-%03d", frameIndex)
@@ -63,6 +70,14 @@ public actor FrameSampler {
         )
         sampledFrames.append(metadata)
         return metadata
+    }
+
+    /// Load full sampled frames (including actual image data) for VLM consumption
+    public func loadSampledFrames() -> [SampledFrame] {
+        return sampledFrames.map { meta in
+            let data = try? Data(contentsOf: URL(fileURLWithPath: meta.localRef))
+            return SampledFrame(metadata: meta, rawImageData: data)
+        }
     }
 
     public func cleanup() {

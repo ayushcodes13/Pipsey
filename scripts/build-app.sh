@@ -43,6 +43,8 @@ cat << 'EOF' > "${CONTENTS_DIR}/Info.plist"
     <string>13.0</string>
     <key>LSUIElement</key>
     <true/>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>NSScreenCaptureUsageDescription</key>
@@ -58,9 +60,15 @@ EOF
 # 4. Create PkgInfo
 echo -n "APPL????" > "${CONTENTS_DIR}/PkgInfo"
 
-# 5. Copy brand icon if available
+# 5. Copy brand icon and mascot assets
+if [[ -f "Assets/AppIcon.icns" ]]; then
+    cp Assets/AppIcon.icns "${RESOURCES_DIR}/AppIcon.icns"
+fi
+if [[ -d "Assets" ]]; then
+    cp Assets/*.png "${RESOURCES_DIR}/" || true
+fi
 if [[ -f "pipsey-logo.webp" ]]; then
-    cp pipsey-logo.webp "${RESOURCES_DIR}/AppIcon.webp"
+    cp pipsey-logo.webp "${RESOURCES_DIR}/pipsey-logo.webp"
 fi
 
 # 6. Ad-hoc codesign bundle with TCC audio/screen entitlements
