@@ -4,18 +4,46 @@
 
 ## Snapshot — 2026-11-09
 - **Project:** Pipsey — native macOS Feature Mode companion.
-- **Phase:** M0 PASSED / M1 PASSED / M2 IN PROGRESS.
-- **Application:** Native SwiftUI + AppKit island panel (`FloatingIslandPanel`, `CompanionIslandView`, `MenuBarController`), `PermissionsOnboardingSheet`, multi-display dynamic repositioning, `PipseyCore` lifecycle state coordinator.
-- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 161/161 tests passed).
-- **Binary smoke test:** VERIFIED PASS (`.build/arm64-apple-macosx/debug/Pipsey` launches cleanly as accessory app, presents island panel, registers global hotkey `⌥⌘P`, responds to menu bar triggers, terminates cleanly).
-- **Screen/voice capture permissions:** ScreenCaptureKit, Microphone, and Speech Recognition onboarding and direct System Settings deep-links implemented.
+- **Phase:** M0 PASSED / M1 PASSED / M2 PASSED / M3 IN PROGRESS.
+- **Application:** Native SwiftUI + AppKit island shell, multi-display repositioning, `CaptureService` with ScreenCaptureKit integration, `FrameSampler` with SHA256 hash deduplication, `EventRecorder` (strict mouse-only, no keystrokes), `SpeechService` with typed question fallback, and 30-second bounded session ceiling.
+- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 178/178 tests passed).
+- **Binary smoke test:** VERIFIED PASS (`.build/arm64-apple-macosx/debug/Pipsey` launches, presents island panel, wires capture pipeline, responds to stop/cancel).
+- **Screen/voice capture permissions:** ScreenCaptureKit preflight, TCC denial handling, Speech/Mic authorization checks and onboarding sheet functional.
 - **Model inference and hosting:** Provider adapter abstraction designed (ADR 019); spend cap $0.00.
 - **Hardware target:** Apple M1 (MacBookPro17,1), 8GB RAM, macOS 27.2, non-notched Retina display (safeAreaInsets.top = 0.0pt).
-- **Pending action:** Advancing to M2: Real ScreenCaptureKit capture service, synchronized frame sampling, microphone audio capture and timeline alignment.
+- **Pending action:** Advancing to M3: Hosted small VLM observer integration, frame payload transport, and schema validation against the 10 canonical evaluation scenarios (Issue #5).
 
 ---
 
 ## Engineering log
+
+### 2026-11-09 — M2: Synchronized ScreenCaptureKit, Speech and Event Timeline (Branch: feat/m2-capture-speech-timeline)
+- **Baseline commit / working branch:** `b91fca2` / `feat/m2-capture-speech-timeline`
+- **Goal and exact changes:**
+  1. Implemented `CaptureService` integrating `ScreenCaptureKit` (`SCStream`, `SCShareableContent`), active display selection, and capture lifecycle.
+  2. Implemented `FrameSampler` with adaptive 2 fps sampling + forced burst mode, CryptoKit SHA256 frame hashing, and ephemeral disk retention in `/tmp/pipsey-session-<id>/`.
+  3. Implemented `EventRecorder` for coarse cursor movement and mouse clicks normalized [0..1, 0..1], with absolute privacy protection (strict ban on keystroke logging).
+  4. Implemented `SpeechService` with `AVAudioEngine` and `SFSpeechRecognizer` for monotonic speech transcript items, plus robust typed fallback.
+  5. Implemented 30-second automatic recording ceiling timeout and explicit stop/drain/cancel cleanup.
+  6. Wires capture and speech services directly into `IslandViewModel` so UI reflects real capture acknowledgement and fails closed on permission denial.
+  7. Added 17 unit and integration tests (Tests 10–13), bringing suite to 178 tests (all passing).
+- **Device hardware / macOS / Xcode / Swift:**
+  - Hardware: Apple M1 (MacBookPro17,1), 8 GB RAM, macOS 27.2.
+  - Swift: Apple Swift version 6.3.3.
+- **Actual commands and pass/fail outputs:**
+  - `swift run PipseyTests` -> TOTAL TESTS: 178 | PASSED: 178 | FAILED: 0 | VERDICT: PASS
+  - `swift build --product Pipsey` -> Build complete (0 errors, 0 warnings)
+  - Rate-limit sampling test: frame at 100ms rejected; burst frame at 200ms captured with sha256.
+  - Privacy test: 3 cursor/click events recorded with normalized coordinates; zero keystroke capture.
+- **Manual validation observations:**
+  - Permission denial causes clean transition to `.error` with onboarding sheet shown, preventing silent recording.
+- **Model and host / billed cost / payload count:**
+  - Host spend: $0.00.
+- **Privacy/security/cancellation results:**
+  - Ephemeral session directory `/tmp/pipsey-session-<id>/` is completely purged when `cancel()` or `cleanup()` is called.
+  - No continuous background recording; mic and screen capture are strictly bounded to active sessions.
+- **Checkpoint boxes changed:** All 7 checkboxes in `## M2 — Real capture` checked [x].
+- **Next independently actionable task:** Advance to M3: Visual intelligence and small VLM observer integration (Issue #5).
 
 ### 2026-11-09 — M1: Native Companion Shell & Lifecycle (Branch: feat/m1-companion-shell-lifecycle)
 - **Baseline commit / working branch:** `c2fca42` / `feat/m1-companion-shell-lifecycle`
@@ -42,7 +70,6 @@
 - **Privacy/security/cancellation results:**
   - Cancellation works at all active states (.starting, .listeningAndCapturing, .stopping, .processingVisual, .generatingResponse, .speaking) and cleanly resets to .idle.
 - **Checkpoint boxes changed:** All 6 checkboxes in `## M1 — Native companion shell` checked [x].
-- **Next independently actionable task:** Advance to M2: Real ScreenCaptureKit bounded capture and speech audio timeline (Issue #4).
 
 ### 2026-11-09 — M0: Device Preflight, Feasibility & App Scaffolding (Branch: feat/m0-feasibility-scaffold)
 - **Baseline commit / working branch:** `ebfdb617f919e15bd4bc7a15802e580ed5e9a8db` / `feat/m0-feasibility-scaffold`
@@ -74,9 +101,9 @@
   - Generation-ID isolation verified: stale session generation events cannot mutate or revive cancelled sessions.
   - Pure modifier-only hotkey rejected from mandatory requirements due to requiring Accessibility permissions; default Carbon chord `⌥⌘P` adopted to avoid unnecessary permissions.
 - **Checkpoint boxes changed:** All 8 checkboxes in `## M0 — Device and feasibility` checked [x].
-- **Next independently actionable task:** Advance to M1 companion UI refinement, multi-display positioning, and repeated shortcut stress tests (Issue #3).
 
 ## Release gates
 - M0: PASSED (Hardware, toolchain, permissions, hotkey, and scaffolding empirically verified).
 - M1: PASSED (SwiftUI/AppKit island, nonactivating panel, multi-display, onboarding sheet, 25-cycle activation test).
-- M2-M5: PENDING.
+- M2: PASSED (CaptureService, FrameSampler with SHA256, mouse-only EventRecorder, SpeechService, 30s ceiling, temp cleanup).
+- M3-M5: PENDING.
