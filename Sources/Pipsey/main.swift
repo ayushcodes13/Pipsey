@@ -14,19 +14,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Run as accessory app so it doesn't show in the Dock or steal active app focus
         NSApp.setActivationPolicy(.accessory)
 
-        // Setup Floating Island Panel
-        let panel = FloatingIslandPanel(contentRect: NSRect(x: 0, y: 0, width: 340, height: 64))
+        // Setup Floating Notch Panel (anchored flush to screen top bezel)
+        let metrics = NotchMetrics.current()
+        let panel = FloatingIslandPanel(contentRect: NSRect(x: 0, y: 0, width: metrics.closedWidth, height: metrics.closedHeight))
         let hostingView = NSHostingView(rootView: CompanionIslandView(viewModel: viewModel))
         panel.contentView = hostingView
-        panel.repositionTopCenter()
+        panel.reposition(width: metrics.closedWidth, height: metrics.closedHeight)
         panel.orderFrontRegardless()
         self.islandPanel = panel
+
+        // Dynamic geometry update when notch springs open or closes
+        viewModel.onGeometryChange = { [weak panel] width, height in
+            panel?.updateGeometry(width: width, height: height)
+        }
 
         // Setup Menu Bar Item
         self.menuBarController = MenuBarController(
             onActivate: { [weak self] in
                 Task { @MainActor in
-                    self?.islandPanel?.reposition()
+                    self?.islandPanel?.repositionTopCenter()
                     await self?.viewModel.triggerSession()
                 }
             },
@@ -42,14 +48,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Setup Global Hotkey (⌥⌘P)
         let hotKeyRegistered = hotKeyController.register { [weak self] in
             Task { @MainActor in
-                self?.islandPanel?.reposition()
+                self?.islandPanel?.repositionTopCenter()
                 await self?.viewModel.triggerSession()
             }
         }
 
         print("Pipsey started successfully!")
         print("  HotKey (⌥⌘P) registered: \(hotKeyRegistered)")
-        print("  Top-Center Island presented: \(panel.isVisible)")
+        print("  Top-Center Notch presented: \(panel.isVisible)")
+        print("  Notch footprint: \(metrics.closedWidth)x\(metrics.closedHeight) (Physical notch: \(metrics.hasPhysicalNotch))")
     }
 
     func applicationWillTerminate(_ notification: Notification) {

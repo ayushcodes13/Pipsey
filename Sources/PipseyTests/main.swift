@@ -443,6 +443,19 @@ func runAllTests() async -> (passed: Int, failed: Int) {
         print("Note: Keychain access status in CLI environment: \(error)")
     }
 
+    // TEST 19: Recreated Notch Geometry & NotchShape Curves
+    print("\n--- Test 19: Recreated Notch Geometry & NotchShape Curves ---")
+    let notchShape = NotchShape(topCornerRadius: 6, bottomCornerRadius: 14)
+    let notchRect = CGRect(x: 0, y: 0, width: 200, height: 32)
+    let path = notchShape.path(in: notchRect)
+    assertTrue(!path.isEmpty, "NotchShape generates a non-empty CGPath")
+    assertTrue(path.boundingRect.width > 0 && path.boundingRect.height > 0, "NotchShape bounding rect is valid")
+
+    let metrics = NotchMetrics.current()
+    assertTrue(metrics.closedWidth >= 180, "Closed notch width is >= 180pt")
+    assertTrue(metrics.closedHeight >= 20, "Closed notch height is >= 20pt")
+    print("Detected screen metrics: width=\(metrics.closedWidth), height=\(metrics.closedHeight), physicalNotch=\(metrics.hasPhysicalNotch)")
+
     return (passed, failed)
 }
 

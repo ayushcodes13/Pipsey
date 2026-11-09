@@ -183,3 +183,11 @@
 - M3: PASSED (HostedVLMClient, strict schema validator, 10/10 canonical UI scenarios validated, frame limit gate).
 - M4: PASSED (HostedConversationClient, prompt injection defense, empty evidence guard, SpokenVoiceSynthesizer, follow-up loop).
 - M5: PASSED (Keychain credential security, native Pipsey.app bundle, GitHub Actions CI, resource profiling: 59MB RSS, 247/247 tests passing).
+
+## Post-M5 UX Enhancements
+### Native Notch Recreation (boring.notch architecture)
+- **Geometry & Curves**: Implemented [`NotchShape`](file:///Users/devayushrout/Desktop/Pipsey/Sources/PipseyCore/UI/NotchShape.swift) featuring animatable outer top flare wings (`topCornerRadius`) and rounded bottom corners (`bottomCornerRadius`), mirroring the physical MacBook notch bezel curvature.
+- **Display Adaptation**: Added [`NotchMetrics`](file:///Users/devayushrout/Desktop/Pipsey/Sources/PipseyCore/UI/NotchMetrics.swift) dynamically querying `screen.safeAreaInsets.top` and `screen.auxiliaryTopLeftArea` / `screen.auxiliaryTopRightArea`. Adapts seamlessly between physical hardware notches (14"/16" MacBook Pro) and virtual bezel-hugging notches on non-notched screens (13" M1 Air, 13" M1 MBP, external monitors).
+- **Bezel Anchoring**: [`FloatingIslandPanel`](file:///Users/devayushrout/Desktop/Pipsey/Sources/PipseyCore/UI/FloatingIslandPanel.swift) frame is anchored flush with the absolute top display bezel (`y = screenRect.origin.y + screenRect.height - height`).
+- **Dynamic Spring Expansion**: Notch fluidly transitions between compact closed state (195x33pt), hover preview (260x38pt), active recording HUD (380x58pt), and explanation summary (540x160pt) using `Animation.spring(response: 0.38, dampingFraction: 0.8)`.
+- **Empirical Test Suite**: 251/251 tests passing (`Test 19: Recreated Notch Geometry & NotchShape Curves`).

@@ -3,6 +3,9 @@ import SwiftUI
 
 @MainActor
 public final class FloatingIslandPanel: NSPanel {
+    public private(set) var currentWidth: CGFloat = 340
+    public private(set) var currentHeight: CGFloat = 64
+
     public init(contentRect: NSRect) {
         super.init(
             contentRect: contentRect,
@@ -17,7 +20,8 @@ public final class FloatingIslandPanel: NSPanel {
         self.isFloatingPanel = true
         self.hidesOnDeactivate = false
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        self.hasShadow = true
+        // SwiftUI NotchShape renders the tailored organic shadow; disable rectangular window shadow
+        self.hasShadow = false
 
         NotificationCenter.default.addObserver(
             self,
@@ -32,7 +36,7 @@ public final class FloatingIslandPanel: NSPanel {
     }
 
     @objc private func screenParametersDidChange(_ notification: Notification) {
-        reposition()
+        reposition(width: currentWidth, height: currentHeight)
     }
 
     override public var canBecomeKey: Bool {
@@ -53,35 +57,25 @@ public final class FloatingIslandPanel: NSPanel {
         return NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
     }
 
-    public func reposition(on targetScreen: NSScreen? = nil) {
+    public func reposition(on targetScreen: NSScreen? = nil, width: CGFloat = 340, height: CGFloat = 64) {
+        self.currentWidth = width
+        self.currentHeight = height
+
         let screen = targetScreen ?? FloatingIslandPanel.targetScreenForCursor()
         let screenRect = screen.frame
-        let visibleRect = screen.visibleFrame
 
-        let panelWidth: CGFloat = 340
-        let panelHeight: CGFloat = 64
+        let x = screenRect.origin.x + (screenRect.width - width) / 2.0
+        // Notch window anchors flush to the absolute top edge of the display
+        let y = screenRect.origin.y + screenRect.height - height
 
-        let topInset: CGFloat
-        if #available(macOS 12.0, *) {
-            topInset = screen.safeAreaInsets.top
-        } else {
-            topInset = 0
-        }
+        self.setFrame(NSRect(x: x, y: y, width: width, height: height), display: true, animate: false)
+    }
 
-        let x = screenRect.origin.x + (screenRect.width - panelWidth) / 2.0
-        let y: CGFloat
-        if topInset > 0 {
-            // Screen with camera notch: position directly hugging the notch bottom
-            y = screenRect.origin.y + screenRect.height - panelHeight - (topInset / 2.0)
-        } else {
-            // Non-notch Mac (e.g. M1 Air / 13" M1 MBP): position 6pt below the menu bar
-            y = visibleRect.origin.y + visibleRect.height - panelHeight - 6
-        }
-
-        self.setFrame(NSRect(x: x, y: y, width: panelWidth, height: panelHeight), display: true)
+    public func updateGeometry(width: CGFloat, height: CGFloat, on targetScreen: NSScreen? = nil) {
+        reposition(on: targetScreen, width: width, height: height)
     }
 
     public func repositionTopCenter() {
-        reposition()
+        reposition(width: currentWidth, height: currentHeight)
     }
 }

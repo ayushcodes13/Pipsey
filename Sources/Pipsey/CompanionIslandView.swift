@@ -1,5 +1,6 @@
 import SwiftUI
 import PipseyCore
+import AppKit
 
 public struct CompanionIslandView: View {
     @ObservedObject var viewModel: IslandViewModel
@@ -10,128 +11,39 @@ public struct CompanionIslandView: View {
     }
 
     public var body: some View {
-        HStack(spacing: 12) {
-            // Mascot Avatar
-            ZStack {
-                Circle()
-                    .fill(Color(nsColor: .windowBackgroundColor).opacity(0.85))
-                    .frame(width: 38, height: 38)
-                    .overlay(
-                        Circle().stroke(mascotBorderColor, lineWidth: 2)
-                    )
-
-                Text(mascotEmoji)
-                    .font(.system(size: 20))
-                    .scaleEffect(viewModel.state.isCapturing && !reduceMotion ? 1.08 : 1.0)
-                    .animation(reduceMotion ? .none : .easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: viewModel.state.isCapturing)
+        ZStack(alignment: .top) {
+            // Recreated Notch Body (anchored flush to screen top bezel)
+            VStack(spacing: 0) {
+                notchContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .padding(.horizontal, viewModel.topCornerRadius + 8)
+                    .padding(.top, 4)
+                    .padding(.bottom, 6)
             }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Pipsey status: \(statusTitle)")
-
-            // Main Status & Timer
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(statusTitle)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.primary)
-
-                    if viewModel.state.isCapturing {
-                        Text(viewModel.formattedDuration)
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .foregroundColor(.red)
-                    }
-                }
-
-                Text(statusSubtitle)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+            .frame(width: viewModel.currentWidth, height: viewModel.currentHeight, alignment: .top)
+            .background(Color.black)
+            .clipShape(NotchShape(
+                topCornerRadius: viewModel.topCornerRadius,
+                bottomCornerRadius: viewModel.bottomCornerRadius
+            ))
+            .overlay(alignment: .top) {
+                // 1px black seam to hug the display bezel seamlessly
+                Rectangle()
+                    .fill(Color.black)
+                    .frame(height: 1)
+                    .padding(.horizontal, viewModel.topCornerRadius)
             }
-
-            Spacer(minLength: 8)
-
-            // Dynamic Action Buttons
-            HStack(spacing: 8) {
-                if viewModel.state.isCapturing {
-                    Button(action: {
-                        Task { await viewModel.stopCapture() }
-                    }) {
-                        Label("Stop", systemImage: "stop.fill")
-                            .font(.system(size: 11, weight: .medium))
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.red)
-                    .accessibilityLabel("Stop recording interaction")
-                }
-
-                if viewModel.state == .readyForFollowup || viewModel.state == .speaking {
-                    Button(action: {
-                        viewModel.showExplanationSheet = true
-                    }) {
-                        Label("Explain", systemImage: "text.bubble.fill")
-                            .font(.system(size: 11))
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Button(action: {
-                        viewModel.toggleSpeech()
-                    }) {
-                        Image(systemName: viewModel.isSpeaking ? "speaker.wave.3.fill" : "speaker.wave.2")
-                            .font(.system(size: 11))
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel("Toggle spoken voice")
-
-                    Button(action: {
-                        viewModel.resetToIdle()
-                    }) {
-                        Text("Done")
-                            .font(.system(size: 11))
-                    }
-                    .buttonStyle(.bordered)
-                }
-
-                if viewModel.state.canCancel && !viewModel.state.isCapturing && viewModel.state != .readyForFollowup && viewModel.state != .speaking {
-                    Button(action: {
-                        Task { await viewModel.cancel() }
-                    }) {
-                        Text("Cancel")
-                            .font(.system(size: 11))
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel("Cancel current session")
-                } else if viewModel.state == .idle {
-                    Button(action: {
-                        Task { await viewModel.triggerSession() }
-                    }) {
-                        Label("Observe", systemImage: "record.circle")
-                            .font(.system(size: 11))
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel("Activate observation mode")
-
-                    Button(action: {
-                        viewModel.showPermissionsSheet = true
-                    }) {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 11))
-                    }
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel("Open privacy and permissions settings")
-                }
+            .shadow(
+                color: Color.black.opacity(viewModel.state == .idle && !viewModel.isHovering ? 0.25 : 0.45),
+                radius: viewModel.state == .idle && !viewModel.isHovering ? 4 : 8,
+                x: 0,
+                y: 3
+            )
+            .onHover { hovering in
+                viewModel.isHovering = hovering
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.primary.opacity(0.12), lineWidth: 1)
-                )
-        )
-        .shadow(color: .black.opacity(0.18), radius: 10, x: 0, y: 5)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .sheet(isPresented: $viewModel.showPermissionsSheet) {
             PermissionsOnboardingSheet(isPresented: $viewModel.showPermissionsSheet)
         }
@@ -142,54 +54,237 @@ public struct CompanionIslandView: View {
         }
     }
 
-    private var mascotBorderColor: Color {
+    @ViewBuilder
+    private var notchContent: some View {
         switch viewModel.state {
-        case .listeningAndCapturing: return .red
-        case .processingVisual, .generatingResponse: return .blue
-        case .speaking, .readyForFollowup: return .green
-        case .error: return .orange
-        default: return .gray.opacity(0.3)
-        }
-    }
-
-    private var mascotEmoji: String {
-        switch viewModel.state {
-        case .listeningAndCapturing: return "🔴"
-        case .processingVisual: return "🔍"
-        case .generatingResponse: return "💭"
-        case .speaking: return "🔊"
-        case .readyForFollowup: return "🤖"
-        case .error: return "⚠️"
-        default: return "🤖"
-        }
-    }
-
-    private var statusTitle: String {
-        switch viewModel.state {
-        case .idle: return "Pipsey"
-        case .starting: return "Starting Capture..."
-        case .listeningAndCapturing: return "Recording Interaction"
-        case .stopping: return "Finishing Capture..."
-        case .processingVisual: return "Analyzing Visuals..."
-        case .generatingResponse: return "Formulating Answer..."
-        case .speaking: return "Pipsey Speaking"
-        case .readyForFollowup: return "Interaction Understood"
-        case .cancelling: return "Cancelling..."
-        case .error(let msg): return "Error: \(msg)"
-        }
-    }
-
-    private var statusSubtitle: String {
-        switch viewModel.state {
-        case .idle: return "Press ⌥⌘P or click Observe"
-        case .listeningAndCapturing: return "Demonstrate UI transition now"
-        case .processingVisual: return "Extracting frame-level evidence"
-        case .generatingResponse: return "Synthesizing explanation"
+        case .idle:
+            idleContent
+        case .listeningAndCapturing:
+            capturingContent
+        case .processingVisual, .generatingResponse, .starting, .stopping, .cancelling:
+            processingContent
         case .readyForFollowup, .speaking:
-            return viewModel.explanationSummary ?? "Ask a follow-up anytime"
-        case .error: return "Click Cancel to reset"
-        default: return "Please wait..."
+            explanationContent
+        case .error(let msg):
+            errorContent(msg: msg)
         }
+    }
+
+    // MARK: - Idle State
+    private var idleContent: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Text("🤖")
+                    .font(.system(size: 14))
+                Text("Pipsey")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+            }
+
+            Spacer(minLength: 4)
+
+            if viewModel.isHovering {
+                Button(action: {
+                    Task { await viewModel.triggerSession() }
+                }) {
+                    HStack(spacing: 4) {
+                        Circle().fill(Color.red).frame(width: 6, height: 6)
+                        Text("Record")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red.opacity(0.85))
+                .controlSize(.small)
+
+                Button(action: {
+                    viewModel.showPermissionsSheet = true
+                }) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text("⌥⌘P")
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.55))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(Color.white.opacity(0.12))
+                    .cornerRadius(4)
+            }
+        }
+        .frame(height: viewModel.currentHeight - 10, alignment: .center)
+    }
+
+    // MARK: - Active Capturing State
+    private var capturingContent: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(Color.red.opacity(0.25))
+                    .frame(width: 26, height: 26)
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 10, height: 10)
+                    .scaleEffect(!reduceMotion ? 1.25 : 1.0)
+                    .animation(reduceMotion ? .none : .easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: viewModel.elapsedSeconds)
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 6) {
+                    Text("Recording UI")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                    Text(viewModel.formattedDuration)
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(.red)
+                }
+                Text("Demonstrate interaction now")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+
+            Spacer(minLength: 4)
+
+            Button(action: {
+                Task { await viewModel.stopCapture() }
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 9))
+                    Text("Stop")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.red)
+            .controlSize(.small)
+
+            Button(action: {
+                Task { await viewModel.cancel() }
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(height: viewModel.currentHeight - 10, alignment: .center)
+    }
+
+    // MARK: - Processing State
+    private var processingContent: some View {
+        HStack(spacing: 8) {
+            Text("🔍")
+                .font(.system(size: 14))
+            Text("Analyzing interaction & evidence frames...")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.white)
+            Spacer()
+            Button(action: {
+                Task { await viewModel.cancel() }
+            }) {
+                Text("Cancel")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(height: viewModel.currentHeight - 10, alignment: .center)
+    }
+
+    // MARK: - Explanation State
+    private var explanationContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                HStack(spacing: 6) {
+                    Text("🤖")
+                        .font(.system(size: 14))
+                    Text("Interaction Explained")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                }
+
+                Spacer()
+
+                Button(action: {
+                    viewModel.toggleSpeech()
+                }) {
+                    Image(systemName: viewModel.isSpeaking ? "speaker.wave.3.fill" : "speaker.wave.2")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                Button(action: {
+                    viewModel.resetToIdle()
+                }) {
+                    Text("Done")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+
+            Text(viewModel.explanationSummary ?? "UI interaction analyzed.")
+                .font(.system(size: 11))
+                .foregroundColor(.white.opacity(0.92))
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                Button(action: {
+                    viewModel.showExplanationSheet = true
+                }) {
+                    Label("View Full Code & Details", systemImage: "doc.text.magnifyingglass")
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+
+                if let code = viewModel.currentExplanation?.detailedMarkdown {
+                    Button(action: {
+                        let pb = NSPasteboard.general
+                        pb.clearContents()
+                        pb.setString(code, forType: .string)
+                    }) {
+                        Label("Copy Code", systemImage: "doc.on.doc")
+                            .font(.system(size: 10))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+
+                Spacer()
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    // MARK: - Error State
+    private func errorContent(msg: String) -> some View {
+        HStack(spacing: 8) {
+            Text("⚠️")
+                .font(.system(size: 14))
+            Text(msg)
+                .font(.system(size: 11))
+                .foregroundColor(.orange)
+                .lineLimit(1)
+            Spacer()
+            Button(action: {
+                Task { await viewModel.cancel() }
+            }) {
+                Text("Dismiss")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(height: viewModel.currentHeight - 10, alignment: .center)
     }
 }
 
@@ -201,8 +296,12 @@ public struct ExplanationDetailSheet: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("Pipsey Explanation")
-                    .font(.headline)
+                HStack(spacing: 6) {
+                    Text("🤖")
+                        .font(.title2)
+                    Text("Pipsey Explanation")
+                        .font(.headline)
+                }
                 Spacer()
                 Button("Done") {
                     viewModel.showExplanationSheet = false
@@ -236,6 +335,18 @@ public struct ExplanationDetailSheet: View {
                             .font(.body)
                     }
 
+                    if !explanation.detailedMarkdown.isEmpty {
+                        Divider()
+                        Text("Full Analysis & Implementation Code")
+                            .font(.subheadline).bold()
+                        Text(explanation.detailedMarkdown)
+                            .font(.system(size: 11, design: .monospaced))
+                            .textSelection(.enabled)
+                            .padding(8)
+                            .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
+                            .cornerRadius(6)
+                    }
+
                     if !explanation.uncertainties.isEmpty {
                         Divider()
                         Text("Uncertainties")
@@ -250,7 +361,7 @@ public struct ExplanationDetailSheet: View {
                 }
                 .padding(.vertical, 4)
             }
-            .frame(maxHeight: 280)
+            .frame(maxHeight: 340)
 
             Divider()
 
@@ -260,17 +371,18 @@ public struct ExplanationDetailSheet: View {
                     .textFieldStyle(.roundedBorder)
 
                 Button("Ask") {
-                    guard !followUpQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                    let q = followUpQuery
+                    followUpQuery = ""
                     Task {
-                        await viewModel.askFollowUp(query: followUpQuery)
-                        followUpQuery = ""
+                        await viewModel.askFollowUp(query: q)
                     }
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
+                .disabled(followUpQuery.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
         .padding(20)
-        .frame(width: 520, height: 420)
+        .frame(width: 580)
     }
 }
 
@@ -279,9 +391,9 @@ public struct PermissionsOnboardingSheet: View {
     @State private var snapshot = PermissionCoordinator.shared.currentSnapshot()
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack {
-                Text("Pipsey Permissions Onboarding")
+                Text("Pipsey Privacy & Permissions")
                     .font(.headline)
                 Spacer()
                 Button("Done") {
@@ -290,30 +402,9 @@ public struct PermissionsOnboardingSheet: View {
                 .buttonStyle(.borderedProminent)
             }
 
-            Text("Pipsey requires Screen Recording and Microphone access to observe UI demonstrations when you activate it. Recording is never continuous and stops when you say.")
-                .font(.subheadline)
+            Text("Pipsey requires standard macOS permissions for Screen Recording, Microphone, and Speech Recognition to observe and explain user-initiated UI demonstrations.")
+                .font(.caption)
                 .foregroundColor(.secondary)
-
-            Divider()
-
-            // Request All Button
-            Button(action: {
-                Task {
-                    _ = PermissionCoordinator.shared.requestScreenRecordingAccess()
-                    _ = await PermissionCoordinator.shared.requestMicrophoneAccess()
-                    _ = await PermissionCoordinator.shared.requestSpeechAccess()
-                    PermissionCoordinator.shared.openScreenRecordingSettings()
-                    snapshot = PermissionCoordinator.shared.currentSnapshot()
-                }
-            }) {
-                HStack {
-                    Image(systemName: "hand.raised.fill")
-                    Text("Trigger Permission Prompts & Open Settings")
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.blue)
 
             Divider()
 
@@ -322,15 +413,13 @@ public struct PermissionsOnboardingSheet: View {
                 VStack(alignment: .leading) {
                     Text("Screen Recording")
                         .font(.body).bold()
-                    Text("Required to capture demonstrated interaction frames.")
+                    Text("Only captures frames when you explicitly press ⌥⌘P or click Record.")
                         .font(.caption).foregroundColor(.secondary)
                 }
                 Spacer()
                 statusBadge(for: snapshot.screenRecording == .granted)
-                Button("Request Access") {
-                    _ = PermissionCoordinator.shared.requestScreenRecordingAccess()
+                Button("System Settings") {
                     PermissionCoordinator.shared.openScreenRecordingSettings()
-                    snapshot = PermissionCoordinator.shared.currentSnapshot()
                 }
                 .buttonStyle(.bordered)
             }
@@ -340,7 +429,7 @@ public struct PermissionsOnboardingSheet: View {
                 VStack(alignment: .leading) {
                     Text("Microphone")
                         .font(.body).bold()
-                    Text("Required to hear verbal questions during capture.")
+                    Text("Listens to your question during the demonstration.")
                         .font(.caption).foregroundColor(.secondary)
                 }
                 Spacer()
@@ -412,6 +501,18 @@ public final class IslandViewModel: ObservableObject {
     @Published public var showExplanationSheet: Bool = false
     @Published public var isSpeaking: Bool = false
 
+    // Geometry matching boring.notch
+    @Published public var currentWidth: CGFloat = 195
+    @Published public var currentHeight: CGFloat = 30
+    @Published public var topCornerRadius: CGFloat = 6
+    @Published public var bottomCornerRadius: CGFloat = 14
+    @Published public var isHovering: Bool = false {
+        didSet {
+            updateDimensions()
+        }
+    }
+    public var onGeometryChange: ((CGFloat, CGFloat) -> Void)?
+
     private let coordinator: SessionCoordinator
     private let captureService = CaptureService()
     private let speechService = SpeechService()
@@ -428,6 +529,10 @@ public final class IslandViewModel: ObservableObject {
 
     public init(coordinator: SessionCoordinator) {
         self.coordinator = coordinator
+        let metrics = NotchMetrics.current()
+        self.currentWidth = metrics.closedWidth
+        self.currentHeight = metrics.closedHeight
+
         Task {
             await coordinator.addStateChangeHandler { [weak self] newState in
                 Task { @MainActor [weak self] in
@@ -437,8 +542,65 @@ public final class IslandViewModel: ObservableObject {
         }
     }
 
+    public func updateDimensions() {
+        let metrics = NotchMetrics.current()
+        let w: CGFloat
+        let h: CGFloat
+        let topR: CGFloat
+        let botR: CGFloat
+
+        switch state {
+        case .idle:
+            if isHovering {
+                w = 260
+                h = max(metrics.closedHeight + 8, 38)
+                topR = 8
+                botR = 16
+            } else {
+                w = metrics.closedWidth
+                h = metrics.closedHeight
+                topR = 6
+                botR = 14
+            }
+        case .listeningAndCapturing:
+            w = 380
+            h = 58
+            topR = 12
+            botR = 20
+        case .processingVisual, .starting, .stopping, .cancelling:
+            w = 340
+            h = 50
+            topR = 10
+            botR = 18
+        case .readyForFollowup, .speaking:
+            w = 540
+            h = 160
+            topR = 16
+            botR = 22
+        case .error:
+            w = 340
+            h = 52
+            topR = 10
+            botR = 18
+        default:
+            w = metrics.closedWidth
+            h = metrics.closedHeight
+            topR = 6
+            botR = 14
+        }
+
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {
+            self.topCornerRadius = topR
+            self.bottomCornerRadius = botR
+            self.currentWidth = w
+            self.currentHeight = h
+        }
+        self.onGeometryChange?(w, h)
+    }
+
     private func handleStateChange(_ newState: SessionState) {
         self.state = newState
+        updateDimensions()
         if newState == .listeningAndCapturing {
             startTimer()
         } else {
