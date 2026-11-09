@@ -25,6 +25,31 @@
 
 ## Engineering log
 
+### 2026-11-10 — Balanced Notch Layout & Clear Audio Recording Visualizer
+- **Goal and exact changes:**
+  1. **Clean 3-Part Notch Layout on Hover:**
+     - Eliminated visual clutter and cramped spacing from having 4-5 unsorted controls in the idle expanded state.
+     - Implemented clean, optically balanced 3-column architecture:
+       - **Leftmost:** Canonical Pipsey mascot avatar (`PipseyMascotView(size: 20)`).
+       - **Center:** `⌥` `⌘` shortcut badges centered directly beneath the display notch/camera.
+       - **Rightmost:** Minimalist settings gear button (`gearshape`).
+  2. **Unmistakable Sound Recording Visualizer on Shortcut Activation:**
+     - When the `⌥⌘` shortcut is hit, the center section morphs immediately into an unmistakable audio capture indicator:
+       - Pulsing red recording indicator dot (`#FF453A`).
+       - Microphone icon (`mic.fill`).
+       - Live 5-bar reactive audio waveform (`LiveWaveformView`).
+       - "Recording..." label with live monospaced elapsed time (`viewModel.formattedDuration`).
+     - Pipsey mascot remains anchored on the leftmost side for visual continuity.
+     - Done (checkmark pill) and Cancel (`xmark`) controls positioned on the rightmost side.
+  3. **Embedded Mascot Binary Fallback:**
+     - Created `Sources/Pipsey/UI/PipseyMascotData.swift` with embedded base64 PNG data, guaranteeing the mascot image renders reliably in any build or standalone execution environment.
+  4. **Landing Page Sync:**
+     - Updated interactive dynamic island notch simulation in `docs/index.html` and the Generative UI artifact to reflect this exact 3-column layout and recording sound visualizer.
+  5. **Verification & Testing:**
+     - Rebuilt and signed `build/Pipsey.app` via `./scripts/build-app.sh`.
+     - Verified all 308 / 308 unit and integration tests passed (`swift run PipseyTests`).
+     - Relaunched live `Pipsey.app` on macOS.
+
 ### 2026-11-10 — Brand Asset Alignment: Canonical Peeking Robot Mascot Integrated Everywhere
 - **Goal and exact changes:**
   1. **Replaced Generic Vector Placeholder with Canonical Pipsey Mascot:**

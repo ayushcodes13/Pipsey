@@ -237,7 +237,8 @@ public struct CompanionIslandView: View {
             }
             .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record, or drag to move)")
         } else {
-            HStack(spacing: 8) {
+            HStack(spacing: 0) {
+                // Leftmost: Mascot Avatar
                 Button(action: {
                     Task { await viewModel.triggerSession() }
                 }) {
@@ -246,12 +247,13 @@ public struct CompanionIslandView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Pipsey Mascot (Click to record)")
 
-                Spacer(minLength: 4)
+                Spacer()
 
+                // Center / Middle: Shortcut badges
                 Button(action: {
                     Task { await viewModel.triggerSession() }
                 }) {
-                    HStack(spacing: 2) {
+                    HStack(spacing: 3) {
                         KeyBadge("⌥", isAccent: true)
                         KeyBadge("⌘", isAccent: true)
                     }
@@ -259,95 +261,109 @@ public struct CompanionIslandView: View {
                 .buttonStyle(.plain)
                 .help("Hold Option+Command to record interaction; tap to toggle")
 
+                Spacer()
+
+                // Rightmost: Clean settings control
                 Button(action: {
                     SettingsWindowController.show()
                 }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(.gray)
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 11.5, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                        .frame(width: 20, height: 20)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Open Pipsey Settings")
-
-                Button(action: {
-                    HistoryWindowController.shared.showHistory()
-                }) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 11))
-                        .foregroundColor(.gray)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Open Pipsey History")
+                .help("Preferences (⌘,)")
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 10)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
         }
     }
 
-    // MARK: - Active Capturing State (with live reactive audio waveform)
+    // MARK: - Active Capturing State (Shortcut Hit -> Sound Recording Visualizer)
     private var capturingContent: some View {
-        HStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .fill(Color.red.opacity(0.25))
-                    .frame(width: 22, height: 22)
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: 8, height: 8)
-                    .scaleEffect(!reduceMotion ? 1.25 : 1.0)
-                    .animation(reduceMotion ? .none : .easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: viewModel.elapsedSeconds)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text("Recording UI")
-                        .font(.system(size: 11.5, weight: .bold))
-                        .foregroundColor(.white)
-
-                    Text(viewModel.formattedDuration)
-                        .font(.system(size: 10.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.9))
-
-                    // Live 5-bar reactive audio waveform
-                    LiveWaveformView(audioPowerLevel: viewModel.audioPowerLevel)
-                }
-
-                Text("Listening... (Release ⌥⌘ to finish)")
-                    .font(.system(size: 9.5))
-                    .foregroundColor(.white.opacity(0.75))
-            }
-
-            Spacer(minLength: 4)
-
+        HStack(spacing: 0) {
+            // Leftmost: Mascot Avatar remains anchored on the leftmost side
             Button(action: {
-                Task { await viewModel.stopCapture() }
+                Task { await viewModel.triggerSession() }
             }) {
-                HStack(spacing: 3) {
-                    Image(systemName: "checkmark")
+                PipseyMascotView(size: 20)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Pipsey Mascot")
+
+            Spacer()
+
+            // Center / Middle: Unmistakable sound recording indicator
+            HStack(spacing: 6) {
+                // Pulsing red recording dot
+                Circle()
+                    .fill(Color(hex: "FF453A"))
+                    .frame(width: 6, height: 6)
+                    .scaleEffect(!reduceMotion ? 1.2 : 1.0)
+                    .animation(reduceMotion ? .none : .easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: viewModel.elapsedSeconds)
+
+                // Microphone icon
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 9.5, weight: .bold))
+                    .foregroundColor(Color(hex: "FF453A"))
+
+                // Live 5-bar reactive audio waveform
+                LiveWaveformView(audioPowerLevel: viewModel.audioPowerLevel)
+
+                // "Recording..." text & live timer
+                Text("Recording...")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundColor(.white)
+
+                Text(viewModel.formattedDuration)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.85))
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3.5)
+            .background(Color.white.opacity(0.06))
+            .cornerRadius(6)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
+            )
+
+            Spacer()
+
+            // Rightmost: Done & Cancel buttons
+            HStack(spacing: 5) {
+                Button(action: {
+                    Task { await viewModel.stopCapture() }
+                }) {
+                    HStack(spacing: 2) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 8, weight: .bold))
+                        Text("Done")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.white)
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+
+                Button(action: {
+                    Task { await viewModel.cancel() }
+                }) {
+                    Image(systemName: "xmark")
                         .font(.system(size: 8.5, weight: .bold))
-                    Text("Done")
-                        .font(.system(size: 9.5, weight: .bold))
+                        .foregroundColor(.white.opacity(0.5))
+                        .frame(width: 14, height: 14)
                 }
-                .foregroundColor(.black)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(Color.white)
-                .cornerRadius(8)
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-
-            Button(action: {
-                Task { await viewModel.cancel() }
-            }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 8.5, weight: .bold))
-                    .foregroundColor(.white.opacity(0.5))
-                    .frame(width: 16, height: 16)
-            }
-            .buttonStyle(.plain)
         }
-        .frame(height: viewModel.currentHeight - 6, alignment: .center)
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Processing State
@@ -1170,11 +1186,11 @@ public final class IslandViewModel: ObservableObject {
                 botR = hasPhysicalNotch ? 14 : 7
             }
         case .listeningAndCapturing:
-            // Generous width for "Recording UI", live timer, 5-bar waveform, prompt, Done & Cancel
-            w = 380
-            h = 52
-            topR = hasPhysicalNotch ? 12 : 18
-            botR = 18
+            // Balanced width for Left Mascot, Center Sound Recording Pill, and Right Done/Cancel
+            w = 340
+            h = 42
+            topR = hasPhysicalNotch ? 10 : 16
+            botR = 16
         case .processingVisual, .generatingResponse, .starting, .stopping, .cancelling:
             // Dynamically expand notch width based on status text so it never clips
             let textLen = processingStatusText.count
