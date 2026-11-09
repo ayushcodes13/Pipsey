@@ -48,11 +48,36 @@ public enum ActiveSheet: Identifiable, Sendable {
     }
 }
 
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
+}
+
 public struct CompanionIslandView: View {
     @ObservedObject var viewModel: IslandViewModel
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @State private var hasCopiedCode: Bool = false
-    @State private var isDragging: Bool = false
 
     public init(viewModel: IslandViewModel) {
         self.viewModel = viewModel
@@ -63,8 +88,8 @@ public struct CompanionIslandView: View {
             VStack(spacing: 0) {
                 notchContent
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .padding(.horizontal, viewModel.hasPhysicalNotch ? (viewModel.topCornerRadius + 8) : 12)
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, viewModel.hasPhysicalNotch ? (viewModel.topCornerRadius + 8) : (viewModel.state == .idle && !viewModel.isHovering ? 6 : 12))
+                    .padding(.vertical, viewModel.state == .idle && !viewModel.isHovering ? 1 : 3)
             }
             .frame(width: viewModel.currentWidth, height: viewModel.currentHeight, alignment: .center)
             .background(
@@ -82,41 +107,59 @@ public struct CompanionIslandView: View {
                                     .padding(.horizontal, viewModel.topCornerRadius)
                             }
                     } else {
-                        RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                            .fill(Color.black.opacity(0.92))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                    .stroke(Color.white.opacity(0.20), lineWidth: 0.8)
-                            )
+                        if viewModel.state == .idle && !viewModel.isHovering {
+                            // Wispr-Style Neon Line Pill
+                            Capsule()
+                                .fill(Color(hex: "080D1A").opacity(0.96))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [Color(hex: "00F0FF").opacity(0.85), Color(hex: "0072FF").opacity(0.4)],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            ),
+                                            lineWidth: 1.0
+                                        )
+                                )
+                        } else if viewModel.state.isCapturing {
+                            // Blooming Neon Capture Capsule
+                            RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
+                                .fill(Color(hex: "070B18").opacity(0.96))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [Color(hex: "00F0FF"), Color(hex: "0072FF")],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            ),
+                                            lineWidth: 1.5
+                                        )
+                                )
+                        } else {
+                            RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
+                                .fill(Color.black.opacity(0.92))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
+                                        .stroke(Color.white.opacity(0.20), lineWidth: 0.8)
+                                )
+                        }
                     }
                 }
             )
             .shadow(
-                color: Color.black.opacity(isDragging ? 0.55 : (viewModel.state == .idle && !viewModel.isHovering ? 0.35 : 0.45)),
-                radius: isDragging ? 14 : (viewModel.state == .idle && !viewModel.isHovering ? 6 : 10),
+                color: viewModel.state.isCapturing
+                    ? Color(hex: "00F0FF").opacity(0.55)
+                    : (viewModel.state == .idle && !viewModel.isHovering
+                        ? Color(hex: "00F0FF").opacity(0.35)
+                        : Color.black.opacity(0.45)),
+                radius: viewModel.state.isCapturing ? 12 : (viewModel.state == .idle && !viewModel.isHovering ? 8 : 10),
                 x: 0,
-                y: isDragging ? 8 : 4
-            )
-            .scaleEffect(isDragging ? 1.02 : 1.0)
-            .animation(.easeInOut(duration: 0.15), value: isDragging)
-            .gesture(
-                DragGesture(minimumDistance: 2)
-                    .onChanged { value in
-                        if !isDragging {
-                            isDragging = true
-                            viewModel.onDragStart?()
-                        }
-                        viewModel.onDragChanged?(value.translation)
-                    }
-                    .onEnded { _ in
-                        isDragging = false
-                        viewModel.onDragEnded?()
-                    }
+                y: viewModel.state.isCapturing ? 4 : 2
             )
             .onHover { hovering in
-                if !isDragging {
-                    viewModel.isHovering = hovering
-                }
+                viewModel.isHovering = hovering
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -159,36 +202,65 @@ public struct CompanionIslandView: View {
         }
     }
 
-    // MARK: - Idle State
+    // MARK: - Idle State (Wispr-style Neon Blue Line)
+    @ViewBuilder
     private var idleContent: some View {
-        HStack(spacing: 6) {
+        if !viewModel.isHovering {
             Button(action: {
                 Task { await viewModel.triggerSession() }
             }) {
-                HStack(spacing: 5) {
-                    PipseyMascotView(size: 18)
-                    Text("Pipsey")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
+                ZStack {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(hex: "00F0FF"),
+                                    Color(hex: "0072FF"),
+                                    Color(hex: "00F0FF")
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: 72, height: 3.5)
+                        .shadow(color: Color(hex: "00F0FF").opacity(0.9), radius: 5, x: 0, y: 0)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-
-            Spacer(minLength: 2)
-
-            if viewModel.isHovering {
+            .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record)")
+        } else {
+            HStack(spacing: 6) {
                 Button(action: {
                     Task { await viewModel.triggerSession() }
                 }) {
-                    HStack(spacing: 3) {
-                        Circle().fill(Color.red).frame(width: 6, height: 6)
-                        Text("Record")
-                            .font(.system(size: 10, weight: .semibold))
+                    HStack(spacing: 5) {
+                        PipseyMascotView(size: 18)
+                        Text("Pipsey")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.red.opacity(0.9))
-                .controlSize(.mini)
+                .buttonStyle(.plain)
+
+                Spacer(minLength: 2)
+
+                Button(action: {
+                    Task { await viewModel.triggerSession() }
+                }) {
+                    HStack(spacing: 4) {
+                        Circle().fill(Color(hex: "00F0FF")).frame(width: 5, height: 5)
+                        Text("Hold ⌥⌘")
+                            .font(.system(size: 9.5, weight: .semibold))
+                            .foregroundColor(Color(hex: "00F0FF"))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color(hex: "00F0FF").opacity(0.12))
+                    .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
 
                 Button(action: {
                     viewModel.showSettingsSheet = true
@@ -199,61 +271,42 @@ public struct CompanionIslandView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Open Pipsey Settings")
-            } else {
-                HStack(spacing: 4) {
-                    Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 7))
-                        .foregroundColor(.white.opacity(0.35))
-
-                    Button(action: {
-                        Task { await viewModel.triggerSession() }
-                    }) {
-                        Text("⌥⌘P")
-                            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.70))
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(Color.white.opacity(0.14))
-                            .cornerRadius(4)
-                    }
-                    .buttonStyle(.plain)
-                }
             }
+            .frame(height: viewModel.currentHeight - 6, alignment: .center)
         }
-        .frame(height: viewModel.currentHeight - 6, alignment: .center)
     }
 
     // MARK: - Active Capturing State (with live reactive audio waveform)
     private var capturingContent: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             ZStack {
                 Circle()
                     .fill(Color.red.opacity(0.25))
-                    .frame(width: 26, height: 26)
+                    .frame(width: 22, height: 22)
                 Circle()
                     .fill(Color.red)
-                    .frame(width: 10, height: 10)
+                    .frame(width: 8, height: 8)
                     .scaleEffect(!reduceMotion ? 1.25 : 1.0)
                     .animation(reduceMotion ? .none : .easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: viewModel.elapsedSeconds)
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Text("Recording UI")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 11.5, weight: .bold))
                         .foregroundColor(.white)
 
                     Text(viewModel.formattedDuration)
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(.red)
+                        .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color(hex: "00F0FF"))
 
-                    // Live 5-bar reactive audio waveform
+                    // Live 5-bar reactive audio waveform in vibrant neon blue
                     LiveWaveformView(audioPowerLevel: viewModel.audioPowerLevel)
                 }
 
-                Text("Demonstrate interaction now")
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.7))
+                Text("Listening... (Release ⌥⌘ to finish)")
+                    .font(.system(size: 9.5))
+                    .foregroundColor(.white.opacity(0.75))
             }
 
             Spacer(minLength: 4)
@@ -261,27 +314,31 @@ public struct CompanionIslandView: View {
             Button(action: {
                 Task { await viewModel.stopCapture() }
             }) {
-                HStack(spacing: 4) {
-                    Image(systemName: "stop.fill")
-                        .font(.system(size: 9))
-                    Text("Stop")
-                        .font(.system(size: 11, weight: .semibold))
+                HStack(spacing: 3) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 8.5, weight: .bold))
+                    Text("Done")
+                        .font(.system(size: 9.5, weight: .bold))
                 }
+                .foregroundColor(.black)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Color(hex: "00F0FF"))
+                .cornerRadius(8)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.red)
-            .controlSize(.small)
+            .buttonStyle(.plain)
 
             Button(action: {
                 Task { await viewModel.cancel() }
             }) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.white.opacity(0.7))
+                    .font(.system(size: 8.5, weight: .bold))
+                    .foregroundColor(.white.opacity(0.5))
+                    .frame(width: 16, height: 16)
             }
             .buttonStyle(.plain)
         }
-        .frame(height: viewModel.currentHeight - 10, alignment: .center)
+        .frame(height: viewModel.currentHeight - 6, alignment: .center)
     }
 
     // MARK: - Processing State
@@ -403,7 +460,7 @@ public struct CompanionIslandView: View {
     }
 }
 
-/// A 5-bar live reactive audio waveform visualizer (inspired by Clicky's BlueCursorWaveformView).
+/// A 5-bar live reactive audio waveform visualizer (in vibrant neon electric blue).
 public struct LiveWaveformView: View {
     public let audioPowerLevel: CGFloat
     private let barCount = 5
@@ -411,14 +468,21 @@ public struct LiveWaveformView: View {
 
     public var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
-            HStack(alignment: .center, spacing: 2.5) {
+            HStack(alignment: .center, spacing: 2.2) {
                 ForEach(0..<barCount, id: \.self) { i in
                     RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                        .fill(Color.red.opacity(0.9))
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "00F0FF"), Color(hex: "0072FF")],
+                                startPoint: .bottom,
+                                endPoint: .top
+                            )
+                        )
                         .frame(
                             width: 2.2,
                             height: barHeight(for: i, date: context.date)
                         )
+                        .shadow(color: Color(hex: "00F0FF").opacity(0.6), radius: 2, x: 0, y: 0)
                 }
             }
             .animation(.linear(duration: 0.08), value: audioPowerLevel)
@@ -426,11 +490,11 @@ public struct LiveWaveformView: View {
     }
 
     private func barHeight(for index: Int, date: Date) -> CGFloat {
-        let phase = CGFloat(date.timeIntervalSinceReferenceDate * 3.6) + CGFloat(index) * 0.35
+        let phase = CGFloat(date.timeIntervalSinceReferenceDate * 3.8) + CGFloat(index) * 0.35
         let normalizedPower = max(audioPowerLevel - 0.01, 0)
-        let easedPower = pow(min(normalizedPower * 3.0, 1.0), 0.75)
-        let reactiveHeight = easedPower * 12.0 * barProfile[index]
-        let idlePulse = (sin(phase) + 1.0) / 2.0 * 2.0
+        let easedPower = pow(min(normalizedPower * 3.2, 1.0), 0.75)
+        let reactiveHeight = easedPower * 13.0 * barProfile[index]
+        let idlePulse = (sin(phase) + 1.0) / 2.0 * 2.2
         return max(3.0, 3.0 + reactiveHeight + idlePulse)
     }
 }
@@ -959,18 +1023,18 @@ public final class IslandViewModel: ObservableObject {
         switch state {
         case .idle:
             if isHovering {
-                w = 230
-                h = 36
+                w = 190
+                h = 32
                 topR = hasPhysicalNotch ? 8 : 16
                 botR = 16
             } else {
-                w = metrics.closedWidth
-                h = metrics.closedHeight
-                topR = hasPhysicalNotch ? 6 : 16
-                botR = hasPhysicalNotch ? 14 : 16
+                w = hasPhysicalNotch ? metrics.closedWidth : 130
+                h = hasPhysicalNotch ? metrics.closedHeight : 14
+                topR = hasPhysicalNotch ? 6 : 7
+                botR = hasPhysicalNotch ? 14 : 7
             }
         case .listeningAndCapturing:
-            w = 340
+            w = 330
             h = 50
             topR = hasPhysicalNotch ? 12 : 18
             botR = 18

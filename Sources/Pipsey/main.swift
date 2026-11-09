@@ -21,7 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             contentRect: NSRect(x: 0, y: 0, width: metrics.closedWidth, height: metrics.closedHeight),
             level: islandLevel
         )
-        let hostingView = NSHostingView(rootView: CompanionIslandView(viewModel: viewModel))
+        let hostingView = DraggableIslandHostingView(rootView: CompanionIslandView(viewModel: viewModel))
         panel.contentView = hostingView
         panel.reposition(width: metrics.closedWidth, height: metrics.closedHeight)
         panel.orderFrontRegardless()
@@ -92,6 +92,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 await self?.viewModel.triggerSession()
             }
         }
+
+        // Setup Option + Command Hold to Record & Release to Stop (Wispr Flow style)
+        hotKeyController.registerOptionCommandHold(
+            onHoldStart: { [weak self] in
+                Task { @MainActor in
+                    guard let self = self else { return }
+                    if self.viewModel.state == .idle {
+                        if self.islandPanel?.customOrigin == nil {
+                            self.islandPanel?.repositionTopCenter()
+                        }
+                        await self.viewModel.triggerSession()
+                    }
+                }
+            },
+            onHoldEnd: { [weak self] in
+                Task { @MainActor in
+                    guard let self = self else { return }
+                    if self.viewModel.state.isCapturing {
+                        await self.viewModel.stopCapture()
+                    }
+                }
+            }
+        )
 
         print("Pipsey started successfully!")
         print("  HotKey (⌥⌘P) registered: \(hotKeyRegistered)")

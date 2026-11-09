@@ -9,11 +9,65 @@ public final class HotKeyController: @unchecked Sendable {
     private var hotKeyRef: EventHotKeyRef?
     private var actionHandler: ActionHandler?
     private var flagsMonitor: Any?
+    private var localFlagsMonitor: Any?
+    private var isHoldingOptionCommand: Bool = false
+    private var holdStartTime: Date?
+    private var onHoldStart: ActionHandler?
+    private var onHoldEnd: ActionHandler?
 
     public init() {}
 
     deinit {
         unregister()
+    }
+
+    public func registerOptionCommandHold(
+        onHoldStart: @escaping ActionHandler,
+        onHoldEnd: @escaping ActionHandler
+    ) {
+        if let monitor = flagsMonitor {
+            NSEvent.removeMonitor(monitor)
+            flagsMonitor = nil
+        }
+        if let local = localFlagsMonitor {
+            NSEvent.removeMonitor(local)
+            localFlagsMonitor = nil
+        }
+
+        self.onHoldStart = onHoldStart
+        self.onHoldEnd = onHoldEnd
+
+        let handleFlags: (NSEvent) -> Void = { [weak self] event in
+            guard let self = self else { return }
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            let isOptCmd = flags.contains([.option, .command])
+
+            if isOptCmd {
+                if !self.isHoldingOptionCommand {
+                    self.isHoldingOptionCommand = true
+                    self.holdStartTime = Date()
+                    self.onHoldStart?()
+                }
+            } else {
+                if self.isHoldingOptionCommand {
+                    self.isHoldingOptionCommand = false
+                    let duration = Date().timeIntervalSince(self.holdStartTime ?? Date())
+                    // If held for >= 0.30s, release finishes capture automatically
+                    if duration >= 0.30 {
+                        self.onHoldEnd?()
+                    }
+                }
+            }
+        }
+
+        flagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { event in
+            handleFlags(event)
+        }
+
+        localFlagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
+            handleFlags(event)
+            return event
+        }
     }
 
     public func register(
@@ -85,6 +139,12 @@ public final class HotKeyController: @unchecked Sendable {
             NSEvent.removeMonitor(monitor)
             flagsMonitor = nil
         }
+        if let local = localFlagsMonitor {
+            NSEvent.removeMonitor(local)
+            localFlagsMonitor = nil
+        }
         actionHandler = nil
+        onHoldStart = nil
+        onHoldEnd = nil
     }
 }

@@ -34,9 +34,9 @@ public struct NotchMetrics: Sendable {
             return NotchMetrics(hasPhysicalNotch: true, closedWidth: max(notchWidth, 185), closedHeight: notchHeight)
         } else {
             // Non-notched display (e.g. M1 MacBook Air, 13" MacBook Pro, Studio Display)
-            // Compact, elegant floating capsule (draggable anywhere like Wispr Flow)
-            let notchWidth: CGFloat = 180
-            let notchHeight: CGFloat = 32
+            // Sleek Wispr-style minimal neon glowing pill
+            let notchWidth: CGFloat = 130
+            let notchHeight: CGFloat = 14
             return NotchMetrics(hasPhysicalNotch: false, closedWidth: notchWidth, closedHeight: notchHeight)
         }
     }

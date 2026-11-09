@@ -456,8 +456,8 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     assertTrue(path.boundingRect.width > 0 && path.boundingRect.height > 0, "NotchShape bounding rect is valid")
 
     let metrics = NotchMetrics.current()
-    assertTrue(metrics.closedWidth >= 180, "Closed notch width is >= 180pt")
-    assertTrue(metrics.closedHeight >= 20, "Closed notch height is >= 20pt")
+    assertTrue(metrics.closedWidth >= 120, "Closed notch width is >= 120pt")
+    assertTrue(metrics.closedHeight >= 10, "Closed notch height is >= 10pt")
     print("Detected screen metrics: width=\(metrics.closedWidth), height=\(metrics.closedHeight), physicalNotch=\(metrics.hasPhysicalNotch)")
 
     // TEST 20: Real Image Frame Pipeline & Multi-Modal VLM Request Preparation

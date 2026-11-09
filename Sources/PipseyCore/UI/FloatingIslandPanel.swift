@@ -7,6 +7,7 @@ public final class FloatingIslandPanel: NSPanel {
     public private(set) var currentHeight: CGFloat = 64
     public var allowsKeyWindow: Bool = false
     public var customOrigin: NSPoint? = nil
+    private var isProgrammaticReposition: Bool = false
 
     public init(contentRect: NSRect, level: NSWindow.Level = .floating) {
         super.init(
@@ -32,6 +33,13 @@ public final class FloatingIslandPanel: NSPanel {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(windowDidMoveNotification(_:)),
+            name: NSWindow.didMoveNotification,
+            object: self
+        )
     }
 
     deinit {
@@ -40,6 +48,12 @@ public final class FloatingIslandPanel: NSPanel {
 
     @objc private func screenParametersDidChange(_ notification: Notification) {
         reposition(width: currentWidth, height: currentHeight)
+    }
+
+    @objc private func windowDidMoveNotification(_ notification: Notification) {
+        if !isProgrammaticReposition {
+            self.customOrigin = self.frame.origin
+        }
     }
 
     override public var canBecomeKey: Bool {
@@ -80,6 +94,9 @@ public final class FloatingIslandPanel: NSPanel {
     }
 
     public func reposition(on targetScreen: NSScreen? = nil, width: CGFloat = 340, height: CGFloat = 64) {
+        self.isProgrammaticReposition = true
+        defer { self.isProgrammaticReposition = false }
+
         self.currentWidth = width
         self.currentHeight = height
 
@@ -103,6 +120,9 @@ public final class FloatingIslandPanel: NSPanel {
     }
 
     public func updateGeometry(width: CGFloat, height: CGFloat, on targetScreen: NSScreen? = nil) {
+        self.isProgrammaticReposition = true
+        defer { self.isProgrammaticReposition = false }
+
         let oldWidth = self.currentWidth
         let oldHeight = self.currentHeight
         self.currentWidth = width
@@ -125,5 +145,29 @@ public final class FloatingIslandPanel: NSPanel {
 
     public func repositionTopCenter() {
         resetToDefaultPosition()
+    }
+}
+
+@MainActor
+public final class DraggableIslandHostingView<Content: View>: NSHostingView<Content> {
+    public var onIslandTapped: (() -> Void)?
+
+    override public func mouseDown(with event: NSEvent) {
+        guard let window = self.window as? FloatingIslandPanel, !window.allowsKeyWindow else {
+            super.mouseDown(with: event)
+            return
+        }
+
+        let initialOrigin = window.frame.origin
+        window.performDrag(with: event)
+        let finalOrigin = window.frame.origin
+        let distance = hypot(finalOrigin.x - initialOrigin.x, finalOrigin.y - initialOrigin.y)
+
+        if distance < 4.0 {
+            super.mouseDown(with: event)
+            onIslandTapped?()
+        } else {
+            window.customOrigin = finalOrigin
+        }
     }
 }

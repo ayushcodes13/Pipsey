@@ -25,6 +25,14 @@
 
 ## Engineering log
 
+### 2026-11-09 — Wispr-Style Neon Blue Line, Option+Command Hold-to-Record & Butter-Smooth Window Dragging
+- **Goal and exact changes:**
+  1. **Wispr-Style Neon Blue Line:** In idle state, Pipsey transforms into an ultra-sleek, luminous electric cyan/neon blue line (`width: 130`, `height: 14`) floating elegantly right below the system menu bar. Features a vivid gradient core (`#00F0FF` -> `#0072FF` -> `#00F0FF`) and soft neon cyan drop shadow.
+  2. **Hold Option+Command to Record:** Added `registerOptionCommandHold(onHoldStart:onHoldEnd:)` in `HotKeyController.swift` with global & local `.flagsChanged` monitoring. Holding Option+Command instantly opens and starts recording; releasing Option+Command automatically finishes recording and triggers VLM/LLM explanation. Quick taps (<300ms) toggle recording mode.
+  3. **Butter-Smooth Window Dragging:** Eliminated the conflicting SwiftUI `DragGesture` that fought AppKit's native window positioning. Added `DraggableIslandHostingView` with `window.performDrag(with: event)` and `windowDidMoveNotification` tracking, delegating window movement to Apple's WindowServer at display refresh rate (120Hz) with zero jitter.
+  4. **Blooming Neon Recording Capsule:** When activated, smoothly expands into a 330x50pt capsule with an electric neon cyan border, pulsing red recording indicator, and live 5-bar reactive audio waveform (`LiveWaveformView`) in glowing electric cyan bouncing dynamically to speech.
+  5. **Verification & Tests:** Updated Test 19 and Test 22 in `PipseyTests/main.swift`. All 274 tests passed in 1.4s. Release bundle built and code-signed at `build/Pipsey.app`.
+
 ### 2026-11-09 — Second Adversarial Recovery: Two-Model Grounding, Settings Persistence, Empirical Benchmark & E2E Validation
 - **Goal and exact changes:**
   1. **Removed Synthetic VLM Fallback:** Completely eliminated synthetic `obs-empirical-01` fallback in `IslandViewModel.stopCapture()`. If VLM fails or produces 0 observations, the pipeline fails honestly with `coordinator.fail(...)` and prompts the user to re-demonstrate rather than fabricating observations.
