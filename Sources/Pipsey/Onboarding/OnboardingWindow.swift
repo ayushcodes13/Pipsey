@@ -40,11 +40,19 @@ public final class OnboardingWindowController: NSWindowController, NSWindowDeleg
 
     public func showOnboarding(force: Bool = false) {
         let completed = UserDefaults.standard.bool(forKey: "pipsey_has_completed_onboarding")
-        if !completed || force {
-            self.window?.center()
-            self.window?.makeKeyAndOrderFront(nil)
-            AppActivationPolicy.enter()
+        let snapshot = PermissionCoordinator.shared.currentSnapshot()
+
+        // If the user already granted Screen Recording or finished onboarding, do not popup again unless forced
+        if (completed || snapshot.screenRecording == .granted) && !force {
+            if !completed && snapshot.screenRecording == .granted {
+                UserDefaults.standard.set(true, forKey: "pipsey_has_completed_onboarding")
+            }
+            return
         }
+
+        self.window?.center()
+        self.window?.makeKeyAndOrderFront(nil)
+        AppActivationPolicy.enter()
     }
 
     public func finishOnboarding() {
@@ -53,6 +61,7 @@ public final class OnboardingWindowController: NSWindowController, NSWindowDeleg
     }
 
     public func windowWillClose(_ notification: Notification) {
+        UserDefaults.standard.set(true, forKey: "pipsey_has_completed_onboarding")
         AppActivationPolicy.leave()
     }
 }
@@ -260,7 +269,11 @@ public struct OnboardingView: View {
                     subtitle: "Captures frames only when you hold ⌥⌘.",
                     isGranted: snapshot.screenRecording == .granted,
                     onAction: {
-                        PermissionCoordinator.shared.openScreenRecordingSettings()
+                        let granted = PermissionCoordinator.shared.requestScreenRecordingAccess()
+                        if !granted {
+                            PermissionCoordinator.shared.openScreenRecordingSettings()
+                        }
+                        snapshot = PermissionCoordinator.shared.currentSnapshot()
                     }
                 )
             }

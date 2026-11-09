@@ -75,9 +75,13 @@ elif [[ -f "pipsey-logo.webp" ]]; then
     cp pipsey-logo.webp "${RESOURCES_DIR}/pipsey-logo.webp"
 fi
 
-# 6. Ad-hoc codesign bundle with TCC audio/screen entitlements
-echo "Signing application bundle with entitlements..."
-codesign --force --deep --sign - --entitlements entitlements.plist "${APP_DIR}"
+# 6. Sign bundle with stable Designated Requirement & TCC audio/screen entitlements
+# Using a stable designated requirement ensures macOS TCC permissions persist across builds
+echo "Signing internal binary with stable designated requirement..."
+codesign --force --sign - -r="designated => identifier \"com.pipsey.companion\"" "${MACOS_DIR}/Pipsey"
+
+echo "Signing application bundle with entitlements & designated requirement..."
+codesign --force --sign - -r="designated => identifier \"com.pipsey.companion\"" --entitlements entitlements.plist "${APP_DIR}"
 
 echo "✅ Successfully built and signed ${APP_DIR}!"
 echo "To launch: open ${APP_DIR}"

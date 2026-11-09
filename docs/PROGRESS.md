@@ -25,6 +25,31 @@
 
 ## Engineering log
 
+### 2026-11-10 — Stable TCC Designated Requirement & Permission Persistence Bug Fix
+- **Problem Statement:**
+  - Users who granted permissions in macOS System Settings were repeatedly prompted with permission dialogs/sheets upon every rebuild or restart.
+- **Root Cause Analysis:**
+  1. **TCC Ad-Hoc Signature Invalidation:** `scripts/build-app.sh` signed `Pipsey.app` using `codesign --sign -` without an explicit Designated Requirement. macOS defaulted the Designated Requirement to the binary's `cdhash`. Recompilation caused `cdhash` mismatch against the macOS TCC database, invalidating user-granted Screen Recording permissions.
+  2. **Unconditional Onboarding Window & Missing Window Close Persistence:** If a user closed the first-run onboarding window without completing all 4 wizard steps, `pipsey_has_completed_onboarding` remained unset, causing the window to reopen on every launch even if permissions were already granted in System Settings.
+  3. **Premature Preflight Capture Blocker:** In `CompanionIslandView.swift:triggerSession()`, `CGPreflightScreenCaptureAccess()` was gating capture and popping `showPermissionsSheet = true` before attempting `captureService.startCapture()`, triggering false-positive permission sheets due to preflight latency on macOS 14/15.
+- **Goal and exact changes:**
+  1. **Stable Designated Requirement in `build-app.sh`:**
+     - Updated code signing to `-r="designated => identifier \"com.pipsey.companion\""` on both internal binary and application bundle.
+     - Verified with `codesign -d -r- build/Pipsey.app` -> `designated => identifier "com.pipsey.companion"`.
+  2. **Smart Permission Caching & Graceful ScreenCaptureKit Check:**
+     - Added thread-safe `_cachedScreenGranted` and `markScreenRecordingGranted()` in `PermissionCoordinator.swift`.
+     - In `CaptureService.swift`, verified ScreenCaptureKit access by attempting `SCShareableContent.current` and only throwing `CaptureError.permissionDenied` when genuinely declined.
+  3. **Onboarding & Permission Sheet Persistence:**
+     - In `OnboardingWindow.swift`, if `snapshot.screenRecording == .granted`, automatically persist completion and suppress onboarding.
+     - Persist `pipsey_has_completed_onboarding = true` when the onboarding window is closed via window close button.
+     - In `PermissionsOnboardingSheet` and `SettingsView`, added `requestScreenRecordingAccess()` which natively prompts macOS TCC before falling back to opening System Settings.
+  4. **Direct Capture Flow in `triggerSession()`:**
+     - Attempt capture directly; only display `showPermissionsSheet = true` if `captureService.startCapture()` actually throws `CaptureError.permissionDenied`.
+- **Verification:**
+  - 321/321 unit tests passed (`swift run PipseyTests`).
+  - App compiled, signed, and launched live (`build/Pipsey.app`, PID 95581).
+  - Verified window server: only the companion circle is onscreen, zero repeated permission prompts.
+
 ### 2026-11-10 — Defringed Mascot Rendering & Organic Fluid Spring Motion
 - **Goal and exact changes:**
   1. **Alpha Defringing & Edge Despill:**

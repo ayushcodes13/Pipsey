@@ -47,12 +47,38 @@ public struct PermissionSnapshot: Sendable, Equatable {
 
 public final class PermissionCoordinator: @unchecked Sendable {
     public static let shared = PermissionCoordinator()
+    private let lock = os_unfair_lock_t.allocate(capacity: 1)
+    private var _cachedScreenGranted: Bool = false
 
-    public init() {}
+    public init() {
+        lock.initialize(to: os_unfair_lock())
+    }
+
+    deinit {
+        lock.deallocate()
+    }
+
+    public func markScreenRecordingGranted() {
+        os_unfair_lock_lock(lock)
+        _cachedScreenGranted = true
+        os_unfair_lock_unlock(lock)
+    }
+
+    public func resetScreenRecordingCache() {
+        os_unfair_lock_lock(lock)
+        _cachedScreenGranted = false
+        os_unfair_lock_unlock(lock)
+    }
 
     public func checkScreenRecordingStatus() -> ScreenRecordingStatus {
+        os_unfair_lock_lock(lock)
+        let isCached = _cachedScreenGranted
+        os_unfair_lock_unlock(lock)
+        if isCached { return .granted }
+
         if #available(macOS 12.0, *) {
             if CGPreflightScreenCaptureAccess() {
+                markScreenRecordingGranted()
                 return .granted
             } else {
                 return .denied
@@ -61,9 +87,14 @@ public final class PermissionCoordinator: @unchecked Sendable {
         return .unknown
     }
 
+    @discardableResult
     public func requestScreenRecordingAccess() -> Bool {
         if #available(macOS 12.0, *) {
-            return CGRequestScreenCaptureAccess()
+            let granted = CGRequestScreenCaptureAccess()
+            if granted {
+                markScreenRecordingGranted()
+            }
+            return granted
         }
         return false
     }

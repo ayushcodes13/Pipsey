@@ -485,10 +485,21 @@ struct PrivacySettingsPane: View {
                     }
                     Spacer()
                     statusBadge(granted: snapshot.screenRecording == .granted)
-                    Button("Open System Settings") {
-                        PermissionCoordinator.shared.openScreenRecordingSettings()
+                    if snapshot.screenRecording == .granted {
+                        Button("Open System Settings") {
+                            PermissionCoordinator.shared.openScreenRecordingSettings()
+                        }
+                        .buttonStyle(.bordered)
+                    } else {
+                        Button("Allow / Open Settings") {
+                            let granted = PermissionCoordinator.shared.requestScreenRecordingAccess()
+                            if !granted {
+                                PermissionCoordinator.shared.openScreenRecordingSettings()
+                            }
+                            snapshot = PermissionCoordinator.shared.currentSnapshot()
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
-                    .buttonStyle(.bordered)
                 }
 
                 if snapshot.screenRecording != .granted {

@@ -152,15 +152,17 @@ public actor CaptureService {
             throw CaptureError.streamInitializationFailed("Capture already running")
         }
 
-        // Preflight ScreenCaptureKit access
-        guard CGPreflightScreenCaptureAccess() else {
-            throw CaptureError.permissionDenied("Screen recording permission declined in System Settings (Error -3801)")
-        }
-
+        // Verify ScreenCaptureKit access:
+        // Check CGPreflightScreenCaptureAccess and attempt SCShareableContent.current
+        let preflight = CGPreflightScreenCaptureAccess()
         let shareable: SCShareableContent
         do {
             shareable = try await SCShareableContent.current
+            PermissionCoordinator.shared.markScreenRecordingGranted()
         } catch {
+            if !preflight {
+                throw CaptureError.permissionDenied("Screen recording permission declined in System Settings (Error -3801)")
+            }
             throw CaptureError.permissionDenied("Failed to access SCShareableContent: \(error.localizedDescription)")
         }
 

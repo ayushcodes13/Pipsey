@@ -1220,6 +1220,7 @@ public struct PermissionsOnboardingSheet: View {
                 }
                 Spacer()
                 Button("Done") {
+                    UserDefaults.standard.set(true, forKey: "pipsey_has_completed_onboarding")
                     isPresented = false
                 }
                 .buttonStyle(.borderedProminent)
@@ -1241,10 +1242,21 @@ public struct PermissionsOnboardingSheet: View {
                 }
                 Spacer()
                 statusBadge(for: snapshot.screenRecording == .granted)
-                Button("System Settings") {
-                    PermissionCoordinator.shared.openScreenRecordingSettings()
+                if snapshot.screenRecording == .granted {
+                    Button("System Settings") {
+                        PermissionCoordinator.shared.openScreenRecordingSettings()
+                    }
+                    .buttonStyle(.bordered)
+                } else {
+                    Button("Allow / Open Settings") {
+                        let granted = PermissionCoordinator.shared.requestScreenRecordingAccess()
+                        if !granted {
+                            PermissionCoordinator.shared.openScreenRecordingSettings()
+                        }
+                        snapshot = PermissionCoordinator.shared.currentSnapshot()
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(.bordered)
             }
 
             // 2. Microphone
@@ -1697,13 +1709,6 @@ public final class IslandViewModel: ObservableObject {
             return
         }
 
-        let snapshot = PermissionCoordinator.shared.currentSnapshot()
-        if snapshot.screenRecording != .granted {
-            self.showPermissionsSheet = true
-            await coordinator.fail(error: "Screen Recording permission required. Click Gear or check System Settings.")
-            return
-        }
-
         let (sessionId, gen) = await coordinator.startSession()
         self.activeGeneration = gen
         self.activeSessionId = sessionId
@@ -1734,6 +1739,9 @@ public final class IslandViewModel: ObservableObject {
             // Tactile audio chime on start
             PipseySoundEffects.playCaptureStarted()
         } catch {
+            if case CaptureError.permissionDenied = error {
+                self.showPermissionsSheet = true
+            }
             await coordinator.fail(error: error.localizedDescription, generation: gen)
         }
     }
