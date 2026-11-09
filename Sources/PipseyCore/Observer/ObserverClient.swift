@@ -163,11 +163,60 @@ public actor HostedVLMClient: ObserverClientProtocol {
         Do not guess code frameworks or invent changes not visible in frames.
         """
 
+        // Format spoken user question if available
+        let userQuestion = manifest.transcripts.map { $0.text }.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+        let questionPrompt = userQuestion.isEmpty ? "The user demonstrated a UI interaction without asking a specific verbal question." : "The user asked: \"\(userQuestion)\""
+
+        // Format summary of input events across the demonstration
+        let eventsSummary: String
+        if manifest.events.isEmpty {
+            eventsSummary = "Input events: None recorded."
+        } else {
+            let topEvents = manifest.events.prefix(20).map { evt -> String in
+                if let pos = evt.normalizedPosition {
+                    return "- [+\(evt.relativeTimeMs)ms] \(evt.type.rawValue) at (x: \(String(format: "%.2f", pos.x)), y: \(String(format: "%.2f", pos.y)))"
+                } else {
+                    return "- [+\(evt.relativeTimeMs)ms] \(evt.type.rawValue)"
+                }
+            }.joined(separator: "\n")
+            eventsSummary = "User input events during capture:\n\(topEvents)"
+        }
+
         var contentArray: [[String: Any]] = [
-            ["type": "text", "text": "Analyze the UI changes demonstrated in these captured screen frames:"]
+            [
+                "type": "text",
+                "text": """
+                \(questionPrompt)
+
+                \(eventsSummary)
+
+                Below are the \(frames.count) chronological screen frames captured during this demonstration.
+                Each frame includes its Frame ID, relative timestamp (+Xms), and temporally correlated user inputs.
+                Examine visual changes across frames and produce observations citing exact evidence_frame_ids.
+                """
+            ]
         ]
 
-        for frame in frames {
+        for (idx, frame) in frames.enumerated() {
+            let meta = frame.metadata
+            // Find nearby events within +/- 250ms of this frame timestamp
+            let nearbyEvents = manifest.events.filter { abs($0.relativeTimeMs - meta.relativeTimeMs) <= 250 }
+            var frameHeader = "Frame #\(idx + 1) [ID: \(meta.frameId), Timestamp: +\(meta.relativeTimeMs)ms]"
+            if !nearbyEvents.isEmpty {
+                let eventSummary = nearbyEvents.compactMap { evt -> String? in
+                    if let pos = evt.normalizedPosition {
+                        return "\(evt.type.rawValue)@(x:\(String(format: "%.2f", pos.x)), y:\(String(format: "%.2f", pos.y)))"
+                    }
+                    return evt.type.rawValue
+                }.joined(separator: ", ")
+                frameHeader += " (Nearby inputs: \(eventSummary))"
+            }
+
+            contentArray.append([
+                "type": "text",
+                "text": frameHeader
+            ])
+
             if let data = frame.rawImageData {
                 let base64 = data.base64EncodedString()
                 contentArray.append([

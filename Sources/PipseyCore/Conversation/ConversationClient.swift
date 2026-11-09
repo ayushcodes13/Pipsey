@@ -106,12 +106,12 @@ public struct TextLLMConfiguration: Sendable {
             || env["PIPSEY_PROVIDER"] == "anthropic"
             || (anthropicKey != nil && openAIKey == nil && savedBase?.contains("anthropic.com") == true)
 
-        if useAnthropic, let aKey = anthropicKey {
+        if useAnthropic {
             let base = savedBase ?? env["PIPSEY_TEXT_BASE_URL"] ?? "https://api.anthropic.com/v1"
             let model = savedModel ?? env["PIPSEY_TEXT_MODEL"] ?? "claude-3-5-sonnet-20241022"
             return TextLLMConfiguration(
                 baseURL: URL(string: base) ?? URL(string: "https://api.anthropic.com/v1")!,
-                apiKey: aKey,
+                apiKey: anthropicKey ?? "",
                 model: model
             )
         }

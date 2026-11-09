@@ -4,6 +4,7 @@ import CoreMedia
 import CoreImage
 import ImageIO
 import AppKit
+import os
 
 public enum CaptureError: Error, CustomStringConvertible, Sendable {
     case permissionDenied(String)
@@ -23,24 +24,69 @@ public enum CaptureError: Error, CustomStringConvertible, Sendable {
     }
 }
 
+actor TaskTracker {
+    private var inFlightTasks = Set<Task<Void, Never>>()
+
+    func track(_ task: Task<Void, Never>) {
+        inFlightTasks.insert(task)
+    }
+
+    func untrack(_ task: Task<Void, Never>) {
+        inFlightTasks.remove(task)
+    }
+
+    func drain() async {
+        let tasks = Array(inFlightTasks)
+        inFlightTasks.removeAll()
+        for t in tasks {
+            _ = await t.value
+        }
+    }
+}
+
 final class CaptureStreamOutputHandler: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
     private let sampler: FrameSampler
     private let startMonotonicMs: Int64
     private let displayWidth: Int
     private let displayHeight: Int
     private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
-    private var isRunning: Bool = true
+    private let taskTracker = TaskTracker()
+    private let runningLock = os_unfair_lock_t.allocate(capacity: 1)
+    private var _isRunning: Bool = true
 
     init(sampler: FrameSampler, startMonotonicMs: Int64, displayWidth: Int, displayHeight: Int) {
         self.sampler = sampler
         self.startMonotonicMs = startMonotonicMs
         self.displayWidth = displayWidth
         self.displayHeight = displayHeight
+        self.runningLock.initialize(to: os_unfair_lock())
         super.init()
+    }
+
+    deinit {
+        runningLock.deallocate()
+    }
+
+    var isRunning: Bool {
+        get {
+            os_unfair_lock_lock(runningLock)
+            defer { os_unfair_lock_unlock(runningLock) }
+            return _isRunning
+        }
+        set {
+            os_unfair_lock_lock(runningLock)
+            _isRunning = newValue
+            os_unfair_lock_unlock(runningLock)
+        }
     }
 
     func stop() {
         isRunning = false
+    }
+
+    func drain() async {
+        stop()
+        await taskTracker.drain()
     }
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
@@ -60,7 +106,7 @@ final class CaptureStreamOutputHandler: NSObject, SCStreamOutput, SCStreamDelega
             return
         }
 
-        Task { [weak self] in
+        let task = Task { [weak self] in
             guard let self = self, self.isRunning else { return }
             _ = await self.sampler.sampleFrame(
                 relativeTimeMs: relativeTimeMs,
@@ -68,6 +114,13 @@ final class CaptureStreamOutputHandler: NSObject, SCStreamOutput, SCStreamDelega
                 height: self.displayHeight,
                 jpegData: jpegData
             )
+        }
+
+        Task { [weak self, task] in
+            guard let self = self else { return }
+            await self.taskTracker.track(task)
+            _ = await task.value
+            await self.taskTracker.untrack(task)
         }
     }
 
@@ -202,8 +255,10 @@ public actor CaptureService {
         timeoutTask = nil
         isCapturing = false
 
-        outputHandler?.stop()
-        outputHandler = nil
+        if let handler = self.outputHandler {
+            await handler.drain()
+            self.outputHandler = nil
+        }
 
         if let stream = self.stream {
             try? await stream.stopCapture()
@@ -224,8 +279,10 @@ public actor CaptureService {
         timeoutTask = nil
         isCapturing = false
 
-        outputHandler?.stop()
-        outputHandler = nil
+        if let handler = self.outputHandler {
+            await handler.drain()
+            self.outputHandler = nil
+        }
 
         if let stream = self.stream {
             try? await stream.stopCapture()

@@ -25,6 +25,20 @@
 
 ## Engineering log
 
+### 2026-11-09 — Third Adversarial Audit & Pipeline Synchronization Recovery (P0/P1/P2 Resolution)
+- **Goal and exact changes:**
+  1. **P0 Dynamic Display Bounds Assertion (Test 22):** Fixed `dragPanel.setCustomOrigin` assertion in `PipseyTests/main.swift` to dynamically compute safe drag bounds based on actual screen geometry (`dragScreen.frame` and `dragScreen.visibleFrame`), resolving failures on low-resolution or headless CI environments.
+  2. **P0 Fatal Failure in Live Network Tests (Test 23):** Ensured that when `PIPSEY_RUN_LIVE_NETWORK_TESTS=1`, missing credentials, network connection failures, or invalid schema responses increment `failed += 1` and fail the suite rather than passing silently.
+  3. **P1 Anthropic Credential Alignment & Persistence (Test 24):** In `SettingsSheetView`, aligned credential saving with `ConversationClient.loadDefault()`. When Anthropic is selected, keys are saved to and loaded from `pipsey-anthropic-key` in macOS Keychain; OpenAI and Azure keys use `pipsey-text-api-key`. Added dynamic provider switching to reload matching credentials and endpoints automatically.
+  4. **P1 VLM Request Temporal & Event Grounding (Test 26):** In `HostedVLMClient.observe(...)`, enriched observation prompts with the user's spoken question from `manifest.transcripts`, ordered frame IDs, relative timestamps (`+Xms`), and discrete user input events (`cursor_move`, `mouse_down`, etc.) occurring within 250ms temporal proximity of each frame.
+  5. **P1 Follow-Up Cancellation Ownership:** In `CompanionIslandView.swift`, wrapped `askFollowUp` inference in `activeInferenceTask`, cancelling any previous request and verifying `!Task.isCancelled` and `self.activeGeneration == currentGen` before mutating conversation state or triggering audio synthesis.
+  6. **P1 Initial Question Typed Fallback:** Added `initialQuestionInput` in `IslandViewModel` and `stopCapture()`, allowing the user to provide or type an explicit question if microphone audio is silent, speech recognition is denied, or keyboard input is preferred.
+  7. **P1 Explicit Model Upload Consent Gate (Test 27):** Implemented `pipsey_upload_consent_granted` preference check before transmitting screen frames to external VLM endpoints. Added an explicit user toggle in `SettingsSheetView` with fail-closed security.
+  8. **P2 Capture Drainage Concurrency Synchronization (Test 25):** Replaced uncoordinated background sampling tasks with `actor TaskTracker` and `drain()` in `CaptureStreamOutputHandler`. When `stop()` or `cancel()` is called, all in-flight compression and disk write tasks are fully drained and awaited before `sampler.sampledFrames` is queried or `cleanup()` destroys the ephemeral session directory.
+- **Verification & Test Suite:**
+  - 279 / 279 unit and integration tests passing (`swift run PipseyTests` — 0 failures, 1.4s execution time).
+  - Production application bundle compiled and codesigned at `build/Pipsey.app`.
+
 ### 2026-11-09 — Wispr-Style Neon Blue Line, Option+Command Hold-to-Record & Butter-Smooth Window Dragging
 - **Goal and exact changes:**
   1. **Wispr-Style Neon Blue Line:** In idle state, Pipsey transforms into an ultra-sleek, luminous electric cyan/neon blue line (`width: 130`, `height: 14`) floating elegantly right below the system menu bar. Features a vivid gradient core (`#00F0FF` -> `#0072FF` -> `#00F0FF`) and soft neon cyan drop shadow.

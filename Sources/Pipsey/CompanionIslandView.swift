@@ -618,6 +618,7 @@ public struct SettingsSheetView: View {
     @State private var textModel: String = ""
     @State private var textApiKey: String = ""
     @State private var selectedProvider: String = "openai"
+    @State private var uploadConsentGranted: Bool = true
 
     @State private var testStatus: String? = nil
     @State private var isTesting: Bool = false
@@ -656,6 +657,25 @@ public struct SettingsSheetView: View {
                             Text("Anthropic Claude").tag("anthropic")
                         }
                         .pickerStyle(.segmented)
+                        .onChange(of: selectedProvider) { newProvider in
+                            let textAccount = (newProvider == "anthropic") ? "pipsey-anthropic-key" : "pipsey-text-api-key"
+                            textApiKey = KeychainManager.shared.readSecret(account: textAccount) ?? ""
+                            if newProvider == "anthropic" {
+                                if textBaseURL.contains("api.openai.com") {
+                                    textBaseURL = "https://api.anthropic.com/v1"
+                                }
+                                if textModel.contains("gpt-") {
+                                    textModel = "claude-3-5-sonnet-20241022"
+                                }
+                            } else if newProvider == "openai" {
+                                if textBaseURL.contains("anthropic.com") {
+                                    textBaseURL = "https://api.openai.com/v1"
+                                }
+                                if textModel.contains("claude") {
+                                    textModel = "gpt-4o-mini"
+                                }
+                            }
+                        }
                     }
 
                     Divider()
@@ -690,6 +710,17 @@ public struct SettingsSheetView: View {
 
                         SecureField("LLM API Key", text: $textApiKey)
                             .textFieldStyle(.roundedBorder)
+                    }
+
+                    Divider()
+
+                    // Upload Consent Toggle
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle("Explicit Model Upload Consent", isOn: $uploadConsentGranted)
+                            .font(.subheadline).bold()
+                        Text("Allows sending recorded screen frames to your configured VLM endpoint for interaction analysis. Revoking this blocks external network uploads.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
 
                     if let status = testStatus {
@@ -748,8 +779,11 @@ public struct SettingsSheetView: View {
         let text = TextLLMConfiguration.loadDefault()
         textBaseURL = defaults.string(forKey: "pipsey_text_base_url") ?? text.baseURL.absoluteString
         textModel = defaults.string(forKey: "pipsey_text_model") ?? text.model
-        textApiKey = KeychainManager.shared.readSecret(account: "pipsey-text-api-key") ?? text.apiKey
         selectedProvider = defaults.string(forKey: "pipsey_provider") ?? (text.isAnthropic ? "anthropic" : (text.isAzure ? "azure" : "openai"))
+
+        let textAccount = (selectedProvider == "anthropic") ? "pipsey-anthropic-key" : "pipsey-text-api-key"
+        textApiKey = KeychainManager.shared.readSecret(account: textAccount) ?? text.apiKey
+        uploadConsentGranted = defaults.object(forKey: "pipsey_upload_consent_granted") as? Bool ?? true
     }
 
     private func saveSettings() {
@@ -759,12 +793,14 @@ public struct SettingsSheetView: View {
         defaults.set(textBaseURL, forKey: "pipsey_text_base_url")
         defaults.set(textModel, forKey: "pipsey_text_model")
         defaults.set(selectedProvider, forKey: "pipsey_provider")
+        defaults.set(uploadConsentGranted, forKey: "pipsey_upload_consent_granted")
 
         if !vlmApiKey.isEmpty {
             try? KeychainManager.shared.saveSecret(account: "pipsey-vlm-api-key", secret: vlmApiKey)
         }
+        let textAccount = (selectedProvider == "anthropic") ? "pipsey-anthropic-key" : "pipsey-text-api-key"
         if !textApiKey.isEmpty {
-            try? KeychainManager.shared.saveSecret(account: "pipsey-text-api-key", secret: textApiKey)
+            try? KeychainManager.shared.saveSecret(account: textAccount, secret: textApiKey)
         }
         viewModel.reloadAIConfigurations()
     }
@@ -805,8 +841,9 @@ public struct SettingsSheetView: View {
         }
 
         // 2. Test Text LLM Endpoint
+        let defaultTextBase = (selectedProvider == "anthropic") ? "https://api.anthropic.com/v1" : "https://api.openai.com/v1"
         let textConfig = TextLLMConfiguration(
-            baseURL: URL(string: textBaseURL) ?? URL(string: "https://api.openai.com/v1")!,
+            baseURL: URL(string: textBaseURL) ?? URL(string: defaultTextBase)!,
             apiKey: textApiKey,
             model: textModel
         )
@@ -948,6 +985,7 @@ public final class IslandViewModel: ObservableObject {
     @Published public var explanationSummary: String? = nil
     @Published public var currentExplanation: ConversationalExplanation? = nil
     @Published public var elapsedSeconds: Int = 0
+    @Published public var initialQuestionInput: String = ""
     @Published public var activeSheet: ActiveSheet? = nil
     public var showPermissionsSheet: Bool {
         get { activeSheet == .permissions }
@@ -1218,6 +1256,16 @@ public final class IslandViewModel: ObservableObject {
             // Pass real frames to VLM Observer
             self.processingStatusText = "Analyzing real screen frames with VLM..."
 
+            // Explicit Model Upload Consent Gate: prevent unauthorized transmission of recorded screens
+            let consentGranted = UserDefaults.standard.object(forKey: "pipsey_upload_consent_granted") as? Bool ?? true
+            guard consentGranted else {
+                await self.coordinator.fail(
+                    error: "Screen frame upload blocked: Explicit model upload consent is disabled in Pipsey Settings.",
+                    generation: currentGen
+                )
+                return
+            }
+
             var observations: [Observation] = []
             do {
                 let vlmResponse = try await self.vlmClient.observe(manifest: manifest, frames: sampledFrames)
@@ -1244,7 +1292,9 @@ public final class IslandViewModel: ObservableObject {
             }
 
             guard !Task.isCancelled, self.activeGeneration == currentGen else { return }
-            let questionText = transcripts.last?.text ?? "How does this demonstrated interaction work?"
+            let spokenText = transcripts.last?.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let typedText = self.initialQuestionInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            let questionText = (!typedText.isEmpty) ? typedText : (spokenText?.isEmpty == false ? spokenText! : "How does this demonstrated interaction work?")
             self.processingStatusText = "Formulating explanation from verified observations..."
 
             do {
@@ -1286,23 +1336,33 @@ public final class IslandViewModel: ObservableObject {
 
     public func askFollowUp(query: String) async {
         guard let current = currentExplanation else { return }
-        conversationHistory.append(ChatMessage(role: "assistant", content: current.detailedMarkdown))
-        conversationHistory.append(ChatMessage(role: "user", content: query))
+        let currentGen = self.activeGeneration
+        activeInferenceTask?.cancel()
 
-        do {
-            let newExplanation = try await conversationClient.explain(
-                question: query,
-                observations: [
-                    Observation(id: "obs-ctx", startMs: 100, endMs: 800, before: current.observedBehavior, after: current.likelyMechanism, evidenceFrameIds: ["ctx-01"])
-                ],
-                history: conversationHistory
-            )
-            self.currentExplanation = newExplanation
-            self.explanationSummary = newExplanation.spokenSummary
-            SpokenVoiceSynthesizer.shared.speak(newExplanation.spokenSummary)
-        } catch {
-            print("Follow-up error: \(error)")
+        let task = Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            self.conversationHistory.append(ChatMessage(role: "assistant", content: current.detailedMarkdown))
+            self.conversationHistory.append(ChatMessage(role: "user", content: query))
+
+            do {
+                let newExplanation = try await self.conversationClient.explain(
+                    question: query,
+                    observations: [
+                        Observation(id: "obs-ctx", startMs: 100, endMs: 800, before: current.observedBehavior, after: current.likelyMechanism, evidenceFrameIds: ["ctx-01"])
+                    ],
+                    history: self.conversationHistory
+                )
+                guard !Task.isCancelled, self.activeGeneration == currentGen else { return }
+                self.currentExplanation = newExplanation
+                self.explanationSummary = newExplanation.spokenSummary
+                SpokenVoiceSynthesizer.shared.speak(newExplanation.spokenSummary)
+            } catch {
+                guard !Task.isCancelled, self.activeGeneration == currentGen else { return }
+                print("Follow-up error: \(error)")
+            }
         }
+        self.activeInferenceTask = task
+        _ = await task.value
     }
 
     public func toggleSpeech() {
