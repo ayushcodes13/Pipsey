@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import AVFoundation
 import Speech
 import CoreGraphics
@@ -28,6 +29,16 @@ public struct PermissionSnapshot: Sendable, Equatable {
     public var screenRecording: ScreenRecordingStatus
     public var microphone: AudioPermissionStatus
     public var speechRecognition: SpeechPermissionStatus
+
+    public init(
+        screenRecording: ScreenRecordingStatus,
+        microphone: AudioPermissionStatus,
+        speechRecognition: SpeechPermissionStatus
+    ) {
+        self.screenRecording = screenRecording
+        self.microphone = microphone
+        self.speechRecognition = speechRecognition
+    }
 
     public var allGranted: Bool {
         screenRecording == .granted && microphone == .authorized && speechRecognition == .authorized
@@ -101,5 +112,23 @@ public final class PermissionCoordinator: @unchecked Sendable {
             microphone: checkMicrophoneStatus(),
             speechRecognition: checkSpeechStatus()
         )
+    }
+
+    public func openScreenRecordingSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    public func openMicrophoneSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    public func openSpeechRecognitionSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition") {
+            NSWorkspace.shared.open(url)
+        }
     }
 }

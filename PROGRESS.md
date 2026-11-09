@@ -4,18 +4,45 @@
 
 ## Snapshot — 2026-11-09
 - **Project:** Pipsey — native macOS Feature Mode companion.
-- **Phase:** M0 PASSED / M1 IN PROGRESS.
-- **Application:** Native SwiftUI + AppKit island panel (`FloatingIslandPanel`, `CompanionIslandView`, `MenuBarController`), `PipseyCore` state machine and data models implemented.
-- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 28/28 tests passed).
-- **Binary smoke test:** VERIFIED PASS (`.build/arm64-apple-macosx/debug/Pipsey` launched, hotkey registered, panel presented, cleanly terminated).
-- **Screen/voice capture permissions:** ScreenCaptureKit TCC denial and speech/microphone status empirically checked on Apple M1.
-- **Model inference and hosting:** Provider adapter abstraction designed (ADR 019); "ION" provider unconfigured ($0 cost); no recurring infrastructure provisioned.
+- **Phase:** M0 PASSED / M1 PASSED / M2 IN PROGRESS.
+- **Application:** Native SwiftUI + AppKit island panel (`FloatingIslandPanel`, `CompanionIslandView`, `MenuBarController`), `PermissionsOnboardingSheet`, multi-display dynamic repositioning, `PipseyCore` lifecycle state coordinator.
+- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 161/161 tests passed).
+- **Binary smoke test:** VERIFIED PASS (`.build/arm64-apple-macosx/debug/Pipsey` launches cleanly as accessory app, presents island panel, registers global hotkey `⌥⌘P`, responds to menu bar triggers, terminates cleanly).
+- **Screen/voice capture permissions:** ScreenCaptureKit, Microphone, and Speech Recognition onboarding and direct System Settings deep-links implemented.
+- **Model inference and hosting:** Provider adapter abstraction designed (ADR 019); spend cap $0.00.
 - **Hardware target:** Apple M1 (MacBookPro17,1), 8GB RAM, macOS 27.2, non-notched Retina display (safeAreaInsets.top = 0.0pt).
-- **Pending action:** Proceeding with M1 completion (interactive state transitions, onboarding sheet, hotkey repeated triggers).
+- **Pending action:** Advancing to M2: Real ScreenCaptureKit capture service, synchronized frame sampling, microphone audio capture and timeline alignment.
 
 ---
 
 ## Engineering log
+
+### 2026-11-09 — M1: Native Companion Shell & Lifecycle (Branch: feat/m1-companion-shell-lifecycle)
+- **Baseline commit / working branch:** `c2fca42` / `feat/m1-companion-shell-lifecycle`
+- **Goal and exact changes:**
+  1. Built full SwiftUI + AppKit companion shell with top-center floating island panel (`FloatingIslandPanel`).
+  2. Implemented multi-display support: dynamic screen targeting based on cursor location (`FloatingIslandPanel.targetScreenForCursor()`), observer for `NSApplication.didChangeScreenParametersNotification`.
+  3. Integrated `PermissionsOnboardingSheet` with status badges for Screen Recording, Microphone, and Speech Recognition, plus deep links to macOS System Settings.
+  4. Added accessible labels (`.accessibilityLabel`) across all controls and reduced-motion support (`@Environment(\.accessibilityReduceMotion)`).
+  5. Implemented active recording elapsed timer (`formattedDuration`) and explicit Stop / Cancel actions.
+  6. Added 25-cycle automated activation stress test (Test 7) verifying state machine robustness, zero memory leaks, and monotonically increasing generation IDs.
+  7. Expanded test suite to 161 assertions (all passing).
+- **Device hardware / macOS / Xcode / Swift:**
+  - Hardware: Apple M1 (MacBookPro17,1), 8 GB RAM, macOS 27.2.
+  - Swift: Apple Swift version 6.3.3.
+- **Actual commands and pass/fail outputs:**
+  - `swift run PipseyTests` -> TOTAL TESTS: 161 | PASSED: 161 | FAILED: 0 | VERDICT: PASS
+  - `swift build --product Pipsey` -> Build complete (0 errors, 0 warnings)
+  - 25-cycle activation stress test -> 25/25 cycles passed without deadlock or state inconsistency.
+- **Manual validation observations:**
+  - Island panel floats at level 3 (.floating) without stealing window key/main focus.
+  - Positioning accommodates non-notch displays (6pt below visibleFrame top) and notch displays (under safeAreaInsets.top).
+- **Model and host / billed cost / payload count:**
+  - Host spend: $0.00.
+- **Privacy/security/cancellation results:**
+  - Cancellation works at all active states (.starting, .listeningAndCapturing, .stopping, .processingVisual, .generatingResponse, .speaking) and cleanly resets to .idle.
+- **Checkpoint boxes changed:** All 6 checkboxes in `## M1 — Native companion shell` checked [x].
+- **Next independently actionable task:** Advance to M2: Real ScreenCaptureKit bounded capture and speech audio timeline (Issue #4).
 
 ### 2026-11-09 — M0: Device Preflight, Feasibility & App Scaffolding (Branch: feat/m0-feasibility-scaffold)
 - **Baseline commit / working branch:** `ebfdb617f919e15bd4bc7a15802e580ed5e9a8db` / `feat/m0-feasibility-scaffold`
@@ -51,4 +78,5 @@
 
 ## Release gates
 - M0: PASSED (Hardware, toolchain, permissions, hotkey, and scaffolding empirically verified).
-- M1-M5: PENDING.
+- M1: PASSED (SwiftUI/AppKit island, nonactivating panel, multi-display, onboarding sheet, 25-cycle activation test).
+- M2-M5: PENDING.

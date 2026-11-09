@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.menuBarController = MenuBarController(
             onActivate: { [weak self] in
                 Task { @MainActor in
+                    self?.islandPanel?.reposition()
                     await self?.viewModel.triggerSession()
                 }
             },
@@ -41,6 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Setup Global Hotkey (⌥⌘P)
         let hotKeyRegistered = hotKeyController.register { [weak self] in
             Task { @MainActor in
+                self?.islandPanel?.reposition()
                 await self?.viewModel.triggerSession()
             }
         }
