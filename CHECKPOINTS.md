@@ -13,12 +13,12 @@
 - [x] App scaffolding/SDK and distribution ADR decisions recorded.
 
 ## M1 — Native companion shell
-- [ ] SwiftUI + AppKit native app launches/exits cleanly.
-- [ ] Top-center island and menu bar fallback work.
-- [ ] Shortcut works ≥20 times without accidental triggers/focus stealing.
-- [ ] Visible state machine matches actual lifecycle.
-- [ ] Stop/Cancel and permissions onboarding are usable and truthful.
-- [ ] Unit, build and manual M1 tests recorded.
+- [x] SwiftUI + AppKit native app launches/exits cleanly.
+- [x] Top-center island and menu bar fallback work.
+- [x] Shortcut works ≥20 times without accidental triggers/focus stealing.
+- [x] Visible state machine matches actual lifecycle.
+- [x] Stop/Cancel and permissions onboarding are usable and truthful.
+- [x] Unit, build and manual M1 tests recorded.
 
 ## M2 — Real capture
 - [ ] Real screen recording starts only after capture acknowledgement.

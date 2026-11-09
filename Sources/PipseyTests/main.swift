@@ -53,7 +53,7 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     }
 
     print("=========================================")
-    print("RUNNING PIPSEY VERIFICATION TEST SUITE")
+    print("RUNNING PIPSEY VERIFICATION TEST SUITE (M0 + M1)")
     print("=========================================")
 
     // TEST 1: SessionCoordinator Lifecycle
@@ -233,6 +233,59 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     }
     assertTrue(registered, "Carbon HotKey (⌥⌘P) registers successfully")
     hotKey.unregister()
+
+    // TEST 7: M1 Repeated Activation Stress Test (≥20 times)
+    print("\n--- Test 7: Repeated Activation Stress Test (25 iterations) ---")
+    let stressCoordinator = SessionCoordinator()
+    var stressGen = 0
+    for i in 1...25 {
+        let (_, gen) = await stressCoordinator.startSession()
+        assertEqual(await stressCoordinator.currentState, .starting, "Iteration \(i) should start")
+        assertTrue(gen > stressGen, "Iteration \(i) generation should strictly increment")
+        stressGen = gen
+
+        await stressCoordinator.confirmCaptureStarted(generation: gen)
+        assertEqual(await stressCoordinator.currentState, .listeningAndCapturing, "Iteration \(i) capturing")
+
+        if i % 2 == 0 {
+            // Cancel halfway
+            await stressCoordinator.cancel(generation: gen)
+            assertEqual(await stressCoordinator.currentState, .idle, "Iteration \(i) cancelled to idle")
+        } else {
+            // Normal stop to followup then reset
+            await stressCoordinator.stopCapture(generation: gen)
+            assertEqual(await stressCoordinator.currentState, .stopping, "Iteration \(i) stopped")
+            await stressCoordinator.beginVisualProcessing(generation: gen)
+            await stressCoordinator.visualProcessingCompleted(generation: gen, validated: true)
+            await stressCoordinator.conversationalResponseReady(
+                explanation: ConversationalExplanation(observedBehavior: "b", likelyMechanism: "m", implementationApproach: "i", spokenSummary: "s", detailedMarkdown: "d"),
+                generation: gen
+            )
+            assertEqual(await stressCoordinator.currentState, .readyForFollowup, "Iteration \(i) ready")
+            await stressCoordinator.resetToIdle()
+            assertEqual(await stressCoordinator.currentState, .idle, "Iteration \(i) reset to idle")
+        }
+    }
+    assertTrue(stressGen >= 25, "Successfully completed 25 cycles without deadlock or corruption")
+
+    // TEST 8: Multi-display target screen resolution
+    print("\n--- Test 8: Multi-display target screen resolution ---")
+    let targetScreen = FloatingIslandPanel.targetScreenForCursor()
+    assertTrue(targetScreen.frame.width > 0 && targetScreen.frame.height > 0, "Target screen dimensions valid")
+    panel.reposition(on: targetScreen)
+    assertEqual(panel.frame.width, 340.0, "Panel width matches standard 340pt")
+    assertEqual(panel.frame.height, 64.0, "Panel height matches standard 64pt")
+
+    // TEST 9: PermissionSnapshot logic
+    print("\n--- Test 9: PermissionSnapshot logic ---")
+    let allGood = PermissionSnapshot(screenRecording: .granted, microphone: .authorized, speechRecognition: .authorized)
+    assertTrue(allGood.allGranted, "All granted should be true when all are authorized")
+
+    let micDenied = PermissionSnapshot(screenRecording: .granted, microphone: .denied, speechRecognition: .authorized)
+    assertTrue(!micDenied.allGranted, "All granted should be false when microphone is denied")
+
+    let screenDenied = PermissionSnapshot(screenRecording: .denied, microphone: .authorized, speechRecognition: .authorized)
+    assertTrue(!screenDenied.allGranted, "All granted should be false when screen recording is denied")
 
     return (passed, failed)
 }
