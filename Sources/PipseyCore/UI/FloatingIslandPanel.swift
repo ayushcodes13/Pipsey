@@ -6,7 +6,7 @@ public final class FloatingIslandPanel: NSPanel {
     public private(set) var currentWidth: CGFloat = 340
     public private(set) var currentHeight: CGFloat = 64
 
-    public init(contentRect: NSRect) {
+    public init(contentRect: NSRect, level: NSWindow.Level = .floating) {
         super.init(
             contentRect: contentRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -16,10 +16,10 @@ public final class FloatingIslandPanel: NSPanel {
 
         self.isOpaque = false
         self.backgroundColor = .clear
-        self.level = .floating
+        self.level = level
         self.isFloatingPanel = true
         self.hidesOnDeactivate = false
-        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         // SwiftUI NotchShape renders the tailored organic shadow; disable rectangular window shadow
         self.hasShadow = false
 
@@ -29,6 +29,11 @@ public final class FloatingIslandPanel: NSPanel {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+    }
+
+    override public func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        // Return unconstrained frame so the notch anchors flush to the top bezel without being forced down by macOS
+        return frameRect
     }
 
     deinit {
