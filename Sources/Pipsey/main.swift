@@ -11,8 +11,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var viewModel = IslandViewModel(coordinator: sessionCoordinator)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Run as accessory app so it doesn't show in the Dock or steal active app focus
-        NSApp.setActivationPolicy(.accessory)
+        // Run as regular macOS app showing in Dock by default (or accessory if configured in Settings)
+        let hideDock = UserDefaults.standard.bool(forKey: "pipsey_hide_dock_icon")
+        NSApp.setActivationPolicy(hideDock ? .accessory : .regular)
+
+        // Setup Standard macOS Main Application Menu (Edit, Window, Help, Preferences)
+        setupMainMenu()
 
         // Setup Floating Island Panel (anchored to notch on hardware notch, or floating capsule below menu bar on non-notch)
         let metrics = NotchMetrics.current()
@@ -123,6 +127,157 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // First-Run Onboarding Wizard: guides new users through permissions & interactive gesture
         OnboardingWindowController.shared.showOnboarding()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        // When clicking Pipsey in the macOS Dock or Launchpad:
+        islandPanel?.orderFrontRegardless()
+        withAnimation {
+            viewModel.isHovering = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+            withAnimation {
+                self?.viewModel.isHovering = false
+            }
+        }
+        return true
+    }
+
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let menu = NSMenu()
+        let activateItem = NSMenuItem(title: "Activate Pipsey (⌥⌘P)", action: #selector(handleActivate), keyEquivalent: "")
+        activateItem.target = self
+        menu.addItem(activateItem)
+
+        let historyItem = NSMenuItem(title: "Interaction Library...", action: #selector(handleHistory), keyEquivalent: "")
+        historyItem.target = self
+        menu.addItem(historyItem)
+
+        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(handleSettings), keyEquivalent: "")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
+        let snapItem = NSMenuItem(title: "Snap to Top Center", action: #selector(handleResetPosition), keyEquivalent: "")
+        snapItem.target = self
+        menu.addItem(snapItem)
+        return menu
+    }
+
+    private func setupMainMenu() {
+        let mainMenu = NSMenu()
+
+        // 1. Pipsey Application Menu
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu(title: "Pipsey")
+        let aboutItem = NSMenuItem(title: "About Pipsey", action: #selector(handleAbout), keyEquivalent: "")
+        aboutItem.target = self
+        appMenu.addItem(aboutItem)
+        appMenu.addItem(NSMenuItem.separator())
+
+        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(handleSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        appMenu.addItem(settingsItem)
+
+        let historyItem = NSMenuItem(title: "Interaction Library...", action: #selector(handleHistory), keyEquivalent: "h")
+        historyItem.target = self
+        appMenu.addItem(historyItem)
+
+        let guideItem = NSMenuItem(title: "Welcome & Quickstart Guide...", action: #selector(handleGuide), keyEquivalent: "")
+        guideItem.target = self
+        appMenu.addItem(guideItem)
+
+        appMenu.addItem(NSMenuItem.separator())
+        let hideItem = NSMenuItem(title: "Hide Pipsey", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(hideItem)
+        let hideOthersItem = NSMenuItem(title: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+        hideOthersItem.keyEquivalentModifierMask = [.option, .command]
+        appMenu.addItem(hideOthersItem)
+        let showAllItem = NSMenuItem(title: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
+        appMenu.addItem(showAllItem)
+        appMenu.addItem(NSMenuItem.separator())
+
+        let quitItem = NSMenuItem(title: "Quit Pipsey", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(quitItem)
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+
+        // 2. Edit Menu (crucial so ⌘C, ⌘V, ⌘X, ⌘A, ⌘Z work natively in text fields!)
+        let editMenuItem = NSMenuItem()
+        let editMenu = NSMenu(title: "Edit")
+        editMenu.addItem(NSMenuItem(title: "Undo", action: #selector(UndoManager.undo), keyEquivalent: "z"))
+        editMenu.addItem(NSMenuItem(title: "Redo", action: #selector(UndoManager.redo), keyEquivalent: "Z"))
+        editMenu.addItem(NSMenuItem.separator())
+        editMenu.addItem(NSMenuItem(title: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
+        editMenu.addItem(NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
+        editMenu.addItem(NSMenuItem(title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
+        editMenu.addItem(NSMenuItem(title: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
+        editMenuItem.submenu = editMenu
+        mainMenu.addItem(editMenuItem)
+
+        // 3. View Menu
+        let viewMenuItem = NSMenuItem()
+        let viewMenu = NSMenu(title: "View")
+        let snapItem = NSMenuItem(title: "Snap Island to Top Center", action: #selector(handleResetPosition), keyEquivalent: "")
+        snapItem.target = self
+        viewMenu.addItem(snapItem)
+        let libItem = NSMenuItem(title: "Interaction Library", action: #selector(handleHistory), keyEquivalent: "l")
+        libItem.target = self
+        viewMenu.addItem(libItem)
+        viewMenuItem.submenu = viewMenu
+        mainMenu.addItem(viewMenuItem)
+
+        // 4. Window Menu
+        let windowMenuItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "Window")
+        windowMenu.addItem(NSMenuItem(title: "Minimize", action: #selector(NSWindow.miniaturize(_:)), keyEquivalent: "m"))
+        windowMenu.addItem(NSMenuItem(title: "Bring All to Front", action: #selector(NSApplication.arrangeInFront(_:)), keyEquivalent: ""))
+        windowMenuItem.submenu = windowMenu
+        mainMenu.addItem(windowMenuItem)
+
+        // 5. Help Menu
+        let helpMenuItem = NSMenuItem()
+        let helpMenu = NSMenu(title: "Help")
+        let helpGuideItem = NSMenuItem(title: "Pipsey Quickstart Guide", action: #selector(handleGuide), keyEquivalent: "?")
+        helpGuideItem.target = self
+        helpMenu.addItem(helpGuideItem)
+        helpMenuItem.submenu = helpMenu
+        mainMenu.addItem(helpMenuItem)
+
+        NSApp.mainMenu = mainMenu
+    }
+
+    @objc private func handleActivate() {
+        Task { @MainActor in
+            await viewModel.triggerSession()
+        }
+    }
+
+    @objc private func handleSettings() {
+        Task { @MainActor in
+            viewModel.showSettingsSheet = true
+        }
+    }
+
+    @objc private func handleHistory() {
+        HistoryWindowController.shared.showHistory()
+    }
+
+    @objc private func handleGuide() {
+        OnboardingWindowController.shared.showOnboarding(force: true)
+    }
+
+    @objc private func handleResetPosition() {
+        islandPanel?.resetToDefaultPosition()
+    }
+
+    @objc private func handleAbout() {
+        NSApp.orderFrontStandardAboutPanel(
+            options: [
+                NSApplication.AboutPanelOptionKey.applicationName: "Pipsey",
+                NSApplication.AboutPanelOptionKey.version: "0.1.0",
+                NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): "Pipsey AI Companion"
+            ]
+        )
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -25,16 +25,39 @@
 
 ## Engineering log
 
-### 2026-11-10 — Production Startup Infrastructure: Onboarding Wizard, App Context Detection & Searchable Library
+### 2026-11-10 — Native macOS Dock Integration, Launch at Login, Onboarding Wizard, App Context & DMG Packaging
 - **Goal and exact changes:**
-  1. **First-Run Onboarding Wizard (`PipseyOnboardingWindow`):** Added a native multi-step onboarding wizard launching on first boot (`pipsey_has_completed_onboarding`) or via Menu Bar ("Welcome & Quickstart Guide..."):
-     - Welcome & Mission with animated Pipsey mascot.
-     - Interactive permission setup (Microphone, Speech Recognition, Screen Recording with automated restart flow).
-     - Interactive gesture sandbox teaching the Option+Command (`⌥⌘`) press-and-hold trigger.
-  2. **Active Application & Context Detection (`AppContextProvider`):** Automatically senses the frontmost active application (Figma, Xcode, VS Code, Chrome, Linear, etc.) and infers the relevant target design & code paradigm (e.g. Figma -> Auto Layout/CSS Tokens; Xcode -> SwiftUI/AppKit; Chrome/VS Code -> React/Tailwind/CSS).
-  3. **Persistent Session History & Code Library (`SessionHistoryManager` & `HistoryWindow`):** Automatically saves every completed explanation and code sample into local JSON storage (`~/Library/Application Support/Pipsey/session_history.json`). Features a dedicated SplitView search library (`⌘H` or Menu Bar / Island) with instant keyword search, code copying, and interaction deletion.
-  4. **Menu Bar Companion Polish:** Added "Interaction Library & History... (⌘H)" and "Welcome & Quickstart Guide..." into `MenuBarController`.
-  5. **Verification & Tests:** Added Test 28, Test 29, and Test 30 in `PipseyTests/main.swift`. All 300 tests pass in 1.4s. Release bundle compiled and signed at `build/Pipsey.app`.
+  1. **Native macOS Dock & Application Integration:**
+     - Set `LSUIElement` to `<false/>` in `scripts/build-app.sh`.
+     - Added `NSApp.setActivationPolicy(hideDock ? .accessory : .regular)` in `Sources/Pipsey/main.swift` so Pipsey behaves as a true native Mac application (appears in macOS Dock, Cmd+Tab switcher, and Mission Control).
+     - Added `applicationShouldHandleReopen(_:hasVisibleWindows:)` in `AppDelegate` so clicking Pipsey in Dock or Launchpad brings the companion island into view with subtle hover bloom.
+     - Implemented `applicationDockMenu(_:)` offering quick actions: *Activate Pipsey (⌥⌘P)*, *Interaction Library (⌘H)*, *Settings...*, *Snap to Top Center*.
+     - Added standard macOS Main Application Menu (`NSApp.mainMenu`) with *Pipsey*, *Edit* (cut, copy, paste, selectAll, undo, redo for full text field support), *View*, *Window*, and *Help*.
+     - Added "Show Pipsey in Dock" toggle in `SettingsSheetView` (`pipsey_hide_dock_icon`).
+  2. **Launch at Login (ServiceManagement):**
+     - Created `Sources/PipseyCore/Utils/LaunchAtLogin.swift` wrapping modern macOS 13+ `SMAppService.mainApp.register()` / `unregister()` with fail-safe error handling.
+     - Added "Launch Pipsey at Login" toggle in `SettingsSheetView`.
+  3. **First-Run Onboarding Wizard (`PipseyOnboardingWindow`):**
+     - Created `Sources/Pipsey/Onboarding/OnboardingWindow.swift` with a 4-step wizard: Welcome, Guided Permissions (with automated "Restart Pipsey" flow for Screen Recording), Interactive Gesture Sandbox (`⌥⌘`), and Ready screen.
+     - Wired into `main.swift` to launch automatically on first run (`pipsey_has_completed_onboarding`) or via Menu Bar (*Welcome & Quickstart Guide...*).
+  4. **Active Application & Context Detection (`AppContextProvider`):**
+     - Senses the frontmost active application (Figma, Xcode, VS Code, Chrome, Linear, etc.) and infers the relevant target design & code paradigm (e.g. Figma -> Auto Layout/CSS Tokens; Xcode -> SwiftUI/AppKit; Chrome/VS Code -> React/Tailwind/CSS).
+  5. **Persistent Session History & Code Library (`SessionHistoryManager` & `HistoryWindow`):**
+     - Automatically saves every completed explanation and code sample into local JSON storage (`~/Library/Application Support/Pipsey/session_history.json`).
+     - Searchable SplitView library (`⌘H` or Menu Bar / Island) with instant keyword search, code copying, markdown file export (`exportRecord`), and interaction deletion.
+  6. **Visual Design Polish (White Outline + Electric Neon Cyan Line):**
+     - Deep matte black glass capsule with crisp white outline (`Color.white.opacity(0.40)`).
+     - Vibrant electric neon cyan gradient center line (`#00F0FF` -> `#0072FF` -> `#00F0FF`) with glowing drop shadow.
+     - High-contrast electric cyan waveform and timer with crisp white Done action.
+  7. **Keychain Prompt Elimination:**
+     - Added thread-safe in-memory caching to `KeychainManager.swift` (`memoryCache`, `hasQueried`).
+     - Wrapped test keys in `defer` cleanup in `PipseyTests/main.swift`, eliminating repeated OS password popups.
+  8. **Distribution Packaging (`scripts/package-release.sh`):**
+     - Created automated release packager producing a compressed drag-and-drop disk image at `build/Pipsey-0.1.0.dmg` with `/Applications` symlink and signed `.app` bundle.
+  9. **Verification & Test Suite:**
+     - Added Test 28, Test 29, Test 30, and Test 31 in `PipseyTests/main.swift`.
+     - 307 / 307 unit and integration tests passing (`swift build --build-tests && .build/debug/PipseyTests`).
+     - Release bundle built and signed at `build/Pipsey.app` and packaged into `build/Pipsey-0.1.0.dmg`.
 
 ### 2026-11-09 — Third Adversarial Audit & Pipeline Synchronization Recovery (P0/P1/P2 Resolution)
 - **Goal and exact changes:**

@@ -48,6 +48,28 @@ public struct SavedSessionRecord: Codable, Identifiable, Equatable, Sendable {
         formatter.timeStyle = .short
         return formatter.string(from: timestamp)
     }
+
+    public func exportMarkdown() -> String {
+        """
+        # Pipsey Interaction: \(question.isEmpty ? "Observed UI Interaction" : question)
+        - **Recorded**: \(formattedDate)
+        - **Active App**: \(appName) (\(appCategory))
+        - **Target Framework**: \(suggestedFramework)
+        - **Capture Duration**: \(String(format: "%.1f", Double(durationMs) / 1000.0))s (\(frameCount) frames analyzed)
+
+        ## Spoken Explanation
+        \(spokenSummary)
+
+        ## Likely Mechanism
+        \(likelyMechanism)
+
+        ## Recommended Implementation Approach
+        \(implementationApproach)
+
+        ## Code & Implementation Analysis
+        \(detailedMarkdown)
+        """
+    }
 }
 
 public actor SessionHistoryManager {

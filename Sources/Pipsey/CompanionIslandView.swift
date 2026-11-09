@@ -647,6 +647,8 @@ public struct SettingsSheetView: View {
     @State private var textApiKey: String = ""
     @State private var selectedProvider: String = "openai"
     @State private var uploadConsentGranted: Bool = true
+    @State private var showInDock: Bool = true
+    @State private var launchAtLogin: Bool = false
 
     @State private var testStatus: String? = nil
     @State private var isTesting: Bool = false
@@ -751,6 +753,35 @@ public struct SettingsSheetView: View {
                             .foregroundColor(.secondary)
                     }
 
+                    Divider()
+
+                    // macOS Dock Appearance
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle("Show Pipsey in Dock", isOn: $showInDock)
+                            .font(.subheadline).bold()
+                            .onChange(of: showInDock) { show in
+                                NSApp.setActivationPolicy(show ? .regular : .accessory)
+                                UserDefaults.standard.set(!show, forKey: "pipsey_hide_dock_icon")
+                            }
+                        Text("When enabled, Pipsey appears in your macOS Dock and App Switcher (⌘-Tab). When disabled, Pipsey lives purely in your Menu Bar and screen notch.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Divider()
+
+                    // Launch at Login
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle("Launch Pipsey at Login", isOn: $launchAtLogin)
+                            .font(.subheadline).bold()
+                            .onChange(of: launchAtLogin) { enable in
+                                LaunchAtLogin.setEnabled(enable)
+                            }
+                        Text("Automatically start Pipsey and anchor the companion island when your Mac starts.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
                     if let status = testStatus {
                         Text(status)
                             .font(.caption)
@@ -810,6 +841,8 @@ public struct SettingsSheetView: View {
         selectedProvider = defaults.string(forKey: "pipsey_provider") ?? (text.isAnthropic ? "anthropic" : (text.isAzure ? "azure" : "openai"))
         textApiKey = text.apiKey
         uploadConsentGranted = defaults.object(forKey: "pipsey_upload_consent_granted") as? Bool ?? true
+        showInDock = !defaults.bool(forKey: "pipsey_hide_dock_icon")
+        launchAtLogin = LaunchAtLogin.isEnabled
     }
 
     private func saveSettings() {
@@ -820,6 +853,9 @@ public struct SettingsSheetView: View {
         defaults.set(textModel, forKey: "pipsey_text_model")
         defaults.set(selectedProvider, forKey: "pipsey_provider")
         defaults.set(uploadConsentGranted, forKey: "pipsey_upload_consent_granted")
+        defaults.set(!showInDock, forKey: "pipsey_hide_dock_icon")
+        NSApp.setActivationPolicy(showInDock ? .regular : .accessory)
+        LaunchAtLogin.setEnabled(launchAtLogin)
 
         if !vlmApiKey.isEmpty {
             try? KeychainManager.shared.saveSecret(account: "pipsey-vlm-api-key", secret: vlmApiKey)

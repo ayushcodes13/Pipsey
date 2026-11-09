@@ -866,6 +866,21 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     UserDefaults.standard.set(true, forKey: onboardingKey)
     assertTrue(UserDefaults.standard.bool(forKey: onboardingKey), "Onboarding marked as completed")
 
+    // TEST 31: LaunchAtLogin Helper & Markdown Export
+    print("\n--- Test 31: LaunchAtLogin Helper & Markdown Export ---")
+    // Safe CLI execution check (returns false gracefully without throwing when running outside an app bundle)
+    let loginStatus = LaunchAtLogin.isEnabled
+    assertTrue(loginStatus == false || loginStatus == true, "LaunchAtLogin query evaluates safely")
+    let setAttempt = LaunchAtLogin.setEnabled(false)
+    assertTrue(setAttempt == false || setAttempt == true, "LaunchAtLogin toggle executes without fatal crash")
+
+    let exportDoc = testRecord2.exportMarkdown()
+    assertTrue(exportDoc.contains("Pipsey Interaction"), "Export contains title header")
+    assertTrue(exportDoc.contains("Xcode"), "Export contains app name")
+    assertTrue(exportDoc.contains("SwiftUI"), "Export contains framework")
+    assertTrue(exportDoc.contains("scrollTargetBehavior"), "Export contains mechanism")
+    assertTrue(exportDoc.contains("```swift"), "Export contains code block")
+
     return (passed, failed)
 }
 

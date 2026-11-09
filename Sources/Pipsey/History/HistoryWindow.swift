@@ -172,6 +172,19 @@ public struct HistoryView: View {
                     Spacer()
 
                     Button(action: {
+                        exportRecord(record)
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.down.doc")
+                            Text("Export .md")
+                        }
+                        .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .help("Export interaction analysis as a Markdown file")
+
+                    Button(action: {
                         Task {
                             await SessionHistoryManager.shared.delete(id: record.id)
                             await reloadRecords()
@@ -294,6 +307,26 @@ public struct HistoryView: View {
         records = await SessionHistoryManager.shared.getAllRecords()
         if selectedRecordId == nil {
             selectedRecordId = records.first?.id
+        }
+    }
+
+    private func exportRecord(_ record: SavedSessionRecord) {
+        let savePanel = NSSavePanel()
+        savePanel.canCreateDirectories = true
+        let safeAppName = record.appName.components(separatedBy: CharacterSet.alphanumerics.inverted).joined()
+        let cleanName = safeAppName.isEmpty ? "Pipsey-Analysis" : "Pipsey-\(safeAppName)"
+        savePanel.nameFieldStringValue = "\(cleanName).md"
+        savePanel.title = "Export Interaction Analysis"
+        savePanel.message = "Choose where to save the markdown analysis and implementation code."
+
+        if savePanel.runModal() == .OK, let url = savePanel.url {
+            let markdown = record.exportMarkdown()
+            do {
+                try markdown.write(to: url, atomically: true, encoding: .utf8)
+                PipseySoundEffects.playCopyFeedback()
+            } catch {
+                print("Failed to export record: \(error)")
+            }
         }
     }
 }
