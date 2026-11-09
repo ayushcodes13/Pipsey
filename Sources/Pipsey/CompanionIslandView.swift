@@ -211,56 +211,77 @@ public struct CompanionIslandView: View {
         }
     }
 
-    // MARK: - Idle State (Always showing Pipsey Mascot Logo)
+    // MARK: - Idle State (Sleek resting capsule, expands to Mascot on hover)
     @ViewBuilder
     private var idleContent: some View {
-        HStack(spacing: 8) {
-            Button(action: {
-                Task { await viewModel.triggerSession() }
-            }) {
-                PipseyMascotView(size: 20)
+        if !viewModel.isHovering {
+            ZStack {
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: "0A84FF"),
+                                Color(hex: "0071E3"),
+                                Color(hex: "0A84FF")
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: 54, height: 3)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Pipsey Mascot (Click to record)")
-
-            Spacer(minLength: 4)
-
-            Button(action: {
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture {
                 Task { await viewModel.triggerSession() }
-            }) {
-                HStack(spacing: 2) {
-                    KeyBadge("⌥", isAccent: true)
-                    KeyBadge("⌘", isAccent: true)
+            }
+            .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record, or drag to move)")
+        } else {
+            HStack(spacing: 8) {
+                Button(action: {
+                    Task { await viewModel.triggerSession() }
+                }) {
+                    PipseyMascotView(size: 20)
                 }
-            }
-            .buttonStyle(.plain)
-            .help("Hold Option+Command to record interaction; tap to toggle")
+                .buttonStyle(.plain)
+                .accessibilityLabel("Pipsey Mascot (Click to record)")
 
-            Button(action: {
-                SettingsWindowController.show()
-            }) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 11))
-                    .foregroundColor(.gray)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open Pipsey Settings")
+                Spacer(minLength: 4)
 
-            Button(action: {
-                HistoryWindowController.shared.showHistory()
-            }) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 11))
-                    .foregroundColor(.gray)
+                Button(action: {
+                    Task { await viewModel.triggerSession() }
+                }) {
+                    HStack(spacing: 2) {
+                        KeyBadge("⌥", isAccent: true)
+                        KeyBadge("⌘", isAccent: true)
+                    }
+                }
+                .buttonStyle(.plain)
+                .help("Hold Option+Command to record interaction; tap to toggle")
+
+                Button(action: {
+                    SettingsWindowController.show()
+                }) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Open Pipsey Settings")
+
+                Button(action: {
+                    HistoryWindowController.shared.showHistory()
+                }) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Open Pipsey History")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open Pipsey History")
-        }
-        .padding(.horizontal, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            Task { await viewModel.triggerSession() }
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
         }
     }
 
@@ -1137,10 +1158,17 @@ public final class IslandViewModel: ObservableObject {
 
         switch state {
         case .idle:
-            w = 175
-            h = 32
-            topR = hasPhysicalNotch ? 8 : 16
-            botR = 16
+            if isHovering {
+                w = 175
+                h = 32
+                topR = hasPhysicalNotch ? 8 : 16
+                botR = 16
+            } else {
+                w = hasPhysicalNotch ? 185 : 130
+                h = hasPhysicalNotch ? 32 : 14
+                topR = hasPhysicalNotch ? 6 : 7
+                botR = hasPhysicalNotch ? 14 : 7
+            }
         case .listeningAndCapturing:
             // Generous width for "Recording UI", live timer, 5-bar waveform, prompt, Done & Cancel
             w = 380

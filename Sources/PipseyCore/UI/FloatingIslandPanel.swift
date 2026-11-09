@@ -22,6 +22,7 @@ public final class FloatingIslandPanel: NSPanel {
         self.isFloatingPanel = true
         self.isMovableByWindowBackground = true
         self.level = level
+        self.acceptsMouseMovedEvents = true
         self.hidesOnDeactivate = false
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         // Exclude companion island UI from macOS ScreenCaptureKit and window recordings
