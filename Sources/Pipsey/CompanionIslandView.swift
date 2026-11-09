@@ -296,6 +296,27 @@ public struct PermissionsOnboardingSheet: View {
 
             Divider()
 
+            // Request All Button
+            Button(action: {
+                Task {
+                    _ = PermissionCoordinator.shared.requestScreenRecordingAccess()
+                    _ = await PermissionCoordinator.shared.requestMicrophoneAccess()
+                    _ = await PermissionCoordinator.shared.requestSpeechAccess()
+                    PermissionCoordinator.shared.openScreenRecordingSettings()
+                    snapshot = PermissionCoordinator.shared.currentSnapshot()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "hand.raised.fill")
+                    Text("Trigger Permission Prompts & Open Settings")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.blue)
+
+            Divider()
+
             // 1. Screen Recording
             HStack {
                 VStack(alignment: .leading) {
@@ -306,8 +327,10 @@ public struct PermissionsOnboardingSheet: View {
                 }
                 Spacer()
                 statusBadge(for: snapshot.screenRecording == .granted)
-                Button("System Settings") {
+                Button("Request Access") {
+                    _ = PermissionCoordinator.shared.requestScreenRecordingAccess()
                     PermissionCoordinator.shared.openScreenRecordingSettings()
+                    snapshot = PermissionCoordinator.shared.currentSnapshot()
                 }
                 .buttonStyle(.bordered)
             }
@@ -322,8 +345,14 @@ public struct PermissionsOnboardingSheet: View {
                 }
                 Spacer()
                 statusBadge(for: snapshot.microphone == .authorized)
-                Button("System Settings") {
-                    PermissionCoordinator.shared.openMicrophoneSettings()
+                Button("Request Access") {
+                    Task {
+                        _ = await PermissionCoordinator.shared.requestMicrophoneAccess()
+                        if snapshot.microphone != .authorized {
+                            PermissionCoordinator.shared.openMicrophoneSettings()
+                        }
+                        snapshot = PermissionCoordinator.shared.currentSnapshot()
+                    }
                 }
                 .buttonStyle(.bordered)
             }
@@ -338,8 +367,14 @@ public struct PermissionsOnboardingSheet: View {
                 }
                 Spacer()
                 statusBadge(for: snapshot.speechRecognition == .authorized)
-                Button("System Settings") {
-                    PermissionCoordinator.shared.openSpeechRecognitionSettings()
+                Button("Request Access") {
+                    Task {
+                        _ = await PermissionCoordinator.shared.requestSpeechAccess()
+                        if snapshot.speechRecognition != .authorized {
+                            PermissionCoordinator.shared.openSpeechRecognitionSettings()
+                        }
+                        snapshot = PermissionCoordinator.shared.currentSnapshot()
+                    }
                 }
                 .buttonStyle(.bordered)
             }

@@ -63,5 +63,9 @@ if [[ -f "pipsey-logo.webp" ]]; then
     cp pipsey-logo.webp "${RESOURCES_DIR}/AppIcon.webp"
 fi
 
-echo "✅ Successfully built ${APP_DIR}!"
+# 6. Ad-hoc codesign bundle with TCC audio/screen entitlements
+echo "Signing application bundle with entitlements..."
+codesign --force --deep --sign - --entitlements entitlements.plist "${APP_DIR}"
+
+echo "✅ Successfully built and signed ${APP_DIR}!"
 echo "To launch: open ${APP_DIR}"
