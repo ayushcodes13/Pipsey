@@ -25,6 +25,20 @@
 
 ## Engineering log
 
+### 2026-11-10 — Defringed Mascot Rendering & Organic Fluid Spring Motion
+- **Goal and exact changes:**
+  1. **Alpha Defringing & Edge Despill:**
+     - Eliminated dark matting and black halo artifacts on the transparent mascot PNGs. Color-corrected semi-transparent boundary pixels so the white helmet edge is pure white and cyan glow is vibrant cyan, eliminating dirty fringes over any desktop wallpaper.
+     - Updated `PipseyMascotView` to render the hardware-accelerated 8-bit antialiased PNG directly at 120 FPS ProMotion.
+  2. **Continuous Fluid Island Expansion:**
+     - Replaced abrupt view switching with a single continuous `HStack` where the mascot stays smoothly anchored at `(x: 0, y: 0)`.
+     - Controls (`⌃⌥⌘` and settings gear) glide in smoothly with `.opacity.combined(with: .scale(scale: 0.9, anchor: .leading))`.
+     - Frosted glass capsule background fades in smoothly (`opacity(0.0 -> 1.0)`) with `.spring(response: 0.42, dampingFraction: 0.82)`.
+  3. **Organic 30s Peeking Glance:**
+     - Re-tuned peeking glance curves from sharp snaps to relaxed Apple spring curves (`response: 0.50..0.60, dampingFraction: 0.72..0.82`), creating a gentle, natural character presence.
+  4. **Verification:**
+     - Codesigned and tested live on macOS (`build/Pipsey.app`). 321/321 tests passing (`swift run PipseyTests`).
+
 ### 2026-11-10 — Natural Desktop Integration (Removed Black Background & Transparent Cutout)
 - **Goal and exact changes:**
   1. **Transparent Mascot Assets:**

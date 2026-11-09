@@ -13,13 +13,13 @@ public struct PipseyMascotView: View {
     }
 
     public var body: some View {
-        if isAnimated, let animImage = loadAnimatedMascotImage() {
-            AnimatedImageView(image: animImage)
-                .frame(width: size, height: size)
-        } else if let img = loadMascotImage() {
+        if let img = loadMascotImage() {
             Image(nsImage: img)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+        } else if isAnimated, let animImage = loadAnimatedMascotImage() {
+            AnimatedImageView(image: animImage)
                 .frame(width: size, height: size)
         } else {
             Text("🤖")
@@ -165,10 +165,7 @@ public struct CompanionIslandView: View {
             .background(
                 Group {
                     if viewModel.companionStyle == .floatingCircle {
-                        if viewModel.state == .idle && !viewModel.isHovering {
-                            // Natural Desktop Presence (Zero black background, transparent hit target)
-                            Color.black.opacity(0.001)
-                        } else if viewModel.isTelescopeInspectionMode {
+                        if viewModel.isTelescopeInspectionMode {
                             // High-Tech Telescope HUD with Cyan / Teal Accent Outline
                             RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
                                 .fill(Color.black.opacity(0.95))
@@ -184,12 +181,14 @@ public struct CompanionIslandView: View {
                                         )
                                 )
                         } else {
+                            // Silky smooth frosted glass capsule that fades in gracefully on hover
                             RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                .fill(Color.black.opacity(0.92))
+                                .fill(Color.black.opacity(0.88))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                        .stroke(Color.white.opacity(0.35), lineWidth: 1.0)
+                                        .stroke(Color.white.opacity(0.20), lineWidth: 0.8)
                                 )
+                                .opacity(viewModel.state == .idle && !viewModel.isHovering ? 0.0 : 1.0)
                         }
                     } else if viewModel.hasPhysicalNotch {
                         Color.black
@@ -292,65 +291,62 @@ public struct CompanionIslandView: View {
     @ViewBuilder
     private var idleContent: some View {
         if viewModel.companionStyle == .floatingCircle {
-            if !viewModel.isHovering {
-                // Natural Transparent Desktop Companion with 30s Idle Curiosity Peek
-                ZStack {
-                    PipseyMascotView(size: 40, isAnimated: true)
+            HStack(spacing: 0) {
+                // Leftmost: Mascot Avatar remains constantly anchored at (x: 0, y: 0)
+                Button(action: {
+                    Task { await viewModel.triggerSession() }
+                }) {
+                    PipseyMascotView(size: viewModel.isHovering ? 28 : 38, isAnimated: true)
                         .rotationEffect(.degrees(viewModel.idlePeekingAngle))
                         .offset(y: viewModel.idlePeekingOffset)
                         .scaleEffect(viewModel.idlePeekingScale)
-                        .shadow(color: Color.black.opacity(0.35), radius: 5, x: 0, y: 2.5)
+                        .shadow(color: Color.black.opacity(viewModel.isHovering ? 0.15 : 0.35), radius: 4, x: 0, y: 2)
+                        .animation(.spring(response: 0.42, dampingFraction: 0.8), value: viewModel.isHovering)
                 }
+                .buttonStyle(.plain)
                 .frame(width: 46, height: 46)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    Task { await viewModel.triggerSession() }
-                }
-                .accessibilityLabel("Pipsey Corner Companion (Click to record, drag to move, ⌃⌥⌘ for telescope)")
-            } else {
-                HStack(spacing: 0) {
-                    // Leftmost: Mascot Avatar
-                    Button(action: {
-                        Task { await viewModel.triggerSession() }
-                    }) {
-                        PipseyMascotView(size: 24)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Pipsey Mascot (Click to record)")
+                .accessibilityLabel("Pipsey Companion (Click to record, drag to move, ⌃⌥⌘ for telescope)")
 
-                    Spacer()
+                if viewModel.isHovering {
+                    HStack(spacing: 0) {
+                        Spacer()
 
-                    // Center / Middle: Shortcut Badges
-                    Button(action: {
-                        Task { await viewModel.triggerSession() }
-                    }) {
-                        HStack(spacing: 3) {
-                            KeyBadge("⌃", isAccent: false)
-                            KeyBadge("⌥", isAccent: true)
-                            KeyBadge("⌘", isAccent: true)
+                        // Center / Middle: Shortcut Badges
+                        Button(action: {
+                            Task { await viewModel.triggerSession() }
+                        }) {
+                            HStack(spacing: 3) {
+                                KeyBadge("⌃", isAccent: false)
+                                KeyBadge("⌥", isAccent: true)
+                                KeyBadge("⌘", isAccent: true)
+                            }
                         }
-                    }
-                    .buttonStyle(.plain)
-                    .help("Hold Control+Option+Command for Telescope Inspection, or Option+Command for Quick Voice")
+                        .buttonStyle(.plain)
+                        .help("Hold Control+Option+Command for Telescope Inspection, or Option+Command for Quick Voice")
 
-                    Spacer()
+                        Spacer()
 
-                    // Rightmost: Clean settings control
-                    Button(action: {
-                        SettingsWindowController.show()
-                    }) {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.7))
-                            .frame(width: 22, height: 22)
+                        // Rightmost: Clean settings control
+                        Button(action: {
+                            SettingsWindowController.show()
+                        }) {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.white.opacity(0.75))
+                                .frame(width: 22, height: 22)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Preferences (⌘,)")
                     }
-                    .buttonStyle(.plain)
-                    .help("Preferences (⌘,)")
+                    .padding(.trailing, 10)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .leading)),
+                        removal: .opacity
+                    ))
                 }
-                .padding(.horizontal, 10)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         } else {
             // Notch Island Mode
             if !viewModel.isHovering {
@@ -1560,7 +1556,7 @@ public final class IslandViewModel: ObservableObject {
             }
         }
 
-        withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
             self.topCornerRadius = topR
             self.bottomCornerRadius = botR
             self.currentWidth = w
@@ -1594,35 +1590,35 @@ public final class IslandViewModel: ObservableObject {
         self.isIdlePeeking = true
         PipseySoundEffects.playIdlePeekingSound()
 
-        // Phase 1: Peek over circular lip and glance left (+12°)
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.65)) {
-            self.idlePeekingOffset = -5
-            self.idlePeekingAngle = 12.0
-            self.idlePeekingScale = 1.06
+        // Phase 1: Soft curiosity tilt left (+9°) with gentle perk
+        withAnimation(.spring(response: 0.50, dampingFraction: 0.72)) {
+            self.idlePeekingOffset = -4
+            self.idlePeekingAngle = 9.0
+            self.idlePeekingScale = 1.05
         }
 
-        // Phase 2: Shift smoothly and glance right (-12°)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+        // Phase 2: Fluid swing to glance right (-9°)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { [weak self] in
             guard let self = self, self.state == .idle else { return }
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.65)) {
-                self.idlePeekingAngle = -12.0
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.75)) {
+                self.idlePeekingAngle = -9.0
             }
         }
 
-        // Phase 3: Center with cheerful bounce
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+        // Phase 3: Happy centered bounce
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
             guard let self = self, self.state == .idle else { return }
-            withAnimation(.spring(response: 0.30, dampingFraction: 0.55)) {
+            withAnimation(.spring(response: 0.40, dampingFraction: 0.65)) {
                 self.idlePeekingAngle = 0.0
-                self.idlePeekingOffset = -6
-                self.idlePeekingScale = 1.10
+                self.idlePeekingOffset = -5
+                self.idlePeekingScale = 1.08
             }
         }
 
-        // Phase 4: Settle back into calm resting posture
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+        // Phase 4: Gentle return to resting posture
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.7) { [weak self] in
             guard let self = self else { return }
-            withAnimation(.spring(response: 0.40, dampingFraction: 0.8)) {
+            withAnimation(.spring(response: 0.60, dampingFraction: 0.82)) {
                 self.idlePeekingOffset = 0
                 self.idlePeekingAngle = 0.0
                 self.idlePeekingScale = 1.0
