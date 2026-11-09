@@ -74,6 +74,17 @@ extension Color {
     }
 }
 
+extension View {
+    @ViewBuilder
+    func smoothWindowDrag() -> some View {
+        if #available(macOS 15.0, *) {
+            self.gesture(WindowDragGesture())
+        } else {
+            self
+        }
+    }
+}
+
 public struct CompanionIslandView: View {
     @ObservedObject var viewModel: IslandViewModel
     @Environment(\.accessibilityReduceMotion) var reduceMotion
@@ -158,6 +169,7 @@ public struct CompanionIslandView: View {
                 x: 0,
                 y: viewModel.state.isCapturing ? 4 : 2
             )
+            .smoothWindowDrag()
             .onHover { hovering in
                 viewModel.isHovering = hovering
             }
@@ -206,30 +218,28 @@ public struct CompanionIslandView: View {
     @ViewBuilder
     private var idleContent: some View {
         if !viewModel.isHovering {
-            Button(action: {
-                Task { await viewModel.triggerSession() }
-            }) {
-                ZStack {
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(hex: "00F0FF"),
-                                    Color(hex: "0072FF"),
-                                    Color(hex: "00F0FF")
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
+            ZStack {
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: "00F0FF"),
+                                Color(hex: "0072FF"),
+                                Color(hex: "00F0FF")
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
-                        .frame(width: 72, height: 3.5)
-                        .shadow(color: Color(hex: "00F0FF").opacity(0.9), radius: 5, x: 0, y: 0)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
+                    )
+                    .frame(width: 72, height: 3.5)
+                    .shadow(color: Color(hex: "00F0FF").opacity(0.9), radius: 5, x: 0, y: 0)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record)")
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                Task { await viewModel.triggerSession() }
+            }
+            .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record, or drag to move)")
         } else {
             HStack(spacing: 6) {
                 Button(action: {

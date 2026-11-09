@@ -150,24 +150,7 @@ public final class FloatingIslandPanel: NSPanel {
 
 @MainActor
 public final class DraggableIslandHostingView<Content: View>: NSHostingView<Content> {
-    public var onIslandTapped: (() -> Void)?
-
-    override public func mouseDown(with event: NSEvent) {
-        guard let window = self.window as? FloatingIslandPanel, !window.allowsKeyWindow else {
-            super.mouseDown(with: event)
-            return
-        }
-
-        let initialOrigin = window.frame.origin
-        window.performDrag(with: event)
-        let finalOrigin = window.frame.origin
-        let distance = hypot(finalOrigin.x - initialOrigin.x, finalOrigin.y - initialOrigin.y)
-
-        if distance < 4.0 {
-            super.mouseDown(with: event)
-            onIslandTapped?()
-        } else {
-            window.customOrigin = finalOrigin
-        }
+    override public var mouseDownCanMoveWindow: Bool {
+        return true
     }
 }
