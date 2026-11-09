@@ -24,6 +24,8 @@ public final class FloatingIslandPanel: NSPanel {
         self.level = level
         self.hidesOnDeactivate = false
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        // Exclude companion island UI from macOS ScreenCaptureKit and window recordings
+        self.sharingType = .none
         // SwiftUI NotchShape renders the tailored organic shadow; disable rectangular window shadow
         self.hasShadow = false
 

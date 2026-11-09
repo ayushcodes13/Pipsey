@@ -3,7 +3,7 @@ import SwiftUI
 import PipseyCore
 
 @MainActor
-public final class HistoryWindowController: NSWindowController {
+public final class HistoryWindowController: NSWindowController, NSWindowDelegate {
     public static let shared = HistoryWindowController()
 
     public init() {
@@ -21,6 +21,7 @@ public final class HistoryWindowController: NSWindowController {
         window.minSize = NSSize(width: 680, height: 440)
 
         super.init(window: window)
+        window.delegate = self
         window.contentView = NSHostingView(rootView: HistoryView())
     }
 
@@ -31,7 +32,11 @@ public final class HistoryWindowController: NSWindowController {
     public func showHistory() {
         self.window?.center()
         self.window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivationPolicy.enter()
+    }
+
+    public func windowWillClose(_ notification: Notification) {
+        AppActivationPolicy.leave()
     }
 }
 

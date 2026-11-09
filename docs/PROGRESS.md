@@ -25,6 +25,35 @@
 
 ## Engineering log
 
+### 2026-11-10 — macos-app-skills Integration: Liquid Glass Settings Window, Screen Capture Self-Exclusion & App Activation Policy
+- **Goal and exact changes:**
+  1. **Installed `macos-app-skills`:**
+     - Cloned and installed `fayazara/macos-app-skills` across user global skills (`~/.gemini/config/skills/`) and project local skills (`.agents/skills/`):
+       - `settings-ui`: Settings Window with Liquid Glass & NavigationSplitView.
+       - `macos-patterns`: Native Patterns for Web Developers (Window levels, activation policy, screen capture exclusion).
+       - `notch-ui`: Dynamic Island / Notch Extender Bezier curve mechanics.
+       - `auto-update`: Sparkle integration patterns.
+       - `release`: DMG and notarization pipeline.
+       - `build`: Command-line macOS build patterns.
+  2. **Implemented Liquid Glass Settings Window (`SettingsWindowController` + `SettingsView`):**
+     - Replaced cramped in-island modal sheet with a dedicated native macOS preferences window (`NSWindowController` with `.fullSizeContentView` liquid glass chrome).
+     - Standard window frame autosave (`setFrameAutosaveName("PipseySettingsWindow")`).
+     - `NavigationSplitView` with sidebar and 5 dedicated tab panes:
+       - ⚙️ **General**: Launch at Login (`SMAppService`), Show in Dock, Snap to Top Center.
+       - 🧠 **AI Models & BYOK**: Visual Observer Model (VLM), Conversational LLM, provider switching (Azure, OpenAI, Anthropic), Keychain credentials, and live connection testing.
+       - 🔒 **Privacy & Permissions**: Explicit screen upload consent toggle, Screen Recording status + 1-click restart, Microphone status, and Speech Recognition status.
+       - ⌨️ **Shortcuts & Gestures**: `⌥⌘` hold-to-record guide, `⌥⌘P` hotkey, `⌘H` library, `⌘,` settings.
+       - ℹ️ **About Pipsey**: Robot mascot artwork, version, hardware acceleration info, and repository link.
+     - Wired **⌘,**, Menu Bar, Dock Menu, and Island gear button to `SettingsWindowController.show(tab:)`.
+  3. **Screen Capture Self-Exclusion (`sharingType = .none`):**
+     - Configured `self.sharingType = .none` on `FloatingIslandPanel`. This ensures macOS WindowServer and ScreenCaptureKit automatically exclude Pipsey's own floating island UI from captured frames, preventing occlusion or contamination of VLM evidence.
+  4. **Reference-Counted `AppActivationPolicy`:**
+     - Added `Sources/Pipsey/Utils/AppActivationPolicy.swift` managing `.regular` vs `.accessory` policy across Settings, History, and Onboarding windows.
+  5. **Verification & Test Suite:**
+     - Added Test 5 assertion for `panel.sharingType == .none`.
+     - 307 / 307 unit and integration tests passing.
+     - Packaged release distribution at `build/Pipsey-0.1.0.dmg` and running live `build/Pipsey.app`.
+
 ### 2026-11-10 — Native macOS Dock Integration, Launch at Login, Onboarding Wizard, App Context & DMG Packaging
 - **Goal and exact changes:**
   1. **Native macOS Dock & Application Integration:**

@@ -257,7 +257,7 @@ public struct CompanionIslandView: View {
                 .buttonStyle(.plain)
 
                 Button(action: {
-                    viewModel.showSettingsSheet = true
+                    SettingsWindowController.show()
                 }) {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 10))

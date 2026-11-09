@@ -91,11 +91,11 @@ public final class MenuBarController: NSObject {
     }
 
     @objc private func handleSettings() {
-        onOpenSettings()
+        SettingsWindowController.show(tab: .models)
     }
 
     @objc private func handlePermissions() {
-        onCheckPermissions()
+        SettingsWindowController.show(tab: .privacy)
     }
 
     @objc private func handleHistory() {

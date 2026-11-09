@@ -226,6 +226,7 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     assertEqual(panel.canBecomeKey, false, "Panel cannot become key (steals no keyboard focus)")
     assertEqual(panel.canBecomeMain, false, "Panel cannot become main (steals no window focus)")
     assertEqual(panel.level.rawValue, NSWindow.Level.floating.rawValue, "Panel level is floating")
+    assertEqual(panel.sharingType, NSWindow.SharingType.none, "Panel is invisible to screen capture (sharingType == .none)")
 
     // TEST 6: HotKey Controller Registration
     print("\n--- Test 6: HotKey Controller Registration ---")

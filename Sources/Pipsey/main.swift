@@ -75,9 +75,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.viewModel.showPermissionsSheet = true
                 }
             },
-            onOpenSettings: { [weak self] in
+            onOpenSettings: {
                 Task { @MainActor in
-                    self?.viewModel.showSettingsSheet = true
+                    SettingsWindowController.show()
                 }
             },
             onResetPosition: { [weak self] in
@@ -253,9 +253,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func handleSettings() {
-        Task { @MainActor in
-            viewModel.showSettingsSheet = true
-        }
+        SettingsWindowController.show()
     }
 
     @objc private func handleHistory() {

@@ -10,7 +10,7 @@ public enum OnboardingStep: Int, CaseIterable {
 }
 
 @MainActor
-public final class OnboardingWindowController: NSWindowController {
+public final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
     public static let shared = OnboardingWindowController()
     private var isPracticingGesture: Bool = false
 
@@ -30,6 +30,7 @@ public final class OnboardingWindowController: NSWindowController {
         window.level = .floating
 
         super.init(window: window)
+        window.delegate = self
         window.contentView = NSHostingView(rootView: OnboardingView(controller: self))
     }
 
@@ -42,13 +43,17 @@ public final class OnboardingWindowController: NSWindowController {
         if !completed || force {
             self.window?.center()
             self.window?.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            AppActivationPolicy.enter()
         }
     }
 
     public func finishOnboarding() {
         UserDefaults.standard.set(true, forKey: "pipsey_has_completed_onboarding")
         self.window?.close()
+    }
+
+    public func windowWillClose(_ notification: Notification) {
+        AppActivationPolicy.leave()
     }
 }
 
