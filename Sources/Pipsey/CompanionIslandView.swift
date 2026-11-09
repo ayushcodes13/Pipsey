@@ -45,32 +45,42 @@ public struct CompanionIslandView: View {
 
     public var body: some View {
         ZStack(alignment: .top) {
-            // Recreated Notch Body (anchored flush to screen top bezel)
             VStack(spacing: 0) {
                 notchContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .padding(.horizontal, viewModel.topCornerRadius + 8)
-                    .padding(.top, 4)
-                    .padding(.bottom, 6)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .padding(.horizontal, viewModel.hasPhysicalNotch ? (viewModel.topCornerRadius + 8) : 14)
+                    .padding(.vertical, 4)
             }
-            .frame(width: viewModel.currentWidth, height: viewModel.currentHeight, alignment: .top)
-            .background(Color.black)
-            .clipShape(NotchShape(
-                topCornerRadius: viewModel.topCornerRadius,
-                bottomCornerRadius: viewModel.bottomCornerRadius
-            ))
-            .overlay(alignment: .top) {
-                // 1px black seam to hug the display bezel seamlessly
-                Rectangle()
-                    .fill(Color.black)
-                    .frame(height: 1)
-                    .padding(.horizontal, viewModel.topCornerRadius)
-            }
+            .frame(width: viewModel.currentWidth, height: viewModel.currentHeight, alignment: .center)
+            .background(
+                Group {
+                    if viewModel.hasPhysicalNotch {
+                        Color.black
+                            .clipShape(NotchShape(
+                                topCornerRadius: viewModel.topCornerRadius,
+                                bottomCornerRadius: viewModel.bottomCornerRadius
+                            ))
+                            .overlay(alignment: .top) {
+                                Rectangle()
+                                    .fill(Color.black)
+                                    .frame(height: 1)
+                                    .padding(.horizontal, viewModel.topCornerRadius)
+                            }
+                    } else {
+                        RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
+                            .fill(Color.black.opacity(0.92))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
+                                    .stroke(Color.white.opacity(0.20), lineWidth: 0.8)
+                            )
+                    }
+                }
+            )
             .shadow(
-                color: Color.black.opacity(viewModel.state == .idle && !viewModel.isHovering ? 0.25 : 0.45),
-                radius: viewModel.state == .idle && !viewModel.isHovering ? 4 : 8,
+                color: Color.black.opacity(0.40),
+                radius: viewModel.state == .idle && !viewModel.isHovering ? 6 : 12,
                 x: 0,
-                y: 3
+                y: 5
             )
             .onHover { hovering in
                 viewModel.isHovering = hovering
@@ -109,12 +119,17 @@ public struct CompanionIslandView: View {
     // MARK: - Idle State
     private var idleContent: some View {
         HStack(spacing: 8) {
-            HStack(spacing: 6) {
-                PipseyMascotView(size: 20)
-                Text("Pipsey")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.white)
+            Button(action: {
+                Task { await viewModel.triggerSession() }
+            }) {
+                HStack(spacing: 6) {
+                    PipseyMascotView(size: 22)
+                    Text("Pipsey")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                }
             }
+            .buttonStyle(.plain)
 
             Spacer(minLength: 4)
 
@@ -123,7 +138,7 @@ public struct CompanionIslandView: View {
                     Task { await viewModel.triggerSession() }
                 }) {
                     HStack(spacing: 4) {
-                        Circle().fill(Color.red).frame(width: 6, height: 6)
+                        Circle().fill(Color.red).frame(width: 7, height: 7)
                         Text("Record")
                             .font(.system(size: 11, weight: .semibold))
                     }
@@ -135,23 +150,28 @@ public struct CompanionIslandView: View {
                 Button(action: {
                     viewModel.showSettingsSheet = true
                 }) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 10))
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 11))
                         .foregroundColor(.gray)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Open Pipsey Settings")
             } else {
-                Text("⌥⌘P")
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.55))
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(Color.white.opacity(0.12))
-                    .cornerRadius(4)
+                Button(action: {
+                    Task { await viewModel.triggerSession() }
+                }) {
+                    Text("⌥⌘P")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.65))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2.5)
+                        .background(Color.white.opacity(0.14))
+                        .cornerRadius(5)
+                }
+                .buttonStyle(.plain)
             }
         }
-        .frame(height: viewModel.currentHeight - 10, alignment: .center)
+        .frame(height: viewModel.currentHeight - 8, alignment: .center)
     }
 
     // MARK: - Active Capturing State (with live reactive audio waveform)
@@ -751,11 +771,12 @@ public final class IslandViewModel: ObservableObject {
     @Published public var audioPowerLevel: CGFloat = 0.0
     @Published public var processingStatusText: String = "Analyzing interaction & evidence..."
 
-    // Geometry matching boring.notch
-    @Published public var currentWidth: CGFloat = 195
-    @Published public var currentHeight: CGFloat = 30
-    @Published public var topCornerRadius: CGFloat = 6
-    @Published public var bottomCornerRadius: CGFloat = 14
+    // Geometry matching boring.notch or Dynamic Island
+    public let hasPhysicalNotch: Bool
+    @Published public var currentWidth: CGFloat = 200
+    @Published public var currentHeight: CGFloat = 36
+    @Published public var topCornerRadius: CGFloat = 18
+    @Published public var bottomCornerRadius: CGFloat = 18
     @Published public var isHovering: Bool = false {
         didSet {
             updateDimensions()
@@ -784,8 +805,11 @@ public final class IslandViewModel: ObservableObject {
     public init(coordinator: SessionCoordinator) {
         self.coordinator = coordinator
         let metrics = NotchMetrics.current()
+        self.hasPhysicalNotch = metrics.hasPhysicalNotch
         self.currentWidth = metrics.closedWidth
         self.currentHeight = metrics.closedHeight
+        self.topCornerRadius = metrics.hasPhysicalNotch ? 6 : 18
+        self.bottomCornerRadius = metrics.hasPhysicalNotch ? 14 : 18
 
         Task {
             await coordinator.addStateChangeHandler { [weak self] newState in
@@ -807,35 +831,35 @@ public final class IslandViewModel: ObservableObject {
         case .idle:
             if isHovering {
                 w = 260
-                h = max(metrics.closedHeight + 8, 38)
-                topR = 8
-                botR = 16
+                h = max(metrics.closedHeight + 6, 42)
+                topR = hasPhysicalNotch ? 8 : 18
+                botR = 18
             } else {
                 w = metrics.closedWidth
                 h = metrics.closedHeight
-                topR = 6
-                botR = 14
+                topR = hasPhysicalNotch ? 6 : 18
+                botR = hasPhysicalNotch ? 14 : 18
             }
         case .listeningAndCapturing:
-            w = 380
+            w = 390
             h = 58
-            topR = 12
+            topR = hasPhysicalNotch ? 12 : 20
             botR = 20
         case .processingVisual, .generatingResponse, .starting, .stopping, .cancelling:
             w = 340
             h = 50
-            topR = 10
-            botR = 18
+            topR = hasPhysicalNotch ? 10 : 20
+            botR = 20
         case .readyForFollowup, .speaking:
             w = 540
-            h = 160
-            topR = 16
+            h = 175
+            topR = hasPhysicalNotch ? 16 : 22
             botR = 22
         case .error:
-            w = 340
-            h = 52
-            topR = 10
-            botR = 18
+            w = 350
+            h = 54
+            topR = hasPhysicalNotch ? 10 : 20
+            botR = 20
         }
 
         withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {

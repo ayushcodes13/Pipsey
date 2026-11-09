@@ -14,12 +14,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Run as accessory app so it doesn't show in the Dock or steal active app focus
         NSApp.setActivationPolicy(.accessory)
 
-        // Setup Floating Notch Panel (anchored flush to screen top bezel like boring.notch)
+        // Setup Floating Island Panel (anchored to notch on hardware notch, or floating capsule below menu bar on non-notch)
         let metrics = NotchMetrics.current()
-        let notchLevel = NSWindow.Level(Int(CGWindowLevelForKey(.mainMenuWindow)) + 3)
+        let islandLevel = NSWindow.Level(Int(CGWindowLevelForKey(.floatingWindow)) + 10)
         let panel = FloatingIslandPanel(
             contentRect: NSRect(x: 0, y: 0, width: metrics.closedWidth, height: metrics.closedHeight),
-            level: notchLevel
+            level: islandLevel
         )
         let hostingView = NSHostingView(rootView: CompanionIslandView(viewModel: viewModel))
         panel.contentView = hostingView

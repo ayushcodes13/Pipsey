@@ -17,8 +17,8 @@ public final class FloatingIslandPanel: NSPanel {
 
         self.isOpaque = false
         self.backgroundColor = .clear
-        self.level = level
         self.isFloatingPanel = true
+        self.level = level
         self.hidesOnDeactivate = false
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         // SwiftUI NotchShape renders the tailored organic shadow; disable rectangular window shadow
@@ -68,11 +68,20 @@ public final class FloatingIslandPanel: NSPanel {
         self.currentHeight = height
 
         let screen = targetScreen ?? FloatingIslandPanel.targetScreenForCursor()
+        let metrics = NotchMetrics.current(for: screen)
         let screenRect = screen.frame
 
         let x = screenRect.origin.x + (screenRect.width - width) / 2.0
-        // Notch window anchors flush to the absolute top edge of the display
-        let y = screenRect.origin.y + screenRect.height - height
+        let y: CGFloat
+
+        if metrics.hasPhysicalNotch {
+            // Hardware Notch: anchors flush to the top bezel
+            y = screenRect.origin.y + screenRect.height - height
+        } else {
+            // Non-Notched Screen (e.g. M1 Air): floats cleanly below the system menu bar
+            let menuBarBottom = screen.visibleFrame.origin.y + screen.visibleFrame.height
+            y = menuBarBottom - height - 8
+        }
 
         self.setFrame(NSRect(x: x, y: y, width: width, height: height), display: true, animate: false)
     }
