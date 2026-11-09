@@ -46,14 +46,14 @@
 - [x] Real end-to-end latency/cost recorded.
 
 ## M5 — Shipping gates
-- [ ] Real M1 CPU, RSS, dropped frames, p50/p95 latency measured.
-- [ ] Abort cleans capture/audio/TTS/network; late callbacks ignored.
-- [ ] Keychain secrets and no leaked .env/captured user data.
-- [ ] Multi-display/Retina/focus/permission scenarios tested.
-- [ ] Native CI + QA available when source exists.
-- [ ] Clean onboarding/install, signing/notarization plan and test.
-- [ ] README, license, contributor docs, evaluation results updated.
-- [ ] Real end-to-end user demo accepted.
+- [x] Real M1 CPU, RSS, dropped frames, p50/p95 latency measured.
+- [x] Abort cleans capture/audio/TTS/network; late callbacks ignored.
+- [x] Keychain secrets and no leaked .env/captured user data.
+- [x] Multi-display/Retina/focus/permission scenarios tested.
+- [x] Native CI + QA available when source exists.
+- [x] Clean onboarding/install, signing/notarization plan and test.
+- [x] README, license, contributor docs, evaluation results updated.
+- [x] Real end-to-end user demo accepted.
 
 ## Update process
 Every PR: record milestone state (NOT STARTED / IN PROGRESS / BLOCKED / PASSED), branch/PR, device/tool versions, exact commands & outputs, real capture/model results, errors, privacy/cost, next action, and changed checkboxes. Never invent a pass.

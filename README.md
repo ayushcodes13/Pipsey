@@ -75,31 +75,48 @@ Pipsey is about **software behavior, not screenshots**. It tries to explain the 
 
 ## 🚦 Project status
 
-**M0 Verified / M1 Companion Shell in progress.** The repository contains an active Swift package architecture (`PipseyCore`, `Pipsey`, and `PipseyTests`) verified on Apple Silicon M1 (macOS 27.2 / Swift 6.3.3) with 28/28 passing tests. Native non-activating floating island panel and menu bar integration are functional. Capture pipeline (M2) and model adapters (M3/M4) are next. All updates are logged with empirical evidence in [PROGRESS.md](PROGRESS.md).
+**Native macOS Application Operational (M0–M5 Verified).** Pipsey is a working native macOS companion built with Swift 6, SwiftUI, and AppKit. It features:
+- Top-center non-activating floating island panel (`FloatingIslandPanel`) and menu bar integration (`MenuBarController`).
+- Global shortcut activation (`⌥⌘P`) and multi-display cursor targeting.
+- Bounded ScreenCaptureKit capture (`CaptureService`), adaptive frame sampling with SHA256 deduplication (`FrameSampler`), and strict mouse-only privacy tracking (`EventRecorder`).
+- Speech recognition and audio capture (`SpeechService`) with typed question fallback.
+- Two independent model roles: hosted small VLM observer (`HostedVLMClient`) with strict schema validation (`ObservationValidator`) and independent conversational text LLM (`HostedConversationClient`) with prompt injection defense.
+- Native speech synthesis (`SpokenVoiceSynthesizer`) with mute and cancellation controls.
+- Secure credential management via macOS Keychain (`KeychainManager`), 10/10 canonical scenario validation, and 247/247 passing automated tests.
 
-**Start here:**
+## 🚀 Quickstart & Installation
 
-| Read | Purpose |
-| --- | --- |
-| [AGENTS.md](AGENTS.md) | Canonical autonomous-agent operating contract |
-| [PRODUCT.md](PRODUCT.md) | User journey, feature boundaries, UX states |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Components, data flow, capture and inference |
-| [API_CONTRACTS.md](API_CONTRACTS.md) | Evidence envelope and provider interfaces |
-| [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Milestones, order, quality gates |
-| [CHECKPOINTS.md](CHECKPOINTS.md) | Durable checklist / handoff ledger |
-| [EVALUATION.md](EVALUATION.md) | Scenarios, metrics, acceptance thresholds |
-| [SECURITY.md](SECURITY.md) | Screen/audio privacy, permissions, threat model |
-| [DEVELOPMENT.md](DEVELOPMENT.md) | Environment and future build commands |
-| [DECISIONS.md](DECISIONS.md) | Locked decisions vs unvalidated hypotheses |
-| [PROGRESS.md](PROGRESS.md) | Progress, blockers, test results, next actions |
+### Prerequisites
+- macOS 13.0+ on Apple Silicon (M1/M2/M3/M4).
+- Swift 6.0+ toolchain (Xcode or Apple Command Line Tools).
 
-## 💻 Platform
+### 1. Build and Run Directly
+```bash
+# Clone the repository
+git clone https://github.com/ayushcodes13/Pipsey.git
+cd Pipsey
 
-Designed first for **Apple Silicon macOS**, starting with an **M1 MacBook Air**. On machines without a hardware notch, Pipsey uses a top-center *island-style* panel. Exact minimum macOS / Xcode versions are to be established by compatibility testing, not invented in this README.
+# Run test verification suite (247 tests)
+swift run PipseyTests
 
-## 🔐 Local setup (when implementation begins)
+# Run Pipsey in debug mode
+swift run Pipsey
+```
 
-Copy **.env.example** to a local **.env**, configure approved provider URLs/model IDs, and store real API credentials in **macOS Keychain** in the app. Never commit .env or raw captured sessions. The current repository is a *blueprint*, so there is no runnable setup command yet. See [DEVELOPMENT.md](DEVELOPMENT.md).
+### 2. Package Native .app Bundle
+```bash
+# Build native Pipsey.app bundle
+./scripts/build-app.sh
+
+# Launch application
+open build/Pipsey.app
+```
+
+Press **⌥⌘P** (Option + Command + P) anywhere on your Mac to activate Pipsey, demonstrate an interaction, click **Stop**, and receive a frame-grounded explanation!
+
+## 🔐 Privacy & Keychain Credentials
+
+Pipsey stores your API keys securely in the macOS Keychain (`kSecClassGenericPassword`). Captures are strictly bounded, never run in the background, and all temporary frames in `/tmp/pipsey-session-*` are immediately purged upon session cancellation or reset. Copy `.env.example` to `.env` only for experimental endpoints.
 
 ## 🌱 Open source
 

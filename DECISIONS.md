@@ -24,8 +24,12 @@ These are **locked product requirements** or **still-unverified engineering choi
 | 018 | Default Carbon hotkey ⌥⌘P with chord fallback | ADOPTED | Verified on M1 without Accessibility requirement |
 | 019 | Model provider adapter protocol abstraction | ADOPTED | Decouples VLM/LLM from unverified "ION"; spend cap $0 |
 | 020 | SPM Swift 6 executable architecture & test runner | ADOPTED | Verified with Swift 6.3.3 on macOS 27.2 SDK |
+| 021 | macOS Keychain BYOK secrets & .app bundle packaging | ADOPTED | Zero plaintext credential leakage; reproducible bundle |
 
 ## Changes
+### 2026-11-09 — M5 Hardening Decisions
+- **ADR 021 (Keychain & Packaging):** Model API credentials are stored securely in macOS Keychain (`kSecClassGenericPassword`), avoiding plaintext credentials in `.env` files. Native macOS application bundle packaging (`Pipsey.app`) automated via `scripts/build-app.sh` with complete `Info.plist` and sandbox/entitlement metadata.
+
 ### 2026-11-09 — M0 Feasibility & Preflight Decisions
 - **ADR 018 (Hotkey):** Testing confirmed pure modifier-only `Option+Command` requires macOS Accessibility permission or `CGEventTap`. To honor the mandate "never request accessibility unnecessarily" and preserve product intent, Carbon `RegisterEventHotKey` was implemented with default chord `⌥⌘P` (Option+Command+P), retaining modifier-only monitoring as an opt-in mode when Accessibility is present.
 - **ADR 019 (Model Hosting & ION):** Environment audit revealed "ION" hosting provider is unconfigured. Spend remains at $0. Provider adapter protocols (`ObserverClientProtocol`, `ConversationClientProtocol`) allow standard OpenAI-compatible endpoints, local models (vLLM/Ollama), or ION when explicitly provisioned.
