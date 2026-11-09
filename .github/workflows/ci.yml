@@ -1,0 +1,33 @@
+name: Native macOS CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Print macOS & Swift Toolchain Information
+        run: |
+          sw_vers
+          swift --version
+          uname -a
+
+      - name: Build Pipsey Executable
+        run: swift build --product Pipsey
+
+      - name: Run Pipsey Verification Test Suite
+        run: swift run PipseyTests
+
+      - name: Package Native macOS Application Bundle
+        run: |
+          chmod +x scripts/build-app.sh
+          ./scripts/build-app.sh
+          ls -la build/Pipsey.app/Contents

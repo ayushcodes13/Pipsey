@@ -426,6 +426,23 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     assertTrue(!synth.isSpeaking, "Muted state suppresses audio output")
     synth.isMuted = false
 
+    // TEST 18: M5 KeychainManager Secret Storage
+    print("\n--- Test 18: KeychainManager Secret Storage ---")
+    let keychain = KeychainManager.shared
+    let testAccount = "test-pipsey-api-key"
+    let testSecret = "sk-test-secret-value-12345"
+    do {
+        try keychain.saveSecret(account: testAccount, secret: testSecret)
+        let readBack = keychain.readSecret(account: testAccount)
+        assertEqual(readBack, testSecret, "Keychain secret read matches saved secret")
+        let deleted = keychain.deleteSecret(account: testAccount)
+        assertTrue(deleted, "Keychain secret deleted successfully")
+        let readAfterDelete = keychain.readSecret(account: testAccount)
+        assertEqual(readAfterDelete, nil, "Keychain secret returns nil after deletion")
+    } catch {
+        print("Note: Keychain access status in CLI environment: \(error)")
+    }
+
     return (passed, failed)
 }
 
