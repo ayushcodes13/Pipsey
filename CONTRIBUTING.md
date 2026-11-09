@@ -3,10 +3,10 @@
 Pipsey is an independent, open-source native macOS companion designed to explain user-demonstrated software interactions. We value small verifiable improvements, kind collaboration and precise engineering claims.
 
 ## Start here
-Read AGENTS.md, PRODUCT.md, ARCHITECTURE.md, IMPLEMENTATION_PLAN.md, CHECKPOINTS.md and SECURITY.md. Pick an unverified milestone gate or a reproducible bug. Significant scope changes require discussion before implementation. Feature Mode is the sole MVP; Debug Mode and autonomous actions are future work.
+Read AGENTS.md, docs/PRODUCT.md, docs/ARCHITECTURE.md, docs/IMPLEMENTATION_PLAN.md, docs/CHECKPOINTS.md and docs/SECURITY.md. Pick an unverified milestone gate or a reproducible bug. Significant scope changes require discussion before implementation. Feature Mode is the sole MVP; Debug Mode and autonomous actions are future work.
 
 ## Pull requests
-Please use a focused branch and include motivation, what changed, explicit build/test commands and observed results, real Mac/OS versions when relevant, error and cancellation paths, privacy and model cost impact, and updated CHECKPOINTS.md + PROGRESS.md. A mocked test is not a full system validation. Do not commit .env, keys, audio, screen captures or personal data.
+Please use a focused branch and include motivation, what changed, explicit build/test commands and observed results, real Mac/OS versions when relevant, error and cancellation paths, privacy and model cost impact, and updated docs/CHECKPOINTS.md + docs/PROGRESS.md. A mocked test is not a full system validation. Do not commit .env, keys, audio, screen captures or personal data.
 
 ## Code standards once source exists
 Native SwiftUI/AppKit; small testable modules; bounded concurrency, cancellation ownership and evidence provenance. Add unit tests for state transitions and contracts; maintain manual integration tests on actual hardware. Prefer accessible design and restrained animations with reduced-motion support.

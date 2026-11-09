@@ -82,7 +82,22 @@ Pipsey is about **software behavior, not screenshots**. It tries to explain the 
 - **Audio Capture & Reactive Waveform:** Live RMS audio power metering with 5-bar reactive audio waveform and tactile native audio feedback.
 - **Two-Model AI Pipeline:** Remotely hosted small VLM observer (`HostedVLMClient`) analyzing real screen frames, validated against schema and timestamp bounds (`ObservationValidator`), coupled with an independent conversational LLM (`HostedConversationClient`) for code-level explanations and follow-ups.
 - **BYOK & macOS Keychain Storage:** In-app Settings sheet with Keychain credential storage (`kSecClassGenericPassword`), live connection testing, and support for OpenAI-compatible and Anthropic endpoints.
-- **262 Automated Tests:** 262/262 passing unit, contract, and adversarial hallucination defense tests.
+- **274+ Automated Tests:** 274 passing offline unit, contract, and adversarial hallucination defense tests (277 total including live two-model network suites).
+
+## 📚 Documentation
+
+Detailed architectural, technical, and engineering specifications are located in the [`docs/`](docs/) directory:
+
+- [**Architecture & Call Graph**](docs/ARCHITECTURE.md) — Two-model architecture, ScreenCaptureKit pipeline, and non-activating UI lifecycle.
+- [**API Contracts & Schemas**](docs/API_CONTRACTS.md) — Strict JSON schemas for evidence manifests, VLM observations, and LLM responses.
+- [**Product Requirements (PRD)**](docs/PRODUCT.md) — Feature Mode specifications, user journeys, and scope boundaries.
+- [**Engineering Progress Ledger**](docs/PROGRESS.md) — Empirical test logs, benchmark latencies, and implementation history.
+- [**Milestone Checkpoints**](docs/CHECKPOINTS.md) — Authoritative verification matrix across M0–M5 milestones.
+- [**Security & TCC Permissions**](docs/SECURITY.md) — macOS sandbox, Keychain BYOK credential management, and privacy model.
+- [**Local Development Guide**](docs/DEVELOPMENT.md) — Environment setup, code standards, and build tooling.
+- [**VLM Evaluation Protocol**](docs/EVALUATION.md) — Canonical UI transition benchmark suite (E01–E10).
+- [**Architecture Decisions (ADRs)**](docs/DECISIONS.md) — Key technical decisions and rationale.
+- [**Brand & Mascot Design**](docs/BRAND.md) — Visual identity and vector asset specifications.
 
 ## 🚀 Quickstart & Installation
 
@@ -96,7 +111,7 @@ Pipsey is about **software behavior, not screenshots**. It tries to explain the 
 git clone https://github.com/ayushcodes13/Pipsey.git
 cd Pipsey
 
-# Run test verification suite (262 tests)
+# Run test verification suite (274 tests)
 swift run PipseyTests
 
 # Run Pipsey in debug mode

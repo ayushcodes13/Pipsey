@@ -67,7 +67,9 @@ fi
 if [[ -d "Assets" ]]; then
     cp Assets/*.png "${RESOURCES_DIR}/" || true
 fi
-if [[ -f "pipsey-logo.webp" ]]; then
+if [[ -f "Assets/pipsey-logo.webp" ]]; then
+    cp Assets/pipsey-logo.webp "${RESOURCES_DIR}/pipsey-logo.webp"
+elif [[ -f "pipsey-logo.webp" ]]; then
     cp pipsey-logo.webp "${RESOURCES_DIR}/pipsey-logo.webp"
 fi
 
