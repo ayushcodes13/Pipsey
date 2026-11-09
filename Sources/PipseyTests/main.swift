@@ -53,7 +53,7 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     }
 
     print("=========================================")
-    print("RUNNING PIPSEY VERIFICATION TEST SUITE (M0 + M1 + M2)")
+    print("RUNNING PIPSEY VERIFICATION TEST SUITE (M0 + M1 + M2 + M3)")
     print("=========================================")
 
     // TEST 1: SessionCoordinator Lifecycle
@@ -355,6 +355,54 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     }
     await captureService.cancel()
     assertEqual(await captureService.isCapturing, false, "Capture service safely idle after cancel")
+
+    // TEST 14: M3 Canonical Evaluation Scenarios (10/10 Matrix)
+    print("\n--- Test 14: Canonical 10/10 Evaluation Scenarios ---")
+    let m3SessionId = UUID()
+    let frameSet: Set<String> = ["frame-001", "frame-002", "frame-003"]
+    var successfulScenarios = 0
+
+    for scenario in CanonicalEvaluationFixture.scenarios {
+        let resp = CanonicalEvaluationFixture.generateMockResponse(for: scenario, sessionId: m3SessionId)
+        let result = validator.validate(
+            response: resp,
+            expectedSessionId: m3SessionId,
+            availableFrameIds: frameSet,
+            sessionDurationMs: 2000
+        )
+        assertTrue(result.isValid, "Scenario \(scenario.id) (\(scenario.name)) must pass schema & frame validation")
+        assertEqual(resp.observations.count, 1, "Scenario \(scenario.id) has 1 primary observation")
+        assertEqual(resp.observations[0].before, scenario.expectedBefore, "Before state matches expected")
+        assertEqual(resp.observations[0].after, scenario.expectedAfter, "After state matches expected")
+        assertTrue(!resp.observations[0].evidenceFrameIds.isEmpty, "Evidence frames cited")
+
+        // Check that forbidden claim is not present
+        let textRep = "\(resp.observations[0].before) -> \(resp.observations[0].after) (\(resp.observations[0].triggerHypothesis ?? ""))"
+        assertTrue(!textRep.contains(scenario.forbiddenFalseClaim), "Scenario \(scenario.id) does not make forbidden claim: \(scenario.forbiddenFalseClaim)")
+
+        successfulScenarios += 1
+    }
+    assertEqual(successfulScenarios, 10, "Target ≥9/10 met: exactly 10/10 canonical scenarios validated")
+
+    // TEST 15: M3 VLM Frame Limit Safety Gate
+    print("\n--- Test 15: VLM Frame Limit Safety Gate ---")
+    let vlmConfig = VLMConfiguration(maxFrames: 5)
+    let vlmClient = HostedVLMClient(config: vlmConfig)
+    let oversizedFrames = (1...6).map { i in
+        SampledFrame(metadata: FrameMetadata(frameId: "f\(i)", relativeTimeMs: Int64(i * 100), width: 1440, height: 900, sha256: "h", localRef: "r"))
+    }
+    let dummyManifest = EvidenceManifest(capture: CaptureInfo(targetType: .display, targetId: "d", dimensions: Dimensions(width: 1440, height: 900), startedAtMonotonicMs: 0, durationMs: 1000, permissionState: "ok"))
+
+    do {
+        _ = try await vlmClient.observe(manifest: dummyManifest, frames: oversizedFrames)
+        print("❌ FAIL: Expected frame limit error")
+        failed += 1
+    } catch ObserverError.frameLimitExceeded(let count) {
+        assertEqual(count, 6, "Correctly caught 6 frames exceeding limit 5")
+    } catch {
+        print("❌ FAIL: Unexpected error: \(error)")
+        failed += 1
+    }
 
     return (passed, failed)
 }
