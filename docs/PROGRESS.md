@@ -25,6 +25,24 @@
 
 ## Engineering log
 
+### 2026-11-10 — Trimmed 8s Mascot Motion with 30-Second Rest Cadence
+- **Goal:**
+  - Make the mascot lively and moving again, trim the final 2 seconds of the video, and introduce a peaceful 30-second resting break between movement cycles (not running 24/7).
+- **Implementation:**
+  1. **Trimmed Video Motion (8.0 Seconds):**
+     - Trimmed the mascot video animation from 10.0 seconds to exactly 8.0 seconds (100 frames at 80ms/frame), removing the last 2 seconds cleanly.
+  2. **30-Second Rest Delay:**
+     - Encoded the 100th frame (resting state) with a 30,000ms delay in the animated image GCE metadata (`Assets/pipsey-mascot-anim-mini.gif`).
+     - macOS `NSImageView.animates = true` natively executes the 8-second animated motion, rests on the desktop for exactly 30 seconds at 0.0% CPU, then loops back to animate again.
+  3. **SwiftUI Priority Hierarchy Fix:**
+     - In [`PipseyMascotView`](file:///Users/devayushrout/Desktop/Pipsey/Sources/Pipsey/CompanionIslandView.swift), prioritized `isAnimated` so that animated frames are rendered via `AnimatedImageView` when animated mode is requested, falling back to static defringed PNGs when static mode is set.
+  4. **Embedded Base64 Update:**
+     - Updated `PipseyMascotData.swift` with the compiled transparent 100-frame 8s+30s GIF string.
+- **Verification:**
+  - 321/321 unit tests passing (`swift run PipseyTests`).
+  - Compiled and signed via `./scripts/build-app.sh`.
+  - Live running on macOS (`build/Pipsey.app`, PID 97798). ImageIO verified: frame 0 delay = 0.08s, frame 99 delay = 30.0s.
+
 ### 2026-11-10 — Updated Native Application Icon (New Peeking Mascot Squircle)
 - **Goal:**
   - Update macOS application icon (`AppIcon.icns`, Dock icon, Finder icon) to match the new 3D glowing robot mascot card.

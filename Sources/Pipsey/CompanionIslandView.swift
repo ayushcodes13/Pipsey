@@ -13,13 +13,13 @@ public struct PipseyMascotView: View {
     }
 
     public var body: some View {
-        if let img = loadMascotImage() {
+        if isAnimated, let animImage = loadAnimatedMascotImage() {
+            AnimatedImageView(image: animImage)
+                .frame(width: size, height: size)
+        } else if let img = loadMascotImage() {
             Image(nsImage: img)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: size, height: size)
-        } else if isAnimated, let animImage = loadAnimatedMascotImage() {
-            AnimatedImageView(image: animImage)
                 .frame(width: size, height: size)
         } else {
             Text("🤖")
