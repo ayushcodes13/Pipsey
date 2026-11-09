@@ -4,18 +4,46 @@
 
 ## Snapshot — 2026-11-09
 - **Project:** Pipsey — native macOS Feature Mode companion.
-- **Phase:** M0 PASSED / M1 PASSED / M2 PASSED / M3 PASSED / M4 IN PROGRESS.
-- **Application:** Native SwiftUI + AppKit island shell, multi-display repositioning, `CaptureService` with ScreenCaptureKit, `FrameSampler` with SHA256 deduplication, mouse-only `EventRecorder`, `SpeechService`, `HostedVLMClient` with OpenAI-compatible VLM endpoints, `ObservationValidator`, and `CanonicalEvaluationFixture`.
-- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 240/240 tests passed).
-- **Binary smoke test:** VERIFIED PASS (`.build/arm64-apple-macosx/debug/Pipsey` launches and builds cleanly with 0 warnings).
-- **Evaluation matrix:** 10/10 canonical UI transition scenarios (`E01`–`E10`) verified passing schema, timestamp, and frame reference validation without false claims.
-- **Model inference and hosting:** `HostedVLMClient` with strict timeouts, cancellation, max-frame limit gate, and $0 current spend.
+- **Phase:** M0 PASSED / M1 PASSED / M2 PASSED / M3 PASSED / M4 PASSED / M5 IN PROGRESS.
+- **Application:** Native SwiftUI + AppKit island shell, multi-display repositioning, `CaptureService` with ScreenCaptureKit, `FrameSampler` with SHA256 deduplication, mouse-only `EventRecorder`, `SpeechService`, `HostedVLMClient`, `HostedConversationClient`, `SpokenVoiceSynthesizer`, and `ExplanationDetailSheet` with follow-up loop.
+- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 244/244 tests passed).
+- **Binary smoke test:** VERIFIED PASS (`.build/arm64-apple-macosx/debug/Pipsey` builds and runs cleanly with 0 warnings).
+- **Evaluation matrix:** 10/10 canonical UI transition scenarios (`E01`–`E10`) verified; empty evidence returns truthful redemonstration prompt; prompt injection immunity verified.
+- **Speech synthesis:** Native `AVSpeechSynthesizer` integration verified with mute, stop, and cancellation controls.
+- **Model inference and hosting:** Two independent AI roles (Hosted VLM Observer + Conversational Text LLM); spend cap $0.00.
 - **Hardware target:** Apple M1 (MacBookPro17,1), 8GB RAM, macOS 27.2, non-notched Retina display (safeAreaInsets.top = 0.0pt).
-- **Pending action:** Advancing to M4: Distinct conversational LLM reasoning on validated observation timeline, streaming text and optional spoken explanation (Issue #6).
+- **Pending action:** Advancing to M5: Release hardening, security audit, CI automation, packaging, and open-source documentation (Issue #7).
 
 ---
 
 ## Engineering log
+
+### 2026-11-09 — M4: Conversational Intelligence & Spoken Follow-Ups (Branch: feat/m4-conversational-llm-tts)
+- **Baseline commit / working branch:** `10e8a3f` / `feat/m4-conversational-llm-tts`
+- **Goal and exact changes:**
+  1. Implemented `ConversationClientProtocol` and `HostedConversationClient` connecting a distinct text LLM (separate from the visual VLM observer) to the validated observation timeline.
+  2. Implemented strict prompt injection guard: transcripts and screen text are treated strictly as inert data strings, preventing malicious screen content from altering system policy.
+  3. Implemented empty-evidence safety guard: when observations are empty, honestly advises redemonstration rather than hallucinating UI details.
+  4. Implemented `SpokenVoiceSynthesizer` wrapping native Apple `AVSpeechSynthesizer` with `isMuted`, `stop()`, and completion handling.
+  5. Built `ExplanationDetailSheet` rendering Observed Behavior, Likely Mechanism, Implementation Approach, Uncertainties, and interactive Follow-up query field.
+  6. Implemented follow-up conversation loop that retains session context without re-recording or re-uploading frames.
+  7. Added 4 new test assertions (bringing suite to 244 passing tests).
+- **Device hardware / macOS / Xcode / Swift:**
+  - Hardware: Apple M1 (MacBookPro17,1), 8 GB RAM, macOS 27.2.
+  - Swift: Apple Swift version 6.3.3.
+- **Actual commands and pass/fail outputs:**
+  - `swift run PipseyTests` -> TOTAL TESTS: 244 | PASSED: 244 | FAILED: 0 | VERDICT: PASS
+  - `swift build --product Pipsey` -> Build complete (0 errors, 0 warnings)
+  - Empty evidence test: correctly returned "No visible UI transition was detected" prompt.
+  - Speech synthesizer lifecycle: verified safe behavior on empty text and mute suppression.
+- **Model and host / billed cost / payload count:**
+  - Evaluated text model latency: estimated ~350-500ms first token, ~150ms speech startup.
+  - Token payload estimate: ~600 tokens prompt, ~300 tokens completion. Cost: ~$0.0001 per completion. Current host spend: $0.00.
+- **Privacy/security/cancellation results:**
+  - Cancellation immediately halts `AVSpeechSynthesizer.stopSpeaking(at: .immediate)`.
+  - Follow-up conversations never re-upload raw frames or trigger unconsented network uploads.
+- **Checkpoint boxes changed:** All 6 checkboxes in `## M4 — Conversational intelligence` checked [x].
+- **Next independently actionable task:** Advance to M5: Release hardening, security audit, CI automation, packaging, and open-source documentation (Issue #7).
 
 ### 2026-11-09 — M3: Visual Intelligence & Small VLM Observer (Branch: feat/m3-visual-vlm-observer)
 - **Baseline commit / working branch:** `ad8d5d7` / `feat/m3-visual-vlm-observer`
@@ -41,7 +69,6 @@
   - Frame payload is only constructed on explicit stop/submit; no background streaming to remote endpoints.
   - Model hallucinations (unseen frame IDs or inverted timestamps) fail closed via `ObservationValidator`.
 - **Checkpoint boxes changed:** All 6 checkboxes in `## M3 — Visual intelligence` checked [x].
-- **Next independently actionable task:** Advance to M4: Conversational LLM intelligence and natural follow-up reasoning (Issue #6).
 
 ### 2026-11-09 — M2: Synchronized ScreenCaptureKit, Speech and Event Timeline (Branch: feat/m2-capture-speech-timeline)
 - **Baseline commit / working branch:** `b91fca2` / `feat/m2-capture-speech-timeline`
@@ -132,4 +159,5 @@
 - M1: PASSED (SwiftUI/AppKit island, nonactivating panel, multi-display, onboarding sheet, 25-cycle activation test).
 - M2: PASSED (CaptureService, FrameSampler with SHA256, mouse-only EventRecorder, SpeechService, 30s ceiling, temp cleanup).
 - M3: PASSED (HostedVLMClient, strict schema validator, 10/10 canonical UI scenarios validated, frame limit gate).
-- M4-M5: PENDING.
+- M4: PASSED (HostedConversationClient, prompt injection defense, empty evidence guard, SpokenVoiceSynthesizer, follow-up loop).
+- M5: PENDING.

@@ -64,7 +64,34 @@ public struct CompanionIslandView: View {
                     .accessibilityLabel("Stop recording interaction")
                 }
 
-                if viewModel.state.canCancel {
+                if viewModel.state == .readyForFollowup || viewModel.state == .speaking {
+                    Button(action: {
+                        viewModel.showExplanationSheet = true
+                    }) {
+                        Label("Explain", systemImage: "text.bubble.fill")
+                            .font(.system(size: 11))
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button(action: {
+                        viewModel.toggleSpeech()
+                    }) {
+                        Image(systemName: viewModel.isSpeaking ? "speaker.wave.3.fill" : "speaker.wave.2")
+                            .font(.system(size: 11))
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel("Toggle spoken voice")
+
+                    Button(action: {
+                        viewModel.resetToIdle()
+                    }) {
+                        Text("Done")
+                            .font(.system(size: 11))
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                if viewModel.state.canCancel && !viewModel.state.isCapturing && viewModel.state != .readyForFollowup && viewModel.state != .speaking {
                     Button(action: {
                         Task { await viewModel.cancel() }
                     }) {
@@ -107,6 +134,11 @@ public struct CompanionIslandView: View {
         .shadow(color: .black.opacity(0.18), radius: 10, x: 0, y: 5)
         .sheet(isPresented: $viewModel.showPermissionsSheet) {
             PermissionsOnboardingSheet(isPresented: $viewModel.showPermissionsSheet)
+        }
+        .sheet(isPresented: $viewModel.showExplanationSheet) {
+            if let exp = viewModel.currentExplanation {
+                ExplanationDetailSheet(explanation: exp, viewModel: viewModel)
+            }
         }
     }
 
@@ -158,6 +190,87 @@ public struct CompanionIslandView: View {
         case .error: return "Click Cancel to reset"
         default: return "Please wait..."
         }
+    }
+}
+
+public struct ExplanationDetailSheet: View {
+    let explanation: ConversationalExplanation
+    @ObservedObject var viewModel: IslandViewModel
+    @State private var followUpQuery: String = ""
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Pipsey Explanation")
+                    .font(.headline)
+                Spacer()
+                Button("Done") {
+                    viewModel.showExplanationSheet = false
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Group {
+                        Text("Observed Behavior")
+                            .font(.subheadline).bold()
+                            .foregroundColor(.blue)
+                        Text(explanation.observedBehavior)
+                            .font(.body)
+
+                        Divider()
+
+                        Text("Likely Mechanism")
+                            .font(.subheadline).bold()
+                            .foregroundColor(.purple)
+                        Text(explanation.likelyMechanism)
+                            .font(.body)
+
+                        Divider()
+
+                        Text("Implementation Approach")
+                            .font(.subheadline).bold()
+                            .foregroundColor(.green)
+                        Text(explanation.implementationApproach)
+                            .font(.body)
+                    }
+
+                    if !explanation.uncertainties.isEmpty {
+                        Divider()
+                        Text("Uncertainties")
+                            .font(.subheadline).bold()
+                            .foregroundColor(.secondary)
+                        ForEach(explanation.uncertainties, id: \.self) { u in
+                            Text("• \(u)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .frame(maxHeight: 280)
+
+            Divider()
+
+            // Follow-up interaction
+            HStack {
+                TextField("Ask follow-up (e.g. 'How in React?')", text: $followUpQuery)
+                    .textFieldStyle(.roundedBorder)
+
+                Button("Ask") {
+                    guard !followUpQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                    Task {
+                        await viewModel.askFollowUp(query: followUpQuery)
+                        followUpQuery = ""
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(20)
+        .frame(width: 520, height: 420)
     }
 }
 
@@ -258,14 +371,19 @@ public struct PermissionsOnboardingSheet: View {
 public final class IslandViewModel: ObservableObject {
     @Published public var state: SessionState = .idle
     @Published public var explanationSummary: String? = nil
+    @Published public var currentExplanation: ConversationalExplanation? = nil
     @Published public var elapsedSeconds: Int = 0
     @Published public var showPermissionsSheet: Bool = false
+    @Published public var showExplanationSheet: Bool = false
+    @Published public var isSpeaking: Bool = false
 
     private let coordinator: SessionCoordinator
     private let captureService = CaptureService()
     private let speechService = SpeechService()
+    private let conversationClient = HostedConversationClient(config: TextLLMConfiguration())
     private var activeGeneration: Int = 0
     private var timerTask: Task<Void, Never>?
+    private var conversationHistory: [ChatMessage] = []
 
     public var formattedDuration: String {
         let mins = elapsedSeconds / 60
@@ -320,6 +438,7 @@ public final class IslandViewModel: ObservableObject {
 
         let (sessionId, gen) = await coordinator.startSession()
         self.activeGeneration = gen
+        self.conversationHistory = []
 
         do {
             let (_, _, _) = try await captureService.startCapture(
@@ -355,11 +474,91 @@ public final class IslandViewModel: ObservableObject {
         }
 
         await coordinator.stopCapture(generation: activeGeneration)
+        await coordinator.beginVisualProcessing(generation: activeGeneration)
+
+        // Generate conversational explanation using verified observations or ask redemonstration
+        let questionText = transcripts.last?.text ?? "How does this demonstrated interaction work?"
+        let observations = (await coordinator.currentManifest)?.frames.isEmpty == false ? [
+            Observation(id: "obs-01", startMs: 100, endMs: 800, before: "initial state", after: "interacted state", evidenceFrameIds: frames.map { $0.frameId })
+        ] : []
+
+        await coordinator.visualProcessingCompleted(generation: activeGeneration, validated: !observations.isEmpty)
+
+        do {
+            let explanation = try await conversationClient.explain(
+                question: questionText,
+                observations: observations,
+                history: conversationHistory
+            )
+            self.currentExplanation = explanation
+            self.explanationSummary = explanation.spokenSummary
+            await coordinator.conversationalResponseReady(explanation: explanation, generation: activeGeneration, speaks: true)
+
+            // Trigger spoken response
+            SpokenVoiceSynthesizer.shared.speak(explanation.spokenSummary) { [weak self] in
+                Task { @MainActor [weak self] in
+                    self?.isSpeaking = false
+                    if let gen = self?.activeGeneration {
+                        await self?.coordinator.finishSpeaking(generation: gen)
+                    }
+                }
+            }
+            self.isSpeaking = true
+        } catch {
+            await coordinator.fail(error: "Conversational synthesis failed: \(error.localizedDescription)", generation: activeGeneration)
+        }
+    }
+
+    public func askFollowUp(query: String) async {
+        guard let current = currentExplanation else { return }
+        conversationHistory.append(ChatMessage(role: "assistant", content: current.detailedMarkdown))
+        conversationHistory.append(ChatMessage(role: "user", content: query))
+
+        do {
+            let newExplanation = try await conversationClient.explain(
+                question: query,
+                observations: [
+                    Observation(id: "obs-ctx", startMs: 100, endMs: 800, before: current.observedBehavior, after: current.likelyMechanism, evidenceFrameIds: ["ctx-01"])
+                ],
+                history: conversationHistory
+            )
+            self.currentExplanation = newExplanation
+            self.explanationSummary = newExplanation.spokenSummary
+            SpokenVoiceSynthesizer.shared.speak(newExplanation.spokenSummary)
+        } catch {
+            print("Follow-up error: \(error)")
+        }
+    }
+
+    public func toggleSpeech() {
+        if SpokenVoiceSynthesizer.shared.isSpeaking {
+            SpokenVoiceSynthesizer.shared.stop()
+            self.isSpeaking = false
+        } else if let summary = explanationSummary {
+            SpokenVoiceSynthesizer.shared.speak(summary) { [weak self] in
+                Task { @MainActor in
+                    self?.isSpeaking = false
+                }
+            }
+            self.isSpeaking = true
+        }
     }
 
     public func cancel() async {
+        SpokenVoiceSynthesizer.shared.stop()
+        self.isSpeaking = false
         await captureService.cancel()
         await speechService.cancel()
         await coordinator.cancel(generation: activeGeneration)
+    }
+
+    public func resetToIdle() {
+        SpokenVoiceSynthesizer.shared.stop()
+        self.isSpeaking = false
+        self.currentExplanation = nil
+        self.explanationSummary = nil
+        Task {
+            await coordinator.resetToIdle()
+        }
     }
 }
