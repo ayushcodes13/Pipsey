@@ -291,24 +291,24 @@
         <!-- Simulated Desktop Workspace -->
         <div class="relative flex-1 p-6 flex flex-col items-center justify-center text-center">
           
-          <!-- Floating Corner Circle Companion Preview (Anchored to top-right of simulated workspace) -->
+          <!-- Floating Corner Companion Preview (Anchored to top-right of simulated workspace) -->
           <div id="cornerOrbContainer" class="hidden absolute top-4 right-4 z-10 flex-col items-center">
-            <div id="cornerCircleOrb" class="w-[46px] h-[46px] rounded-full bg-black/90 border border-white/30 shadow-2xl flex items-center justify-center cursor-pointer transition-transform duration-300 hover:scale-105" title="Click to trigger peek or drag anywhere">
-              <div id="cornerRobotAvatar" class="w-8 h-8 flex items-center justify-center">
-                <img src="assets/pipsey-mascot-anim-mini.gif" alt="Pipsey" class="w-full h-full object-contain">
+            <div id="cornerCircleOrb" class="w-[48px] h-[48px] flex items-center justify-center cursor-pointer transition-transform duration-300 hover:scale-110" title="Click to trigger peek or drag anywhere">
+              <div id="cornerRobotAvatar" class="w-10 h-10 flex items-center justify-center">
+                <img src="assets/pipsey-mascot-anim-mini.gif" alt="Pipsey" class="w-full h-full object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
               </div>
             </div>
-            <span class="mt-1.5 text-[10px] font-mono text-white/50">46×46 orb</span>
+            <span class="mt-1 text-[10px] font-mono text-white/50">natural desktop</span>
           </div>
 
           <div class="max-w-md bg-[#18181B]/80 border border-white/[0.08] rounded-xl p-5 shadow-xl backdrop-blur-sm z-20">
             <h3 class="text-sm font-semibold text-white mb-1">Interactive Companion Sandbox</h3>
             <p class="text-xs text-[#A1A1AA] mb-4">
-              Test Pipsey's new native modes: Floating Corner Circle, 30s curiosity peeking, and ⌃⌥⌘ optical telescope inspection.
+              Test Pipsey's new native modes: Floating Corner Companion, 30s curiosity peeking, and ⌃⌥⌘ optical telescope inspection.
             </p>
             <div class="flex flex-wrap items-center justify-center gap-2">
               <button id="toggleCircleBtn" class="px-3 py-1.5 rounded-lg bg-[#27272A] hover:bg-[#323238] border border-white/10 text-white font-medium text-xs transition flex items-center gap-1.5">
-                <span>🤖 Corner Circle Orb</span>
+                <span>🤖 Corner Companion</span>
               </button>
               <button id="runPeekBtn" class="px-3 py-1.5 rounded-lg bg-[#27272A] hover:bg-[#323238] border border-white/10 text-white font-medium text-xs transition flex items-center gap-1.5">
                 <span>👀 30s Peek Glance</span>
@@ -325,9 +325,6 @@
             </div>
           </div>
         </div>
-            <div id="simStatus" class="mt-3 text-[11px] text-[#71717A] font-mono">
-              Ready · Idle in hardware notch
-            </div>
           </div>
         </div>
 

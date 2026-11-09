@@ -166,13 +166,8 @@ public struct CompanionIslandView: View {
                 Group {
                     if viewModel.companionStyle == .floatingCircle {
                         if viewModel.state == .idle && !viewModel.isHovering {
-                            // Circular Resting Orb (46x46)
-                            Circle()
-                                .fill(Color.black.opacity(0.92))
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.35), lineWidth: 1.0)
-                                )
+                            // Natural Desktop Presence (Zero black background, transparent hit target)
+                            Color.black.opacity(0.001)
                         } else if viewModel.isTelescopeInspectionMode {
                             // High-Tech Telescope HUD with Cyan / Teal Accent Outline
                             RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
@@ -241,8 +236,10 @@ public struct CompanionIslandView: View {
                     ? Color.cyan.opacity(0.35)
                     : (viewModel.state.isCapturing
                         ? Color.white.opacity(0.20)
-                        : Color.black.opacity(0.45)),
-                radius: viewModel.isTelescopeInspectionMode ? 12 : (viewModel.state.isCapturing ? 10 : (viewModel.state == .idle && !viewModel.isHovering ? 6 : 8)),
+                        : (viewModel.companionStyle == .floatingCircle && viewModel.state == .idle && !viewModel.isHovering
+                            ? Color.clear
+                            : Color.black.opacity(0.45))),
+                radius: viewModel.isTelescopeInspectionMode ? 12 : (viewModel.state.isCapturing ? 10 : (viewModel.companionStyle == .floatingCircle && viewModel.state == .idle && !viewModel.isHovering ? 0 : 8)),
                 x: 0,
                 y: 2
             )
@@ -296,15 +293,16 @@ public struct CompanionIslandView: View {
     private var idleContent: some View {
         if viewModel.companionStyle == .floatingCircle {
             if !viewModel.isHovering {
-                // Circular Resting Orb with 30s Idle Curiosity Peek
+                // Natural Transparent Desktop Companion with 30s Idle Curiosity Peek
                 ZStack {
-                    PipseyMascotView(size: 32, isAnimated: true)
+                    PipseyMascotView(size: 40, isAnimated: true)
                         .rotationEffect(.degrees(viewModel.idlePeekingAngle))
                         .offset(y: viewModel.idlePeekingOffset)
                         .scaleEffect(viewModel.idlePeekingScale)
+                        .shadow(color: Color.black.opacity(0.35), radius: 5, x: 0, y: 2.5)
                 }
                 .frame(width: 46, height: 46)
-                .contentShape(Circle())
+                .contentShape(Rectangle())
                 .onTapGesture {
                     Task { await viewModel.triggerSession() }
                 }

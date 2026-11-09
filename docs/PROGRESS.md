@@ -25,6 +25,20 @@
 
 ## Engineering log
 
+### 2026-11-10 — Natural Desktop Integration (Removed Black Background & Transparent Cutout)
+- **Goal and exact changes:**
+  1. **Transparent Mascot Assets:**
+     - Cleanly segmented and extracted the 3D peeking robot mascot from the dark card background, generating true 8-bit RGBA alpha transparent cutouts across all scales (`Assets/pipsey-mascot-head-{32,64,128,256,512,1024}.png`).
+     - Processed all 120 frames of `Assets/pipsey-mascot-anim-mini.gif` with per-frame flood-fill transparency.
+     - Updated `PipseyMascotData.swift` with the transparent base64 data fallbacks.
+  2. **Natural Desktop SwiftUI Companion:**
+     - In `CompanionIslandView.swift`, eliminated the solid black circular disc and white hairline border when resting idle in `.floatingCircle` mode.
+     - Implemented an invisible click/drag hit target (`Color.black.opacity(0.001)`) with a natural soft drop shadow on the mascot itself (`.shadow(color: Color.black.opacity(0.35), radius: 5, x: 0, y: 2.5)`).
+     - The robot now floats directly, organically, and seamlessly over the user's macOS wallpaper without any artificial black block or circle.
+  3. **Verification:**
+     - Rebuilt and verified `build/Pipsey.app` running live. Screen capture confirmed the user's desktop wallpaper shows through 100% cleanly around the robot mascot.
+     - All 321 automated test suites passing (`swift run PipseyTests`).
+
 ### 2026-11-10 — Floating Corner Companion, 30s Idle Curiosity Peeking & ⌃⌥⌘ Telescope Inspection Mode
 - **Goal and exact changes:**
   1. **Floating Circle Desktop Corner Companion (`.floatingCircle`):**
