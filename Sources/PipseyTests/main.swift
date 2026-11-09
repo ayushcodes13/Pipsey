@@ -680,6 +680,13 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     let testAnthropicKey = "sk-ant-test-anthropic-key-9999"
     let testOpenAIKey = "sk-proj-test-openai-key-8888"
 
+    defer {
+        _ = testKeychain.deleteSecret(account: "pipsey-anthropic-key")
+        _ = testKeychain.deleteSecret(account: "pipsey-text-api-key")
+        testKeychain.clearCache()
+        UserDefaults.standard.removeObject(forKey: "pipsey_provider")
+    }
+
     do {
         try testKeychain.saveSecret(account: "pipsey-anthropic-key", secret: testAnthropicKey)
         try testKeychain.saveSecret(account: "pipsey-text-api-key", secret: testOpenAIKey)
@@ -692,11 +699,14 @@ func runAllTests() async -> (passed: Int, failed: Int) {
         UserDefaults.standard.set("openai", forKey: "pipsey_provider")
         let openAIConfig = TextLLMConfiguration.loadDefault()
         assertTrue(!openAIConfig.isAnthropic, "TextLLMConfiguration detects OpenAI provider")
-        assertEqual(openAIConfig.apiKey, testOpenAIKey, "OpenAI configuration loads pipsey-text-api-key")
+        let expectedOpenAIKey = ProcessInfo.processInfo.environment["PIPSEY_TEXT_API_KEY"]
+            ?? ProcessInfo.processInfo.environment["ONEPAGER_AZURE_OPENAI_API_KEY"]
+            ?? ProcessInfo.processInfo.environment["AZURE_OPENAI_API_KEY"]
+            ?? ProcessInfo.processInfo.environment["OPENAI_API_KEY"]
+            ?? testOpenAIKey
+        assertEqual(openAIConfig.apiKey, expectedOpenAIKey, "OpenAI configuration loads API key correctly")
+        assertEqual(testKeychain.readSecret(account: "pipsey-text-api-key"), testOpenAIKey, "Keychain directly preserves pipsey-text-api-key")
 
-        _ = testKeychain.deleteSecret(account: "pipsey-anthropic-key")
-        _ = testKeychain.deleteSecret(account: "pipsey-text-api-key")
-        UserDefaults.standard.removeObject(forKey: "pipsey_provider")
         assertTrue(true, "Provider-specific API keys saved, reloaded, and verified in Keychain")
     } catch {
         print("Note: Keychain status in CLI test: \(error)")

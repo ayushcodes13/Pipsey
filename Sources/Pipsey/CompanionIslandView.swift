@@ -774,15 +774,13 @@ public struct SettingsSheetView: View {
         let vlm = VLMConfiguration.loadDefault()
         vlmBaseURL = defaults.string(forKey: "pipsey_vlm_base_url") ?? vlm.baseURL.absoluteString
         vlmModel = defaults.string(forKey: "pipsey_vlm_model") ?? vlm.model
-        vlmApiKey = KeychainManager.shared.readSecret(account: "pipsey-vlm-api-key") ?? vlm.apiKey
+        vlmApiKey = vlm.apiKey
 
         let text = TextLLMConfiguration.loadDefault()
         textBaseURL = defaults.string(forKey: "pipsey_text_base_url") ?? text.baseURL.absoluteString
         textModel = defaults.string(forKey: "pipsey_text_model") ?? text.model
         selectedProvider = defaults.string(forKey: "pipsey_provider") ?? (text.isAnthropic ? "anthropic" : (text.isAzure ? "azure" : "openai"))
-
-        let textAccount = (selectedProvider == "anthropic") ? "pipsey-anthropic-key" : "pipsey-text-api-key"
-        textApiKey = KeychainManager.shared.readSecret(account: textAccount) ?? text.apiKey
+        textApiKey = text.apiKey
         uploadConsentGranted = defaults.object(forKey: "pipsey_upload_consent_granted") as? Bool ?? true
     }
 

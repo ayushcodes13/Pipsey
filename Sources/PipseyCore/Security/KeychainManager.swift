@@ -9,17 +9,25 @@ public enum KeychainError: Error, Sendable {
     case unhandledError(status: OSStatus)
 }
 
-public struct KeychainManager: Sendable {
+public final class KeychainManager: @unchecked Sendable {
     public static let shared = KeychainManager()
     private let serviceName = "com.pipsey.companion"
+    private let lock = NSLock()
+    private var memoryCache: [String: String] = [:]
+    private var hasQueried: Set<String> = []
 
     public init() {}
 
     public func saveSecret(account: String, secret: String) throws {
+        lock.lock()
+        memoryCache[account] = secret
+        hasQueried.insert(account)
+        lock.unlock()
+
         guard let data = secret.data(using: .utf8) else { return }
 
         // Try deleting existing item first to avoid duplicates
-        deleteSecret(account: account)
+        _ = deleteSecretFromSystem(account: account)
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -36,6 +44,14 @@ public struct KeychainManager: Sendable {
     }
 
     public func readSecret(account: String) -> String? {
+        lock.lock()
+        if hasQueried.contains(account) {
+            let cached = memoryCache[account]
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+
         let authContext = LAContext()
         authContext.interactionNotAllowed = true
 
@@ -50,14 +66,31 @@ public struct KeychainManager: Sendable {
 
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else {
+
+        lock.lock()
+        hasQueried.insert(account)
+        if status == errSecSuccess, let data = item as? Data, let str = String(data: data, encoding: .utf8) {
+            memoryCache[account] = str
+            lock.unlock()
+            return str
+        } else {
+            memoryCache.removeValue(forKey: account)
+            lock.unlock()
             return nil
         }
-        return String(data: data, encoding: .utf8)
     }
 
     @discardableResult
     public func deleteSecret(account: String) -> Bool {
+        lock.lock()
+        memoryCache.removeValue(forKey: account)
+        hasQueried.insert(account)
+        lock.unlock()
+
+        return deleteSecretFromSystem(account: account)
+    }
+
+    private func deleteSecretFromSystem(account: String) -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
@@ -65,5 +98,12 @@ public struct KeychainManager: Sendable {
         ]
         let status = SecItemDelete(query as CFDictionary)
         return status == errSecSuccess
+    }
+
+    public func clearCache() {
+        lock.lock()
+        memoryCache.removeAll()
+        hasQueried.removeAll()
+        lock.unlock()
     }
 }
