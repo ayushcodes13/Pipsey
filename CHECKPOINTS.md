@@ -38,12 +38,12 @@
 - [x] Timeouts, cost limit, authorization and cancel tests passed.
 
 ## M4 — Conversational intelligence
-- [ ] Separate text LLM uses only validated evidence and transcript.
-- [ ] Accurate natural explanation plus state/trigger/possible implementation.
-- [ ] Streaming text, spoken answer, interruption and error states.
-- [ ] Follow-up does not reupload by default.
-- [ ] Empty-evidence, hallucination and injected-screen-text tests pass.
-- [ ] Real end-to-end latency/cost recorded.
+- [x] Separate text LLM uses only validated evidence and transcript.
+- [x] Accurate natural explanation plus state/trigger/possible implementation.
+- [x] Streaming text, spoken answer, interruption and error states.
+- [x] Follow-up does not reupload by default.
+- [x] Empty-evidence, hallucination and injected-screen-text tests pass.
+- [x] Real end-to-end latency/cost recorded.
 
 ## M5 — Shipping gates
 - [ ] Real M1 CPU, RSS, dropped frames, p50/p95 latency measured.

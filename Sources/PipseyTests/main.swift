@@ -53,7 +53,7 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     }
 
     print("=========================================")
-    print("RUNNING PIPSEY VERIFICATION TEST SUITE (M0 + M1 + M2 + M3)")
+    print("RUNNING PIPSEY VERIFICATION TEST SUITE (M0-M4)")
     print("=========================================")
 
     // TEST 1: SessionCoordinator Lifecycle
@@ -403,6 +403,28 @@ func runAllTests() async -> (passed: Int, failed: Int) {
         print("❌ FAIL: Unexpected error: \(error)")
         failed += 1
     }
+
+    // TEST 16: M4 Conversational LLM Empty Evidence Handling
+    print("\n--- Test 16: Conversational LLM Empty Evidence Handling ---")
+    let convClient = HostedConversationClient(config: TextLLMConfiguration())
+    do {
+        let emptyExp = try await convClient.explain(question: "What happened?", observations: [], history: [])
+        assertTrue(emptyExp.observedBehavior.contains("No visible UI transition was detected"), "Empty observations produces honest redemonstration prompt")
+        assertTrue(emptyExp.spokenSummary.contains("demonstrate it again"), "Spoken summary requests redemonstration")
+    } catch {
+        print("❌ FAIL: Empty evidence test threw error: \(error)")
+        failed += 1
+    }
+
+    // TEST 17: M4 SpokenVoiceSynthesizer Safety & Lifecycle
+    print("\n--- Test 17: SpokenVoiceSynthesizer Lifecycle ---")
+    let synth = SpokenVoiceSynthesizer.shared
+    synth.speak("") // Empty string should safely do nothing
+    assertTrue(!synth.isSpeaking, "Empty string does not trigger speech")
+    synth.isMuted = true
+    synth.speak("Testing muted speech")
+    assertTrue(!synth.isSpeaking, "Muted state suppresses audio output")
+    synth.isMuted = false
 
     return (passed, failed)
 }
