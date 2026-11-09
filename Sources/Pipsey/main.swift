@@ -120,6 +120,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         print("  HotKey (⌥⌘P) registered: \(hotKeyRegistered)")
         print("  Top-Center Notch presented: \(panel.isVisible)")
         print("  Notch footprint: \(metrics.closedWidth)x\(metrics.closedHeight) (Physical notch: \(metrics.hasPhysicalNotch))")
+
+        // First-Run Onboarding Wizard: guides new users through permissions & interactive gesture
+        OnboardingWindowController.shared.showOnboarding()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -790,6 +790,82 @@ func runAllTests() async -> (passed: Int, failed: Int) {
 
     UserDefaults.standard.removeObject(forKey: consentKey)
 
+    // TEST 28: AppContextProvider & Intelligent Context Categorization
+    print("\n--- Test 28: AppContextProvider & Intelligent Context Categorization ---")
+    let contextProvider = AppContextProvider.shared
+    let activeContext = contextProvider.detectActiveContext()
+    assertTrue(!activeContext.appName.isEmpty, "Detected active application name is non-empty")
+    assertTrue(!activeContext.suggestedFramework.isEmpty, "Detected suggested framework is non-empty")
+
+    let mockFigmaContext = AppContext(appName: "Figma", bundleIdentifier: "com.figma.Desktop", category: "Design Tool", suggestedFramework: "Figma Auto-Layout & Design Tokens / CSS Canvas")
+    assertEqual(mockFigmaContext.appName, "Figma", "Figma context retains correct app name")
+    assertTrue(mockFigmaContext.suggestedFramework.contains("Figma"), "Figma context detects Figma framework")
+
+    let mockXcodeContext = AppContext(appName: "Xcode", bundleIdentifier: "com.apple.dt.Xcode", category: "macOS / iOS Development", suggestedFramework: "Swift / SwiftUI / AppKit")
+    assertEqual(mockXcodeContext.appName, "Xcode", "Xcode context retains correct app name")
+    assertTrue(mockXcodeContext.suggestedFramework.contains("SwiftUI"), "Xcode context suggests SwiftUI")
+
+    // TEST 29: SessionHistoryManager Persistence, Retrieval & Search
+    print("\n--- Test 29: SessionHistoryManager Persistence, Retrieval & Search ---")
+    let testHistoryURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("pipsey-history-test-\(UUID().uuidString).json")
+    let historyManager = SessionHistoryManager(customStorageURL: testHistoryURL)
+
+    let testRecord1 = SavedSessionRecord(
+        appName: "Figma",
+        appCategory: "Design",
+        suggestedFramework: "CSS Flexbox",
+        question: "How does this hover button expand?",
+        spokenSummary: "Hover button smooth scale transition.",
+        likelyMechanism: "CSS transition on width and transform",
+        implementationApproach: "Use Framer Motion with spring physics",
+        detailedMarkdown: "```css\n.btn:hover { transform: scale(1.05); }\n```",
+        frameCount: 12,
+        durationMs: 3400
+    )
+
+    let testRecord2 = SavedSessionRecord(
+        appName: "Xcode",
+        appCategory: "iOS Development",
+        suggestedFramework: "SwiftUI",
+        question: "How does this scroll view snap to items?",
+        spokenSummary: "ScrollView paging behavior.",
+        likelyMechanism: "scrollTargetBehavior(.paging)",
+        implementationApproach: "Use SwiftUI ScrollTargetBehavior",
+        detailedMarkdown: "```swift\nScrollView { ... }.scrollTargetBehavior(.paging)\n```",
+        frameCount: 20,
+        durationMs: 5100
+    )
+
+    await historyManager.save(record: testRecord1)
+    await historyManager.save(record: testRecord2)
+
+    let allSaved = await historyManager.getAllRecords()
+    assertEqual(allSaved.count, 2, "Session history contains 2 saved records")
+    assertEqual(allSaved.first?.id, testRecord2.id, "Latest record is prepended at index 0")
+
+    let searchFigma = await historyManager.search(query: "figma")
+    assertEqual(searchFigma.count, 1, "Search for 'figma' returns exactly 1 record")
+    assertEqual(searchFigma.first?.appName, "Figma", "Figma search matches correct record")
+
+    let searchPaging = await historyManager.search(query: "paging")
+    assertEqual(searchPaging.count, 1, "Search for 'paging' mechanism returns Xcode record")
+
+    await historyManager.delete(id: testRecord1.id)
+    let afterDelete = await historyManager.getAllRecords()
+    assertEqual(afterDelete.count, 1, "History has 1 record remaining after deletion")
+    assertEqual(afterDelete.first?.id, testRecord2.id, "Remaining record is record 2")
+
+    try? FileManager.default.removeItem(at: testHistoryURL)
+
+    // TEST 30: Onboarding State Persistence & Flow
+    print("\n--- Test 30: Onboarding State Persistence & Flow ---")
+    let onboardingKey = "pipsey_has_completed_onboarding"
+    UserDefaults.standard.set(false, forKey: onboardingKey)
+    assertTrue(!UserDefaults.standard.bool(forKey: onboardingKey), "Onboarding detected as incomplete for new users")
+
+    UserDefaults.standard.set(true, forKey: onboardingKey)
+    assertTrue(UserDefaults.standard.bool(forKey: onboardingKey), "Onboarding marked as completed")
+
     return (passed, failed)
 }
 

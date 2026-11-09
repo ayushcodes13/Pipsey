@@ -265,6 +265,16 @@ public struct CompanionIslandView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Open Pipsey Settings")
+
+                Button(action: {
+                    HistoryWindowController.shared.showHistory()
+                }) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Open Pipsey History")
             }
             .frame(height: viewModel.currentHeight - 6, alignment: .center)
         }
@@ -511,6 +521,40 @@ public struct ExplanationDetailSheet: View {
                     viewModel.showExplanationSheet = false
                 }
                 .buttonStyle(.borderedProminent)
+            }
+
+            if let ctx = viewModel.activeAppContext {
+                HStack(spacing: 6) {
+                    Text(ctx.appName)
+                        .font(.caption).bold()
+                        .foregroundColor(Color(hex: "00F0FF"))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color(hex: "00F0FF").opacity(0.12))
+                        .cornerRadius(4)
+
+                    Text(ctx.suggestedFramework)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(4)
+
+                    Spacer()
+
+                    Button(action: {
+                        HistoryWindowController.shared.showHistory()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock.arrow.circlepath")
+                            Text("History (⌘H)")
+                        }
+                        .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
             }
 
             ScrollView {
@@ -992,6 +1036,7 @@ public final class IslandViewModel: ObservableObject {
     @Published public var currentExplanation: ConversationalExplanation? = nil
     @Published public var elapsedSeconds: Int = 0
     @Published public var initialQuestionInput: String = ""
+    @Published public var activeAppContext: AppContext? = nil
     @Published public var activeSheet: ActiveSheet? = nil
     public var showPermissionsSheet: Bool {
         get { activeSheet == .permissions }
@@ -1168,6 +1213,7 @@ public final class IslandViewModel: ObservableObject {
         self.activeGeneration = gen
         self.activeSessionId = sessionId
         self.conversationHistory = []
+        self.activeAppContext = AppContextProvider.shared.detectActiveContext()
 
         do {
             let (_, _, _) = try await captureService.startCapture(
@@ -1316,6 +1362,24 @@ public final class IslandViewModel: ObservableObject {
                 self.explanationSummary = explanation.spokenSummary
                 self.showExplanationSheet = true
                 await self.coordinator.conversationalResponseReady(explanation: explanation, generation: currentGen, speaks: true)
+
+                // Persist interaction to local searchable session history
+                let ctx = self.activeAppContext
+                let record = SavedSessionRecord(
+                    appName: ctx?.appName ?? "Active App",
+                    appCategory: ctx?.category ?? "General UI",
+                    suggestedFramework: ctx?.suggestedFramework ?? "React / SwiftUI",
+                    question: questionText,
+                    spokenSummary: explanation.spokenSummary,
+                    likelyMechanism: explanation.likelyMechanism,
+                    implementationApproach: explanation.implementationApproach,
+                    detailedMarkdown: explanation.detailedMarkdown,
+                    frameCount: frames.count,
+                    durationMs: durationMs
+                )
+                Task {
+                    await SessionHistoryManager.shared.save(record: record)
+                }
 
                 // Tactile audio chime when response is ready
                 PipseySoundEffects.playResponseReady()

@@ -47,6 +47,16 @@ public final class MenuBarController: NSObject {
         activateItem.target = self
         menu.addItem(activateItem)
 
+        let holdItem = NSMenuItem(title: "Hold ⌥⌘ to Record Interaction", action: nil, keyEquivalent: "")
+        holdItem.isEnabled = false
+        menu.addItem(holdItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        let historyItem = NSMenuItem(title: "Interaction Library & History...", action: #selector(handleHistory), keyEquivalent: "h")
+        historyItem.target = self
+        menu.addItem(historyItem)
+
         let snapItem = NSMenuItem(title: "Snap to Top Center", action: #selector(handleResetPosition), keyEquivalent: "")
         snapItem.target = self
         menu.addItem(snapItem)
@@ -58,6 +68,10 @@ public final class MenuBarController: NSObject {
         let permissionsItem = NSMenuItem(title: "Check System Permissions...", action: #selector(handlePermissions), keyEquivalent: "")
         permissionsItem.target = self
         menu.addItem(permissionsItem)
+
+        let guideItem = NSMenuItem(title: "Welcome & Quickstart Guide...", action: #selector(handleGuide), keyEquivalent: "")
+        guideItem.target = self
+        menu.addItem(guideItem)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -82,6 +96,14 @@ public final class MenuBarController: NSObject {
 
     @objc private func handlePermissions() {
         onCheckPermissions()
+    }
+
+    @objc private func handleHistory() {
+        HistoryWindowController.shared.showHistory()
+    }
+
+    @objc private func handleGuide() {
+        OnboardingWindowController.shared.showOnboarding(force: true)
     }
 
     @objc private func handleQuit() {
