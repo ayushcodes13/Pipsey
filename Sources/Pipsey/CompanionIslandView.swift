@@ -207,16 +207,15 @@ public struct CompanionIslandView: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(hex: "00F0FF"),
-                                Color(hex: "0072FF"),
-                                Color(hex: "00F0FF")
+                                Color(hex: "0A84FF"),
+                                Color(hex: "0071E3"),
+                                Color(hex: "0A84FF")
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: 68, height: 3.5)
-                    .shadow(color: Color(hex: "00F0FF").opacity(0.85), radius: 4, x: 0, y: 0)
+                    .frame(width: 54, height: 3)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
@@ -293,9 +292,9 @@ public struct CompanionIslandView: View {
 
                     Text(viewModel.formattedDuration)
                         .font(.system(size: 10.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color(hex: "00F0FF"))
+                        .foregroundColor(.white.opacity(0.9))
 
-                    // Live 5-bar reactive audio waveform in vibrant electric cyan
+                    // Live 5-bar reactive audio waveform
                     LiveWaveformView(audioPowerLevel: viewModel.audioPowerLevel)
                 }
 
@@ -466,18 +465,11 @@ public struct LiveWaveformView: View {
             HStack(alignment: .center, spacing: 2.2) {
                 ForEach(0..<barCount, id: \.self) { i in
                     RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(hex: "00F0FF"), Color(hex: "0072FF")],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
+                        .fill(Color.white.opacity(0.85))
                         .frame(
                             width: 2.2,
                             height: barHeight(for: i, date: context.date)
                         )
-                        .shadow(color: Color(hex: "00F0FF").opacity(0.6), radius: 1.5, x: 0, y: 0)
                 }
             }
             .animation(.linear(duration: 0.08), value: audioPowerLevel)
@@ -518,10 +510,10 @@ public struct ExplanationDetailSheet: View {
                 HStack(spacing: 6) {
                     Text(ctx.appName)
                         .font(.caption).bold()
-                        .foregroundColor(Color(hex: "00F0FF"))
+                        .foregroundColor(Color(hex: "0A84FF"))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color(hex: "00F0FF").opacity(0.12))
+                        .background(Color(hex: "0A84FF").opacity(0.12))
                         .cornerRadius(4)
 
                     Text(ctx.suggestedFramework)

@@ -16,14 +16,14 @@ public struct KeyBadge: View {
     public var body: some View {
         Text(text)
             .font(.system(size: 11, weight: .bold, design: .monospaced))
-            .foregroundColor(isAccent ? Color(hex: "00F0FF") : .white.opacity(0.85))
+            .foregroundColor(isAccent ? Color(hex: "0A84FF") : .white.opacity(0.85))
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
-            .background(isAccent ? Color(hex: "00F0FF").opacity(0.12) : Color.white.opacity(0.08))
+            .background(isAccent ? Color(hex: "0A84FF").opacity(0.12) : Color.white.opacity(0.08))
             .cornerRadius(5)
             .overlay(
                 RoundedRectangle(cornerRadius: 5)
-                    .stroke(isAccent ? Color(hex: "00F0FF").opacity(0.35) : Color.white.opacity(0.16), lineWidth: 0.5)
+                    .stroke(isAccent ? Color(hex: "0A84FF").opacity(0.35) : Color.white.opacity(0.16), lineWidth: 0.5)
             )
             .shadow(color: Color.black.opacity(0.2), radius: 2, y: 1)
     }
@@ -83,7 +83,7 @@ public struct HUDNotificationView: View {
         HStack(spacing: 6) {
             Image(systemName: systemImage)
                 .font(.system(size: 12, weight: .bold))
-                .foregroundColor(Color(hex: "00F0FF"))
+                .foregroundColor(Color(hex: "0A84FF"))
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.white)

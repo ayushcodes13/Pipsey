@@ -117,7 +117,7 @@ public struct HistoryView: View {
                                     HStack {
                                         Text(record.appName)
                                             .font(.system(size: 11, weight: .bold))
-                                            .foregroundColor(Color(hex: "00F0FF"))
+                                            .foregroundColor(Color(hex: "0A84FF"))
                                         Spacer()
                                         Text(record.formattedDate)
                                             .font(.system(size: 9.5))
@@ -178,7 +178,7 @@ public struct HistoryView: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 6) {
-                            badge(text: record.appName, color: Color(hex: "00F0FF"))
+                            badge(text: record.appName, color: Color(hex: "0A84FF"))
                             badge(text: record.appCategory, color: Color.purple)
                             badge(text: record.suggestedFramework, color: Color.green)
                         }
@@ -330,7 +330,7 @@ public struct HistoryView: View {
                 .font(.system(size: 12, weight: .semibold))
             }
             .buttonStyle(.borderedProminent)
-            .tint(Color(hex: "00F0FF"))
+            .tint(Color(hex: "0A84FF"))
             .foregroundColor(.black)
             .padding(.top, 4)
 

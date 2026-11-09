@@ -25,6 +25,25 @@
 
 ## Engineering log
 
+### 2026-11-10 — Complete Unslopping Pass: Elimination of AI Cyan & Glows across App and Landing Page
+- **Goal and exact changes:**
+  1. **Purged AI-Slop Colors (`#00F0FF` Radioactive Cyan & Blurry Glows):**
+     - Eliminated radioactive cyan `#00F0FF` and multi-pixel blur halos (`radius: 4, opacity: 0.85`) across both the native macOS app and the landing page.
+     - Swapped with Apple's native Human Interface Guidelines dark mode palette:
+       - **Canvas & Background:** `#0B0C0E` neutral dark graphite.
+       - **Card Surfaces:** `#141518` with hairline border `rgba(255, 255, 255, 0.08)` and subtle inset `rgba(255, 255, 255, 0.04)`.
+       - **Accents:** Authentic Apple System Blue `#0A84FF` / `#0071E3` (no fuzzy halos, razor-sharp vector rendering).
+       - **Buttons:** Apple off-white `#EDEDED` with dark text and subtle top bevel (`shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]`).
+       - **Keycaps (`.kbd-chip`):** Authentic physical keycaps (`#1C1C1F` background, `rgba(255,255,255,0.12)` border, `#EDEDED` monospace text).
+       - **Waveform & Recording:** Translucent white bars (`Color.white.opacity(0.85)`) and Apple recording red `#FF453A`.
+  2. **Updated App Components:**
+     - `CompanionIslandView.swift`: Idle center line is now a crisp 54x3pt capsule in Apple System Blue without blur shadows. Waveform bars use Apple voice visualizer styling.
+     - `MacOSDesignComponents.swift`: Keycaps and HUD toast use macOS native contrast.
+     - `HistoryWindow.swift` & `OnboardingWindow.swift`: Replaced all cyan occurrences with system accent blue `#0A84FF`.
+  3. **Verification:**
+     - 308 / 308 tests passing.
+     - `build/Pipsey.app` rebuilt, codesigned, and running live.
+
 ### 2026-11-10 — Official Landing Page Built with Native macOS Design & Generative UI
 - **Goal and exact changes:**
   1. **Designed & Built Production Landing Page (`docs/index.html`):**

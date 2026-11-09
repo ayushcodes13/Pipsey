@@ -199,7 +199,7 @@ public struct OnboardingView: View {
         HStack(spacing: 5) {
             Image(systemName: icon)
                 .font(.system(size: 10, weight: .bold))
-                .foregroundColor(Color(hex: "00F0FF"))
+                .foregroundColor(Color(hex: "0A84FF"))
             Text(text)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.white.opacity(0.85))
@@ -336,10 +336,10 @@ public struct OnboardingView: View {
             // Interactive Simulator
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(practiceTriggered ? Color(hex: "00F0FF").opacity(0.12) : Color.white.opacity(0.05))
+                    .fill(practiceTriggered ? Color(hex: "0A84FF").opacity(0.12) : Color.white.opacity(0.05))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(practiceTriggered ? Color(hex: "00F0FF") : Color.white.opacity(0.2), lineWidth: practiceTriggered ? 1.5 : 1.0)
+                            .stroke(practiceTriggered ? Color(hex: "0A84FF") : Color.white.opacity(0.2), lineWidth: practiceTriggered ? 1.5 : 1.0)
                     )
                     .frame(height: 110)
 
@@ -363,7 +363,7 @@ public struct OnboardingView: View {
                             Circle().fill(Color.red).frame(width: 8, height: 8)
                             Text("Recording Active! Now release to finish.")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(Color(hex: "00F0FF"))
+                                .foregroundColor(Color(hex: "0A84FF"))
                         }
                     } else {
                         Button("Simulate Gesture Practice") {
@@ -379,7 +379,7 @@ public struct OnboardingView: View {
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
-                        .tint(Color(hex: "00F0FF"))
+                        .tint(Color(hex: "0A84FF"))
                     }
                 }
             }
@@ -420,7 +420,7 @@ public struct OnboardingView: View {
                 VStack(spacing: 4) {
                     Text("Hold ⌥⌘")
                         .font(.headline)
-                        .foregroundColor(Color(hex: "00F0FF"))
+                        .foregroundColor(Color(hex: "0A84FF"))
                     Text("Record & Ask")
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.6))
@@ -465,7 +465,7 @@ public struct OnboardingView: View {
                 .font(.system(size: 13, weight: .semibold))
             }
             .buttonStyle(.borderedProminent)
-            .tint(Color(hex: "00F0FF"))
+            .tint(Color(hex: "0A84FF"))
             .foregroundColor(.black)
             .padding(.top, 4)
         }

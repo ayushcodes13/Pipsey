@@ -6,19 +6,17 @@
   <title>Pipsey — Native macOS Feature Mode Companion</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
-    @keyframes pulse-subtle {
-      0%, 100% { opacity: 0.85; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.03); }
-    }
     @keyframes wave-bounce {
       0%, 100% { height: 4px; }
-      50% { height: 18px; }
+      50% { height: 16px; }
     }
-    .animate-wave-1 { animation: wave-bounce 0.6s ease-in-out infinite 0.1s; }
-    .animate-wave-2 { animation: wave-bounce 0.7s ease-in-out infinite 0.25s; }
-    .animate-wave-3 { animation: wave-bounce 0.5s ease-in-out infinite 0.05s; }
-    .animate-wave-4 { animation: wave-bounce 0.65s ease-in-out infinite 0.3s; }
-    .animate-wave-5 { animation: wave-bounce 0.55s ease-in-out infinite 0.15s; }
+    .animate-wave-1 { animation: wave-bounce 0.65s ease-in-out infinite 0.1s; }
+    .animate-wave-2 { animation: wave-bounce 0.75s ease-in-out infinite 0.25s; }
+    .animate-wave-3 { animation: wave-bounce 0.55s ease-in-out infinite 0.05s; }
+    .animate-wave-4 { animation: wave-bounce 0.70s ease-in-out infinite 0.3s; }
+    .animate-wave-5 { animation: wave-bounce 0.60s ease-in-out infinite 0.15s; }
+
+    /* Native physical keycap styling following macOS HIG */
     .kbd-chip {
       display: inline-flex;
       align-items: center;
@@ -26,46 +24,53 @@
       padding: 2px 7px;
       font-size: 11px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-weight: 700;
-      background: rgba(255, 255, 255, 0.08);
-      border: 0.5px solid rgba(255, 255, 255, 0.16);
+      font-weight: 600;
+      color: #EDEDED;
+      background: #1C1C1F;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 5px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
-    .kbd-accent {
-      background: rgba(0, 240, 255, 0.12);
-      border-color: rgba(0, 240, 255, 0.35);
-      color: #00F0FF;
-    }
+
+    /* Hardware notch physical drop shadow (zero neon blur) */
     .notch-shadow {
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 16px rgba(0, 240, 255, 0.18);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Subdued macOS card depth */
+    .mac-card {
+      background: #141518;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .mac-card:hover {
+      border-color: rgba(255, 255, 255, 0.14);
     }
   </style>
 </head>
-<body class="bg-[#0D0E12] text-[#F5F5F7] antialiased selection:bg-[#00F0FF]/20 selection:text-[#00F0FF]">
+<body class="bg-[#0B0C0E] text-[#EDEDED] antialiased selection:bg-white/20 selection:text-white">
 
   <!-- Top Navigation -->
-  <header class="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0D0E12]/85 backdrop-blur-md">
+  <header class="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0B0C0E]/85 backdrop-blur-md">
     <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <!-- Peeking Mascot Icon -->
-        <div class="w-7 h-7 rounded-lg bg-black border border-white/10 flex items-center justify-center overflow-hidden shadow-inner">
+        <!-- Mascot Avatar -->
+        <div class="w-7 h-7 rounded-lg bg-black border border-white/10 flex items-center justify-center overflow-hidden">
           <svg viewBox="0 0 32 32" class="w-5 h-5" fill="none">
-            <rect x="5" y="10" width="22" height="15" rx="5" fill="#1C1C1E" stroke="#00F0FF" stroke-width="1.5"/>
-            <circle cx="11" cy="17" r="2.2" fill="#00F0FF"/>
-            <circle cx="21" cy="17" r="2.2" fill="#00F0FF"/>
-            <path d="M16 6v4" stroke="#00F0FF" stroke-width="1.5" stroke-linecap="round"/>
-            <circle cx="16" cy="5" r="1.5" fill="#0072FF"/>
+            <rect x="5" y="10" width="22" height="15" rx="5" fill="#1C1C1E" stroke="#9CA3AF" stroke-width="1.5"/>
+            <circle cx="11" cy="17" r="2.2" fill="#0A84FF"/>
+            <circle cx="21" cy="17" r="2.2" fill="#0A84FF"/>
+            <path d="M16 6v4" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="16" cy="5" r="1.5" fill="#6B7280"/>
           </svg>
         </div>
-        <span class="font-bold text-sm tracking-tight">Pipsey</span>
-        <span class="text-xs text-white/40 border border-white/10 rounded px-1.5 py-0.5 ml-1">v0.1.0</span>
+        <span class="font-semibold text-sm tracking-tight text-white">Pipsey</span>
+        <span class="text-[11px] text-[#A1A1AA] border border-white/10 rounded px-1.5 py-0.5 ml-1">v0.1.0</span>
       </div>
 
-      <nav class="hidden md:flex items-center gap-6 text-xs text-white/60">
+      <nav class="hidden md:flex items-center gap-6 text-xs text-[#A1A1AA]">
         <a href="#demo" class="hover:text-white transition-colors">Interactive Demo</a>
         <a href="#features" class="hover:text-white transition-colors">Features</a>
-        <a href="#architecture" class="hover:text-white transition-colors">Architecture</a>
         <a href="#shortcuts" class="hover:text-white transition-colors">Shortcuts</a>
         <a href="https://github.com/ayushcodes13/Pipsey" target="_blank" class="hover:text-white transition-colors flex items-center gap-1.5">
           <span>GitHub</span>
@@ -74,7 +79,7 @@
       </nav>
 
       <div class="flex items-center gap-3">
-        <a href="https://github.com/ayushcodes13/Pipsey/releases" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md bg-white text-black hover:bg-white/90 transition-all shadow-sm">
+        <a href="https://github.com/ayushcodes13/Pipsey/releases" class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-[#EDEDED] text-[#0B0C0E] hover:bg-white transition shadow-sm border border-white/20">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
           <span>Download DMG</span>
         </a>
@@ -84,40 +89,40 @@
 
   <!-- Hero Section -->
   <section class="relative pt-16 pb-20 px-6 max-w-5xl mx-auto text-center">
-    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs text-white/70 mb-6">
-      <span class="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse"></span>
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs text-[#A1A1AA] mb-6">
+      <span class="w-2 h-2 rounded-full bg-[#0A84FF]"></span>
       <span>Native Swift 6 &amp; Apple Silicon Companion</span>
     </div>
 
-    <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white max-w-3xl mx-auto leading-[1.12]">
+    <h1 class="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-white max-w-3xl mx-auto leading-[1.14]">
       Inspect any UI on your Mac with voice and demonstration.
     </h1>
 
-    <p class="mt-5 text-base sm:text-lg text-white/60 max-w-2xl mx-auto leading-relaxed">
-      A notch-anchored desktop companion. Hold <span class="kbd-chip kbd-accent">⌥</span> <span class="kbd-chip kbd-accent">⌘</span>, ask how an interaction works, and demonstrate it. Pipsey's two-model vision pipeline breaks down the mechanism and gives you the exact code.
+    <p class="mt-5 text-base sm:text-lg text-[#A1A1AA] max-w-2xl mx-auto leading-relaxed">
+      A notch-anchored desktop companion. Hold <span class="kbd-chip">⌥</span> <span class="kbd-chip">⌘</span>, ask how an interaction works, and demonstrate it. Pipsey's two-model vision pipeline breaks down the mechanism and gives you the exact code.
     </p>
 
     <!-- Hero CTA Buttons -->
     <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-      <a href="#demo" class="px-5 py-2.5 rounded-lg bg-[#00F0FF] text-black font-semibold text-sm hover:brightness-110 transition shadow-lg shadow-[#00F0FF]/15 flex items-center gap-2">
+      <a href="#demo" class="px-5 py-2.5 rounded-lg bg-[#EDEDED] text-[#0B0C0E] hover:bg-white font-medium text-xs transition shadow-sm border border-white/20 flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <span>Try Interactive Notch Demo</span>
       </a>
-      <a href="https://github.com/ayushcodes13/Pipsey" target="_blank" class="px-4 py-2.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white font-medium text-sm transition flex items-center gap-2">
+      <a href="https://github.com/ayushcodes13/Pipsey" target="_blank" class="px-4 py-2.5 rounded-lg bg-[#18181B] hover:bg-[#202024] border border-white/10 text-[#EDEDED] font-medium text-xs transition flex items-center gap-2">
         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
         <span>GitHub Repository</span>
       </a>
     </div>
 
     <!-- Live Interactive MacBook Mockup with Simulated Notch -->
-    <div id="demo" class="mt-14 relative max-w-4xl mx-auto rounded-2xl p-3 bg-gradient-to-b from-white/[0.08] to-transparent border border-white/10 shadow-2xl">
+    <div id="demo" class="mt-14 relative max-w-4xl mx-auto rounded-2xl p-2.5 bg-gradient-to-b from-white/[0.06] to-transparent border border-white/[0.08] shadow-2xl">
       <!-- Simulated Mac Bezel -->
-      <div class="relative bg-[#16171D] rounded-xl overflow-hidden border border-white/[0.08] aspect-[16/10] flex flex-col justify-between">
+      <div class="relative bg-[#141518] rounded-xl overflow-hidden border border-white/[0.06] aspect-[16/10] flex flex-col justify-between">
         
         <!-- Simulated Hardware Top Bezel with Hardware Notch Center -->
-        <div class="relative w-full h-8 bg-black/90 flex items-center justify-center border-b border-white/[0.06] select-none">
+        <div class="relative w-full h-8 bg-black flex items-center justify-center border-b border-white/[0.06] select-none">
           <!-- Left fake menu bar items -->
-          <div class="absolute left-4 flex items-center gap-4 text-[11px] text-white/50">
+          <div class="absolute left-4 flex items-center gap-4 text-[11px] text-[#A1A1AA]">
             <span class="text-white font-semibold"></span>
             <span class="font-semibold text-white">Pipsey</span>
             <span>File</span>
@@ -128,29 +133,29 @@
           </div>
 
           <!-- The Hardware Notch with Pipsey Inside -->
-          <div id="simulatedNotch" class="relative z-20 flex items-center justify-center bg-black rounded-b-xl border-x border-b border-white/20 px-3 transition-all duration-300 notch-shadow"
+          <div id="simulatedNotch" class="relative z-20 flex items-center justify-center bg-black rounded-b-xl border-x border-b border-white/[0.12] px-3 transition-all duration-300 notch-shadow"
                style="width: 175px; height: 32px;">
             
             <!-- State 1: Idle Hover Mode -->
             <div id="notchIdle" class="w-full flex items-center justify-between">
-              <!-- Cute Robot Mascot Avatar -->
-              <div class="w-5 h-5 rounded bg-black flex items-center justify-center">
+              <!-- Mascot Avatar -->
+              <div class="w-5 h-5 rounded bg-[#1C1C1E] flex items-center justify-center">
                 <svg viewBox="0 0 32 32" class="w-4 h-4" fill="none">
-                  <rect x="5" y="10" width="22" height="15" rx="5" fill="#1C1C1E" stroke="#00F0FF" stroke-width="1.8"/>
-                  <circle cx="11" cy="17" r="2.2" fill="#00F0FF"/>
-                  <circle cx="21" cy="17" r="2.2" fill="#00F0FF"/>
-                  <path d="M16 6v4" stroke="#00F0FF" stroke-width="1.5" stroke-linecap="round"/>
+                  <rect x="5" y="10" width="22" height="15" rx="5" fill="#1C1C1E" stroke="#9CA3AF" stroke-width="1.8"/>
+                  <circle cx="11" cy="17" r="2.2" fill="#0A84FF"/>
+                  <circle cx="21" cy="17" r="2.2" fill="#0A84FF"/>
+                  <path d="M16 6v4" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
               </div>
 
               <!-- Shortcut Hint Pill -->
               <div class="flex items-center gap-1">
-                <span class="kbd-chip kbd-accent text-[9px] py-0 px-1.5">⌥</span>
-                <span class="kbd-chip kbd-accent text-[9px] py-0 px-1.5">⌘</span>
+                <span class="kbd-chip text-[9px] py-0 px-1.5">⌥</span>
+                <span class="kbd-chip text-[9px] py-0 px-1.5">⌘</span>
               </div>
 
               <!-- Secondary Icons -->
-              <div class="flex items-center gap-2 text-white/40">
+              <div class="flex items-center gap-2 text-[#71717A]">
                 <svg class="w-3 h-3 hover:text-white cursor-pointer" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
                 <svg class="w-3 h-3 hover:text-white cursor-pointer" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
               </div>
@@ -159,54 +164,54 @@
             <!-- State 2: Capturing Mode (Hidden by default) -->
             <div id="notchRecording" class="hidden w-full items-center justify-between gap-3 px-1">
               <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
-                <span class="text-xs font-bold text-white">Recording UI</span>
-                <span id="recordingTimer" class="text-xs font-mono font-bold text-[#00F0FF]">00:03</span>
-                <!-- 5-bar live reactive audio waveform -->
+                <span class="w-2 h-2 rounded-full bg-[#FF453A]"></span>
+                <span class="text-xs font-medium text-white">Recording UI</span>
+                <span id="recordingTimer" class="text-xs font-mono font-medium text-white/90">00:03</span>
+                <!-- 5-bar tactile audio waveform -->
                 <div class="flex items-center gap-0.5 ml-1">
-                  <span class="w-0.5 bg-[#00F0FF] rounded-full animate-wave-1"></span>
-                  <span class="w-0.5 bg-[#00F0FF] rounded-full animate-wave-2"></span>
-                  <span class="w-0.5 bg-[#00F0FF] rounded-full animate-wave-3"></span>
-                  <span class="w-0.5 bg-[#00F0FF] rounded-full animate-wave-4"></span>
-                  <span class="w-0.5 bg-[#00F0FF] rounded-full animate-wave-5"></span>
+                  <span class="w-0.5 bg-white/80 rounded-full animate-wave-1"></span>
+                  <span class="w-0.5 bg-white/80 rounded-full animate-wave-2"></span>
+                  <span class="w-0.5 bg-white/80 rounded-full animate-wave-3"></span>
+                  <span class="w-0.5 bg-white/80 rounded-full animate-wave-4"></span>
+                  <span class="w-0.5 bg-white/80 rounded-full animate-wave-5"></span>
                 </div>
               </div>
-              <span class="text-[10px] text-white/60">Release ⌥⌘ to analyze</span>
-              <button class="text-[10px] font-bold bg-white text-black px-2 py-0.5 rounded shadow">Done</button>
+              <span class="text-[10px] text-[#A1A1AA]">Release ⌥⌘ to analyze</span>
+              <button class="text-[10px] font-medium bg-white text-black px-2 py-0.5 rounded shadow-sm">Done</button>
             </div>
 
             <!-- State 3: Processing Mode (Hidden by default) -->
             <div id="notchProcessing" class="hidden w-full items-center justify-between gap-3 px-1">
               <div class="flex items-center gap-2">
-                <svg class="w-3.5 h-3.5 animate-spin text-[#00F0FF]" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                <svg class="w-3.5 h-3.5 animate-spin text-[#0A84FF]" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
                 <span id="processingMsg" class="text-xs font-medium text-white truncate">Analyzing demonstrated frames with VLM...</span>
               </div>
-              <span class="text-[10px] text-white/50">Cancel</span>
+              <span class="text-[10px] text-[#A1A1AA]">Cancel</span>
             </div>
 
             <!-- State 4: Explanation Mode (Hidden by default) -->
             <div id="notchExplanation" class="hidden w-full flex-col text-left py-2 px-1">
               <div class="flex items-center justify-between border-b border-white/10 pb-1.5 mb-1.5">
                 <div class="flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-[#00F0FF]"></span>
-                  <span class="text-xs font-bold text-white">Interaction Explained</span>
-                  <span class="text-[10px] bg-[#00F0FF]/15 text-[#00F0FF] px-1.5 py-0.5 rounded font-medium">SwiftUI Spring</span>
+                  <span class="w-2 h-2 rounded-full bg-[#0A84FF]"></span>
+                  <span class="text-xs font-medium text-white">Interaction Explained</span>
+                  <span class="text-[10px] bg-white/[0.08] text-[#A1A1AA] px-1.5 py-0.5 rounded font-medium border border-white/[0.06]">SwiftUI Spring</span>
                 </div>
                 <button id="resetDemoBtn" class="text-[10px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded">Reset</button>
               </div>
-              <p class="text-xs text-white/80 leading-relaxed mb-2">
+              <p class="text-xs text-[#EDEDED] leading-relaxed mb-2">
                 "On hover, the button scales up to 1.05. When depressed, it compresses to 0.94 scale with a 0.35s fluid spring damping curve before releasing with subtle overshoot."
               </p>
-              <div class="bg-black/60 rounded p-1.5 font-mono text-[10px] text-[#00F0FF] border border-white/10 flex items-center justify-between">
+              <div class="bg-[#0B0C0E] rounded p-1.5 font-mono text-[10px] text-[#EDEDED] border border-white/10 flex items-center justify-between">
                 <code>.animation(.spring(response: 0.35, dampingFraction: 0.60), value: isPressed)</code>
-                <span class="text-white/40 text-[9px]">⌘C Copy</span>
+                <span class="text-[#71717A] text-[9px]">⌘C Copy</span>
               </div>
             </div>
 
           </div>
 
           <!-- Right fake menu bar items -->
-          <div class="absolute right-4 flex items-center gap-3 text-[11px] text-white/50">
+          <div class="absolute right-4 flex items-center gap-3 text-[11px] text-[#A1A1AA]">
             <span>98%</span>
             <span>Tue Nov 10</span>
             <span>12:20 AM</span>
@@ -215,18 +220,18 @@
 
         <!-- Simulated Desktop Workspace -->
         <div class="flex-1 p-8 flex flex-col items-center justify-center text-center">
-          <div class="max-w-md bg-[#1C1C1E]/70 border border-white/[0.08] rounded-xl p-6 shadow-xl backdrop-blur-sm">
+          <div class="max-w-md bg-[#18181B]/80 border border-white/[0.08] rounded-xl p-6 shadow-xl backdrop-blur-sm">
             <h3 class="text-sm font-semibold text-white mb-1">Interactive Sandbox Demonstration</h3>
-            <p class="text-xs text-white/60 mb-5">
-              Click the button below to watch Pipsey's dynamic auto-expanding notch transition through live capture, audio waveform bouncing, VLM analysis, and code synthesis.
+            <p class="text-xs text-[#A1A1AA] mb-5">
+              Click below to test Pipsey's dynamic auto-expanding notch transition across live capture, audio waveform, VLM analysis, and code synthesis.
             </p>
             <div class="flex items-center justify-center gap-3">
-              <button id="runSimulationBtn" class="px-4 py-2 rounded-lg bg-[#00F0FF] hover:bg-[#00D0DF] text-black font-bold text-xs transition flex items-center gap-2 shadow-md">
-                <span class="w-2 h-2 rounded-full bg-black"></span>
+              <button id="runSimulationBtn" class="px-4 py-2 rounded-lg bg-[#EDEDED] hover:bg-white text-[#0B0C0E] font-medium text-xs transition flex items-center gap-2 shadow-sm border border-white/20">
+                <span class="w-2 h-2 rounded-full bg-[#0B0C0E]"></span>
                 <span>Trigger ⌥⌘ Simulation</span>
               </button>
             </div>
-            <div id="simStatus" class="mt-3 text-[11px] text-white/40 font-mono">
+            <div id="simStatus" class="mt-3 text-[11px] text-[#71717A] font-mono">
               Ready · Idle in hardware notch
             </div>
           </div>
@@ -239,8 +244,8 @@
   <!-- Feature Grid -->
   <section id="features" class="py-20 px-6 max-w-6xl mx-auto border-t border-white/[0.06]">
     <div class="text-center max-w-2xl mx-auto mb-16">
-      <h2 class="text-3xl font-bold tracking-tight text-white">Engineered for the Mac.</h2>
-      <p class="mt-3 text-sm text-white/60">
+      <h2 class="text-3xl font-semibold tracking-tight text-white">Engineered for the Mac.</h2>
+      <p class="mt-3 text-sm text-[#A1A1AA]">
         Every detail follows Apple Human Interface Guidelines and modern Swift 6 architecture.
       </p>
     </div>
@@ -248,67 +253,67 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       
       <!-- Card 1 -->
-      <div class="p-6 rounded-xl bg-[#16171D] border border-white/[0.08] hover:border-white/20 transition group">
-        <div class="w-10 h-10 rounded-lg bg-black border border-white/10 flex items-center justify-center text-[#00F0FF] mb-5">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+      <div class="p-6 rounded-xl mac-card transition group">
+        <div class="w-10 h-10 rounded-lg bg-[#1C1C1F] border border-white/10 flex items-center justify-center text-white mb-5 shadow-sm">
+          <svg class="w-5 h-5 text-[#EDEDED]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
         </div>
         <h3 class="text-base font-semibold text-white mb-2">ScreenCaptureKit Self-Exclusion</h3>
-        <p class="text-xs text-white/60 leading-relaxed">
-          Configured with <code class="text-[#00F0FF]">sharingType = .none</code>. macOS WindowServer automatically omits Pipsey's companion bar from recorded video frames, eliminating UI occlusion and preventing self-capture contamination.
+        <p class="text-xs text-[#A1A1AA] leading-relaxed">
+          Configured with <code class="font-mono text-[11px] text-[#EDEDED] bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08]">sharingType = .none</code>. macOS WindowServer automatically omits Pipsey's companion bar from recorded video frames, eliminating UI occlusion and preventing self-capture contamination.
         </p>
       </div>
 
       <!-- Card 2 -->
-      <div class="p-6 rounded-xl bg-[#16171D] border border-white/[0.08] hover:border-white/20 transition group">
-        <div class="w-10 h-10 rounded-lg bg-black border border-white/10 flex items-center justify-center text-[#00F0FF] mb-5">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+      <div class="p-6 rounded-xl mac-card transition group">
+        <div class="w-10 h-10 rounded-lg bg-[#1C1C1F] border border-white/10 flex items-center justify-center text-white mb-5 shadow-sm">
+          <svg class="w-5 h-5 text-[#EDEDED]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
         </div>
         <h3 class="text-base font-semibold text-white mb-2">Two-Model Grounded Vision</h3>
-        <p class="text-xs text-white/60 leading-relaxed">
+        <p class="text-xs text-[#A1A1AA] leading-relaxed">
           Separates visual perception from conversational reasoning. A small remote VLM strictly observes timestamped UI transitions, while an independent LLM produces natural explanations and production code.
         </p>
       </div>
 
       <!-- Card 3 -->
-      <div class="p-6 rounded-xl bg-[#16171D] border border-white/[0.08] hover:border-white/20 transition group">
-        <div class="w-10 h-10 rounded-lg bg-black border border-white/10 flex items-center justify-center text-[#00F0FF] mb-5">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+      <div class="p-6 rounded-xl mac-card transition group">
+        <div class="w-10 h-10 rounded-lg bg-[#1C1C1F] border border-white/10 flex items-center justify-center text-white mb-5 shadow-sm">
+          <svg class="w-5 h-5 text-[#EDEDED]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
         </div>
         <h3 class="text-base font-semibold text-white mb-2">Liquid Glass Settings Window</h3>
-        <p class="text-xs text-white/60 leading-relaxed">
-          Native macOS Tahoe <code class="text-[#00F0FF]">.fullSizeContentView</code> preferences window with <code class="text-[#00F0FF]">NavigationSplitView</code>. Manage BYOK API keys in Keychain (OpenAI, Azure, Anthropic) with live connectivity tests.
+        <p class="text-xs text-[#A1A1AA] leading-relaxed">
+          Native macOS Tahoe <code class="font-mono text-[11px] text-[#EDEDED] bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08]">.fullSizeContentView</code> preferences window with <code class="font-mono text-[11px] text-[#EDEDED] bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08]">NavigationSplitView</code>. Manage BYOK API keys in Keychain (OpenAI, Azure, Anthropic) with live connectivity tests.
         </p>
       </div>
 
       <!-- Card 4 -->
-      <div class="p-6 rounded-xl bg-[#16171D] border border-white/[0.08] hover:border-white/20 transition group">
-        <div class="w-10 h-10 rounded-lg bg-black border border-white/10 flex items-center justify-center text-[#00F0FF] mb-5">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      <div class="p-6 rounded-xl mac-card transition group">
+        <div class="w-10 h-10 rounded-lg bg-[#1C1C1F] border border-white/10 flex items-center justify-center text-white mb-5 shadow-sm">
+          <svg class="w-5 h-5 text-[#EDEDED]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
         </div>
         <h3 class="text-base font-semibold text-white mb-2">Searchable Interaction Library (⌘H)</h3>
-        <p class="text-xs text-white/60 leading-relaxed">
-          Every completed explanation is saved locally to <code class="text-[#00F0FF]">session_history.json</code>. Search previous analyses, copy generated code snippets, and export standalone Markdown reports with one click.
+        <p class="text-xs text-[#A1A1AA] leading-relaxed">
+          Every completed explanation is saved locally to <code class="font-mono text-[11px] text-[#EDEDED] bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08]">session_history.json</code>. Search previous analyses, copy generated code snippets, and export standalone Markdown reports with one click.
         </p>
       </div>
 
       <!-- Card 5 -->
-      <div class="p-6 rounded-xl bg-[#16171D] border border-white/[0.08] hover:border-white/20 transition group">
-        <div class="w-10 h-10 rounded-lg bg-black border border-white/10 flex items-center justify-center text-[#00F0FF] mb-5">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+      <div class="p-6 rounded-xl mac-card transition group">
+        <div class="w-10 h-10 rounded-lg bg-[#1C1C1F] border border-white/10 flex items-center justify-center text-white mb-5 shadow-sm">
+          <svg class="w-5 h-5 text-[#EDEDED]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
         </div>
         <h3 class="text-base font-semibold text-white mb-2">Active App Context Sensing</h3>
-        <p class="text-xs text-white/60 leading-relaxed">
+        <p class="text-xs text-[#A1A1AA] leading-relaxed">
           Automatically senses the frontmost active application (Figma, Xcode, VS Code, Chrome, Linear) and tailors the code synthesis to your target stack (SwiftUI, React Framer Motion, CSS tokens).
         </p>
       </div>
 
       <!-- Card 6 -->
-      <div class="p-6 rounded-xl bg-[#16171D] border border-white/[0.08] hover:border-white/20 transition group">
-        <div class="w-10 h-10 rounded-lg bg-black border border-white/10 flex items-center justify-center text-[#00F0FF] mb-5">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      <div class="p-6 rounded-xl mac-card transition group">
+        <div class="w-10 h-10 rounded-lg bg-[#1C1C1F] border border-white/10 flex items-center justify-center text-white mb-5 shadow-sm">
+          <svg class="w-5 h-5 text-[#EDEDED]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
         </div>
         <h3 class="text-base font-semibold text-white mb-2">Privacy &amp; Security Fail-Closed</h3>
-        <p class="text-xs text-white/60 leading-relaxed">
+        <p class="text-xs text-[#A1A1AA] leading-relaxed">
           Zero background recording. Captures frames strictly upon explicit user hotkey invocation. Includes an explicit external upload consent gate and purges temporary disk files immediately after sampling.
         </p>
       </div>
@@ -319,26 +324,26 @@
   <!-- Keyboard Shortcuts Reference -->
   <section id="shortcuts" class="py-16 px-6 max-w-4xl mx-auto border-t border-white/[0.06]">
     <div class="text-center max-w-xl mx-auto mb-10">
-      <h2 class="text-2xl font-bold tracking-tight text-white">Native Shortcuts &amp; Gestures</h2>
-      <p class="mt-2 text-xs text-white/60">Designed to blend effortlessly into your everyday macOS muscle memory.</p>
+      <h2 class="text-2xl font-semibold tracking-tight text-white">Native Shortcuts &amp; Gestures</h2>
+      <p class="mt-2 text-xs text-[#A1A1AA]">Designed to blend effortlessly into your everyday macOS muscle memory.</p>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div class="p-4 rounded-lg bg-[#16171D] border border-white/[0.08] flex items-center justify-between">
+      <div class="p-4 rounded-lg mac-card flex items-center justify-between">
         <div>
           <h4 class="text-xs font-semibold text-white">Hold-to-Record</h4>
-          <p class="text-[11px] text-white/50">Hold to capture voice &amp; screen; release to analyze</p>
+          <p class="text-[11px] text-[#A1A1AA]">Hold to capture voice &amp; screen; release to analyze</p>
         </div>
         <div class="flex items-center gap-1">
-          <span class="kbd-chip kbd-accent">⌥</span>
-          <span class="kbd-chip kbd-accent">⌘</span>
+          <span class="kbd-chip">⌥</span>
+          <span class="kbd-chip">⌘</span>
         </div>
       </div>
 
-      <div class="p-4 rounded-lg bg-[#16171D] border border-white/[0.08] flex items-center justify-between">
+      <div class="p-4 rounded-lg mac-card flex items-center justify-between">
         <div>
           <h4 class="text-xs font-semibold text-white">Toggle Capture Mode</h4>
-          <p class="text-[11px] text-white/50">Click-to-start, click-to-stop hotkey</p>
+          <p class="text-[11px] text-[#A1A1AA]">Click-to-start, click-to-stop hotkey</p>
         </div>
         <div class="flex items-center gap-1">
           <span class="kbd-chip">⌥</span>
@@ -347,10 +352,10 @@
         </div>
       </div>
 
-      <div class="p-4 rounded-lg bg-[#16171D] border border-white/[0.08] flex items-center justify-between">
+      <div class="p-4 rounded-lg mac-card flex items-center justify-between">
         <div>
           <h4 class="text-xs font-semibold text-white">Interaction Library</h4>
-          <p class="text-[11px] text-white/50">Search saved explanations and export Markdown</p>
+          <p class="text-[11px] text-[#A1A1AA]">Search saved explanations and export Markdown</p>
         </div>
         <div class="flex items-center gap-1">
           <span class="kbd-chip">⌘</span>
@@ -358,10 +363,10 @@
         </div>
       </div>
 
-      <div class="p-4 rounded-lg bg-[#16171D] border border-white/[0.08] flex items-center justify-between">
+      <div class="p-4 rounded-lg mac-card flex items-center justify-between">
         <div>
           <h4 class="text-xs font-semibold text-white">Preferences &amp; BYOK Settings</h4>
-          <p class="text-[11px] text-white/50">Liquid glass preferences window</p>
+          <p class="text-[11px] text-[#A1A1AA]">Liquid glass preferences window</p>
         </div>
         <div class="flex items-center gap-1">
           <span class="kbd-chip">⌘</span>
@@ -373,26 +378,26 @@
 
   <!-- Release & Distribution Section -->
   <section class="py-16 px-6 max-w-4xl mx-auto border-t border-white/[0.06] text-center">
-    <div class="p-8 rounded-2xl bg-gradient-to-b from-[#1C1C1E] to-[#121316] border border-white/10 shadow-2xl">
-      <h3 class="text-xl font-bold text-white mb-2">Ready to ship on your Mac.</h3>
-      <p class="text-xs text-white/60 max-w-md mx-auto mb-6">
-        Package includes signed <code class="text-[#00F0FF]">Pipsey.app</code> bundle, drag-and-drop DMG installer, and ServiceManagement launch at login.
+    <div class="p-8 rounded-2xl bg-[#141518] border border-white/10 shadow-xl">
+      <h3 class="text-xl font-semibold text-white mb-2">Ready to ship on your Mac.</h3>
+      <p class="text-xs text-[#A1A1AA] max-w-md mx-auto mb-6">
+        Package includes signed <code class="font-mono text-[11px] text-[#EDEDED] bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08]">Pipsey.app</code> bundle, drag-and-drop DMG installer, and ServiceManagement launch at login.
       </p>
 
       <div class="inline-flex flex-col sm:flex-row items-center gap-3">
-        <a href="https://github.com/ayushcodes13/Pipsey/releases" class="px-5 py-2.5 rounded-lg bg-white text-black font-semibold text-xs hover:bg-white/90 transition shadow">
+        <a href="https://github.com/ayushcodes13/Pipsey/releases" class="px-5 py-2.5 rounded-lg bg-[#EDEDED] text-[#0B0C0E] hover:bg-white font-medium text-xs transition shadow-sm border border-white/20">
           Download Pipsey-0.1.0.dmg (1.9 MB)
         </a>
-        <div class="text-[11px] font-mono text-white/40 bg-black/50 px-3 py-2 rounded-lg border border-white/10 flex items-center gap-2">
+        <div class="text-[11px] font-mono text-[#A1A1AA] bg-black/60 px-3 py-2 rounded-lg border border-white/10 flex items-center gap-2">
           <span>python3 scripts/release.py</span>
-          <span class="text-[#00F0FF]">✓ 21.4s build</span>
+          <span class="text-[#34D399]">✓ 21.4s build</span>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Footer -->
-  <footer class="py-8 px-6 border-t border-white/[0.06] text-center text-xs text-white/40">
+  <footer class="py-8 px-6 border-t border-white/[0.06] text-center text-xs text-[#71717A]">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="flex items-center gap-2">
         <span>© 2026 Pipsey AI Companion. Built for macOS 13+.</span>

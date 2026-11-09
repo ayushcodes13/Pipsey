@@ -35,16 +35,16 @@ public struct DemoScenario: Sendable {
                     .background(
                         Capsule()
                             .fill(LinearGradient(
-                                colors: [Color(hex: "00F0FF"), Color(hex: "0072FF")],
+                                colors: [Color(hex: "0A84FF"), Color(hex: "0071E3")],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ))
                     )
-                    .foregroundColor(.black)
-                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .font(.system(size: 14, weight: .semibold))
                     .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
                     .shadow(
-                        color: Color(hex: "00F0FF").opacity(configuration.isPressed ? 0.15 : 0.40),
+                        color: Color(hex: "0A84FF").opacity(configuration.isPressed ? 0.15 : 0.35),
                         radius: configuration.isPressed ? 4 : 12,
                         y: configuration.isPressed ? 2 : 6
                     )
