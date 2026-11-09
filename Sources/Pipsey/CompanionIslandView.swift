@@ -503,6 +503,10 @@ public struct CompanionIslandView: View {
                 }
 
                 Spacer()
+
+                Text("Made with ❤️ by Devayush")
+                    .font(.system(size: 9))
+                    .foregroundColor(.white.opacity(0.4))
             }
         }
         .padding(.top, 4)

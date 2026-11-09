@@ -555,6 +555,10 @@ struct AboutSettingsPane: View {
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.6))
 
+            Text("Made with ❤️ by Devayush")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Color(hex: "0A84FF"))
+
             Divider().frame(width: 300)
 
             VStack(alignment: .leading, spacing: 6) {

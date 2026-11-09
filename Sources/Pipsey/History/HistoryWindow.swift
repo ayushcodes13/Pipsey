@@ -334,6 +334,11 @@ public struct HistoryView: View {
             .foregroundColor(.black)
             .padding(.top, 4)
 
+            Text("Made with ❤️ by Devayush")
+                .font(.system(size: 10.5))
+                .foregroundColor(.white.opacity(0.35))
+                .padding(.top, 6)
+
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

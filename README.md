@@ -9,6 +9,10 @@
 
 [![Status](https://img.shields.io/badge/status-Native%20macOS%20Verified-0b7863?style=flat-square)](#project-status) [![Tests](https://img.shields.io/badge/tests-277%20passed-0b7863?style=flat-square)](#project-status) [![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-20242a?style=flat-square&logo=apple)](#platform) [![License: MIT](https://img.shields.io/badge/license-MIT-0b7863?style=flat-square)](LICENSE)
 
+<p align="center">
+  <b>Made with ❤️ by Devayush</b>
+</p>
+
 *An independent, open-source project inspired by [HeyClicky](https://www.heyclicky.com/), [boring.notch](https://github.com/TheBoredTeam/boring.notch), and [clicky](https://github.com/farzaa/clicky). Not affiliated with HeyClicky or its creator.*
 
 </div>
@@ -137,4 +141,4 @@ Pipsey stores your API keys securely in the macOS Keychain (`kSecClassGenericPas
 
 MIT-licensed repository code unless a future file states otherwise. Third-party licensed code/assets retain their own terms. [CONTRIBUTING.md](CONTRIBUTING.md) describes how to contribute. This project credits HeyClicky as inspiration; it is a separate implementation.
 
-<div align="center"><sub>Built out of curiosity. Designed to make software a little less mysterious.</sub></div>
+<div align="center"><sub>Made with ❤️ by Devayush. Built out of curiosity to make software a little less mysterious.</sub></div>

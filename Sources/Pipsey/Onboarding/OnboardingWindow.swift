@@ -192,6 +192,11 @@ public struct OnboardingView: View {
                 benefitBadge(icon: "lock.fill", text: "Private & Local")
             }
             .padding(.top, 6)
+
+            Text("Made with ❤️ by Devayush")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.white.opacity(0.45))
+                .padding(.top, 2)
         }
     }
 
