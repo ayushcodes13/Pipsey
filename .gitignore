@@ -43,6 +43,8 @@ transcripts/
 artifacts/private/
 *.mov
 *.mp4
+!Assets/*.mp4
+!docs/assets/*.mp4
 *.m4a
 *.wav
 *.caf

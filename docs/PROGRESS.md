@@ -25,6 +25,29 @@
 
 ## Engineering log
 
+### 2026-11-10 — Official Mascot Upgraded to Peeking Robot & Made Movable with Animated Video
+- **Goal and exact changes:**
+  1. **Cleaned Text from New Official 3D Mascot:**
+     - Removed the burned-in "Pipsey" text from the user's high-resolution asset (`media_1794254236387_d42a7996.jpg`) using seamless gradient patch reconstruction across the dark shelf.
+     - Generated pristine icon scales (1024, 512, 256, 128, 64, 32px) for both the full squircle card and the peeking mascot head.
+     - Recompiled `Assets/AppIcon.icns` via macOS `iconutil`.
+  2. **Processed Animated Video into Movable Mascot Assets:**
+     - Processed all 240 frames of the 10-second video (`media_1794254337265_878bf081.mp4`), removing the text across every frame, cropping out watermarks, and producing:
+       - `Assets/pipsey-mascot-card.mp4` & `Assets/pipsey-mascot-card.webm` (720x720 looping card video).
+       - `Assets/pipsey-mascot-head.mp4` & `Assets/pipsey-mascot-head.webm` (460x320 peeking head video).
+       - `Assets/pipsey-mascot-anim-mini.gif` (optimized 12 fps, 64x45 mini animated GIF, 179 KB).
+       - `Assets/pipsey-mascot-card-mini.gif` (128x128 animated GIF, 828 KB).
+  3. **Lively Animated Mascot Across macOS Application:**
+     - Created `AnimatedImageView` leveraging native AppKit `NSImageView.animates = true`, playing animated GIF loops with zero CPU overhead using the OS runloop animation system.
+     - Updated `PipseyMascotView(isAnimated: true)` across `CompanionIslandView.swift`, `SettingsView.swift`, and `OnboardingWindow.swift`. Pipsey now blinks, looks around, tilts its head, and pulses its glowing cyan headphones live on screen!
+     - Embedded base64 animated GIF fallback in `Sources/Pipsey/UI/PipseyMascotData.swift`.
+  4. **Landing Page Elevation:**
+     - Featured the looping video in the hero section with a glowing gradient container and pulse badge.
+     - Replaced static notch avatars with the live animated peeking GIF in `docs/index.html` and the Generative UI artifact.
+  5. **Verification & Testing:**
+     - All 308 / 308 unit and integration tests passed (`swift run PipseyTests`).
+     - App bundle compiled, codesigned, and running live (`build/Pipsey.app`, PID 75706).
+
 ### 2026-11-10 — Balanced Notch Layout & Clear Audio Recording Visualizer
 - **Goal and exact changes:**
   1. **Clean 3-Part Notch Layout on Hover:**

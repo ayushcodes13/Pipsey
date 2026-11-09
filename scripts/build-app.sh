@@ -66,6 +66,8 @@ if [[ -f "Assets/AppIcon.icns" ]]; then
 fi
 if [[ -d "Assets" ]]; then
     cp Assets/*.png "${RESOURCES_DIR}/" || true
+    cp Assets/*.gif "${RESOURCES_DIR}/" || true
+    cp Assets/*.mp4 "${RESOURCES_DIR}/" || true
 fi
 if [[ -f "Assets/pipsey-logo.webp" ]]; then
     cp Assets/pipsey-logo.webp "${RESOURCES_DIR}/pipsey-logo.webp"

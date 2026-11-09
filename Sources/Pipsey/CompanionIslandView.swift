@@ -2,16 +2,21 @@ import SwiftUI
 import PipseyCore
 import AppKit
 
-/// Pristine vector-derived icon-only mascot view (without wordmark)
+/// Pristine animated or static icon-only mascot view (without wordmark)
 public struct PipseyMascotView: View {
     public var size: CGFloat
+    public var isAnimated: Bool
 
-    public init(size: CGFloat = 20) {
+    public init(size: CGFloat = 20, isAnimated: Bool = true) {
         self.size = size
+        self.isAnimated = isAnimated
     }
 
     public var body: some View {
-        if let img = loadMascotImage() {
+        if isAnimated, let animImage = loadAnimatedMascotImage() {
+            AnimatedImageView(image: animImage)
+                .frame(width: size, height: size)
+        } else if let img = loadMascotImage() {
             Image(nsImage: img)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
@@ -22,28 +27,69 @@ public struct PipseyMascotView: View {
         }
     }
 
+    private func loadAnimatedMascotImage() -> NSImage? {
+        let candidates = [
+            Bundle.main.url(forResource: "pipsey-mascot-anim-mini", withExtension: "gif"),
+            Bundle.main.resourceURL?.appendingPathComponent("pipsey-mascot-anim-mini.gif"),
+            URL(fileURLWithPath: "Assets/pipsey-mascot-anim-mini.gif"),
+            URL(fileURLWithPath: "/Users/devayushrout/Desktop/Pipsey/Assets/pipsey-mascot-anim-mini.gif")
+        ]
+        for url in candidates.compactMap({ $0 }) {
+            if let img = NSImage(contentsOf: url) {
+                return img
+            }
+        }
+        if let data = Data(base64Encoded: PipseyMascotData.base64AnimGIF),
+           let img = NSImage(data: data) {
+            return img
+        }
+        return nil
+    }
+
     private func loadMascotImage() -> NSImage? {
-        if let url = Bundle.main.url(forResource: "pipsey-mascot-128", withExtension: "png"),
-           let img = NSImage(contentsOf: url) {
-            return img
-        }
-        if let resURL = Bundle.main.resourceURL?.appendingPathComponent("pipsey-mascot-128.png"),
-           let img = NSImage(contentsOf: resURL) {
-            return img
-        }
-        let local = URL(fileURLWithPath: "Assets/pipsey-mascot-128.png")
-        if let img = NSImage(contentsOf: local) {
-            return img
-        }
-        let directPath = URL(fileURLWithPath: "/Users/devayushrout/Desktop/Pipsey/Assets/pipsey-mascot-128.png")
-        if let img = NSImage(contentsOf: directPath) {
-            return img
+        let candidates = [
+            Bundle.main.url(forResource: "pipsey-mascot-head-128", withExtension: "png"),
+            Bundle.main.url(forResource: "pipsey-mascot-128", withExtension: "png"),
+            Bundle.main.resourceURL?.appendingPathComponent("pipsey-mascot-head-128.png"),
+            Bundle.main.resourceURL?.appendingPathComponent("pipsey-mascot-128.png"),
+            URL(fileURLWithPath: "Assets/pipsey-mascot-head-128.png"),
+            URL(fileURLWithPath: "Assets/pipsey-mascot-128.png"),
+            URL(fileURLWithPath: "/Users/devayushrout/Desktop/Pipsey/Assets/pipsey-mascot-head-128.png")
+        ]
+        for url in candidates.compactMap({ $0 }) {
+            if let img = NSImage(contentsOf: url) {
+                return img
+            }
         }
         if let data = Data(base64Encoded: PipseyMascotData.base64PNG),
            let img = NSImage(data: data) {
             return img
         }
         return nil
+    }
+}
+
+/// Native AppKit animated image view that leverages macOS runloop GIF animation
+public struct AnimatedImageView: NSViewRepresentable {
+    public let image: NSImage
+
+    public init(image: NSImage) {
+        self.image = image
+    }
+
+    public func makeNSView(context: Context) -> NSImageView {
+        let iv = NSImageView()
+        iv.imageScaling = .scaleProportionallyUpOrDown
+        iv.animates = true
+        iv.image = image
+        return iv
+    }
+
+    public func updateNSView(_ nsView: NSImageView, context: Context) {
+        if nsView.image !== image {
+            nsView.image = image
+            nsView.animates = true
+        }
     }
 }
 
