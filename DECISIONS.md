@@ -21,9 +21,15 @@ These are **locked product requirements** or **still-unverified engineering choi
 | 015 | Root-only initial docs/no app scaffolding | LOCKED FOR THIS PR | Owner request |
 | 016 | Canonical AGENTS.md; CLAUDE.md symlink | LOCKED | Git mode 120000 |
 | 017 | MIT-licensed project text | ADOPTED | Audit third-party dependencies/assets |
+| 018 | Default Carbon hotkey ⌥⌘P with chord fallback | ADOPTED | Verified on M1 without Accessibility requirement |
+| 019 | Model provider adapter protocol abstraction | ADOPTED | Decouples VLM/LLM from unverified "ION"; spend cap $0 |
+| 020 | SPM Swift 6 executable architecture & test runner | ADOPTED | Verified with Swift 6.3.3 on macOS 27.2 SDK |
 
 ## Changes
-Append date, proposal, alternatives, measured evidence, security/cost impact, decision and PR link. Never silently switch providers/models. Avoid unproven performance guarantees (“16ms grounding”, “subsecond VLM”, “free GPU all day”).
+### 2026-11-09 — M0 Feasibility & Preflight Decisions
+- **ADR 018 (Hotkey):** Testing confirmed pure modifier-only `Option+Command` requires macOS Accessibility permission or `CGEventTap`. To honor the mandate "never request accessibility unnecessarily" and preserve product intent, Carbon `RegisterEventHotKey` was implemented with default chord `⌥⌘P` (Option+Command+P), retaining modifier-only monitoring as an opt-in mode when Accessibility is present.
+- **ADR 019 (Model Hosting & ION):** Environment audit revealed "ION" hosting provider is unconfigured. Spend remains at $0. Provider adapter protocols (`ObserverClientProtocol`, `ConversationClientProtocol`) allow standard OpenAI-compatible endpoints, local models (vLLM/Ollama), or ION when explicitly provisioned.
+- **ADR 020 (Toolchain & Scaffolding):** Host environment has Apple Command Line Tools 26.6 / Swift 6.3.3 and macOS 27.2 SDK. Swift Package Manager with `PipseyCore`, executable `Pipsey`, and standalone test harness `PipseyTests` selected and verified on target Apple M1 hardware.
 
 ## References
 Apple ScreenCaptureKit: https://developer.apple.com/documentation/screencapturekit/

@@ -28,11 +28,12 @@ Use branch-per-milestone PRs, keep shared session types owned by one agent, test
 Actual system settings for screen recording and microphone; denials and revocations; selected window/display; sleeping/locking Mac; multiple monitor scale; app capture self-exclusion; Accessibility only if the implemented feature truly requires it.
 
 ## Build/test command registry
-- Native project build: **NOT AVAILABLE**.
-- Unit tests: **NOT AVAILABLE**.
-- Real capture smoke test: **NOT AVAILABLE**.
-- Visual model benchmark: **NOT AVAILABLE**.
-- Release packaging: **NOT AVAILABLE**.
+- Native project build: `swift build --product Pipsey`
+- Unit tests: `swift run PipseyTests`
+- Native app execution: `.build/arm64-apple-macosx/debug/Pipsey`
+- Real capture smoke test: `ScreenCaptureKit` authorization preflight via `PermissionCoordinator.shared.checkScreenRecordingStatus()`
+- Visual model benchmark: In progress (M3 target)
+- Release packaging: `swift build -c release --product Pipsey`
 
 When implementing, replace each with actual Xcode scheme/destination, swift test (if used), test fixture setup, lint, run and release commands. Preserve failed output, never assert an unrun test passed.
 
