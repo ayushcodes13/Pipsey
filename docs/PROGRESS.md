@@ -25,6 +25,17 @@
 
 ## Engineering log
 
+### 2026-11-10 — Production Startup Infrastructure: Onboarding Wizard, App Context Detection & Searchable Library
+- **Goal and exact changes:**
+  1. **First-Run Onboarding Wizard (`PipseyOnboardingWindow`):** Added a native multi-step onboarding wizard launching on first boot (`pipsey_has_completed_onboarding`) or via Menu Bar ("Welcome & Quickstart Guide..."):
+     - Welcome & Mission with animated Pipsey mascot.
+     - Interactive permission setup (Microphone, Speech Recognition, Screen Recording with automated restart flow).
+     - Interactive gesture sandbox teaching the Option+Command (`⌥⌘`) press-and-hold trigger.
+  2. **Active Application & Context Detection (`AppContextProvider`):** Automatically senses the frontmost active application (Figma, Xcode, VS Code, Chrome, Linear, etc.) and infers the relevant target design & code paradigm (e.g. Figma -> Auto Layout/CSS Tokens; Xcode -> SwiftUI/AppKit; Chrome/VS Code -> React/Tailwind/CSS).
+  3. **Persistent Session History & Code Library (`SessionHistoryManager` & `HistoryWindow`):** Automatically saves every completed explanation and code sample into local JSON storage (`~/Library/Application Support/Pipsey/session_history.json`). Features a dedicated SplitView search library (`⌘H` or Menu Bar / Island) with instant keyword search, code copying, and interaction deletion.
+  4. **Menu Bar Companion Polish:** Added "Interaction Library & History... (⌘H)" and "Welcome & Quickstart Guide..." into `MenuBarController`.
+  5. **Verification & Tests:** Added Test 28, Test 29, and Test 30 in `PipseyTests/main.swift`. All 300 tests pass in 1.4s. Release bundle compiled and signed at `build/Pipsey.app`.
+
 ### 2026-11-09 — Third Adversarial Audit & Pipeline Synchronization Recovery (P0/P1/P2 Resolution)
 - **Goal and exact changes:**
   1. **P0 Dynamic Display Bounds Assertion (Test 22):** Fixed `dragPanel.setCustomOrigin` assertion in `PipseyTests/main.swift` to dynamically compute safe drag bounds based on actual screen geometry (`dragScreen.frame` and `dragScreen.visibleFrame`), resolving failures on low-resolution or headless CI environments.
