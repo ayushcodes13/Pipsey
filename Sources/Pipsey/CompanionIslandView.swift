@@ -5,6 +5,7 @@ import AppKit
 public struct CompanionIslandView: View {
     @ObservedObject var viewModel: IslandViewModel
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+    @State private var hasCopiedCode: Bool = false
 
     public init(viewModel: IslandViewModel) {
         self.viewModel = viewModel
@@ -118,7 +119,7 @@ public struct CompanionIslandView: View {
         .frame(height: viewModel.currentHeight - 10, alignment: .center)
     }
 
-    // MARK: - Active Capturing State
+    // MARK: - Active Capturing State (with Clicky-inspired live reactive waveform)
     private var capturingContent: some View {
         HStack(spacing: 10) {
             ZStack {
@@ -132,15 +133,20 @@ public struct CompanionIslandView: View {
                     .animation(reduceMotion ? .none : .easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: viewModel.elapsedSeconds)
             }
 
-            VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 8) {
                     Text("Recording UI")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.white)
+
                     Text(viewModel.formattedDuration)
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
                         .foregroundColor(.red)
+
+                    // Live 5-bar reactive audio waveform
+                    LiveWaveformView(audioPowerLevel: viewModel.audioPowerLevel)
                 }
+
                 Text("Demonstrate interaction now")
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.7))
@@ -251,11 +257,17 @@ public struct CompanionIslandView: View {
                         let pb = NSPasteboard.general
                         pb.clearContents()
                         pb.setString(code, forType: .string)
+                        PipseySoundEffects.playCopyFeedback()
+                        hasCopiedCode = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            hasCopiedCode = false
+                        }
                     }) {
-                        Label("Copy Code", systemImage: "doc.on.doc")
+                        Label(hasCopiedCode ? "Copied!" : "Copy Code", systemImage: hasCopiedCode ? "checkmark" : "doc.on.doc")
                             .font(.system(size: 10))
                     }
                     .buttonStyle(.bordered)
+                    .tint(hasCopiedCode ? .green : .accentColor)
                     .controlSize(.small)
                 }
 
@@ -285,6 +297,38 @@ public struct CompanionIslandView: View {
             .buttonStyle(.plain)
         }
         .frame(height: viewModel.currentHeight - 10, alignment: .center)
+    }
+}
+
+/// A 5-bar live reactive audio waveform visualizer (inspired by Clicky's BlueCursorWaveformView).
+public struct LiveWaveformView: View {
+    public let audioPowerLevel: CGFloat
+    private let barCount = 5
+    private let barProfile: [CGFloat] = [0.45, 0.75, 1.0, 0.75, 0.45]
+
+    public var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+            HStack(alignment: .center, spacing: 2.5) {
+                ForEach(0..<barCount, id: \.self) { i in
+                    RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                        .fill(Color.red.opacity(0.9))
+                        .frame(
+                            width: 2.2,
+                            height: barHeight(for: i, date: context.date)
+                        )
+                }
+            }
+            .animation(.linear(duration: 0.08), value: audioPowerLevel)
+        }
+    }
+
+    private func barHeight(for index: Int, date: Date) -> CGFloat {
+        let phase = CGFloat(date.timeIntervalSinceReferenceDate * 3.6) + CGFloat(index) * 0.35
+        let normalizedPower = max(audioPowerLevel - 0.01, 0)
+        let easedPower = pow(min(normalizedPower * 3.0, 1.0), 0.75)
+        let reactiveHeight = easedPower * 12.0 * barProfile[index]
+        let idlePulse = (sin(phase) + 1.0) / 2.0 * 2.0
+        return max(3.0, 3.0 + reactiveHeight + idlePulse)
     }
 }
 
@@ -500,6 +544,7 @@ public final class IslandViewModel: ObservableObject {
     @Published public var showPermissionsSheet: Bool = false
     @Published public var showExplanationSheet: Bool = false
     @Published public var isSpeaking: Bool = false
+    @Published public var audioPowerLevel: CGFloat = 0.0
 
     // Geometry matching boring.notch
     @Published public var currentWidth: CGFloat = 195
@@ -567,7 +612,7 @@ public final class IslandViewModel: ObservableObject {
             h = 58
             topR = 12
             botR = 20
-        case .processingVisual, .starting, .stopping, .cancelling:
+        case .processingVisual, .generatingResponse, .starting, .stopping, .cancelling:
             w = 340
             h = 50
             topR = 10
@@ -582,11 +627,6 @@ public final class IslandViewModel: ObservableObject {
             h = 52
             topR = 10
             botR = 18
-        default:
-            w = metrics.closedWidth
-            h = metrics.closedHeight
-            topR = 6
-            botR = 14
         }
 
         withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {
@@ -647,9 +687,19 @@ public final class IslandViewModel: ObservableObject {
                 }
             )
 
+            // Setup real-time audio power callback for live waveform
+            await speechService.setAudioPowerHandler { [weak self] power in
+                Task { @MainActor [weak self] in
+                    self?.audioPowerLevel = CGFloat(power)
+                }
+            }
+
             let nowMs = Int64(DispatchTime.now().uptimeNanoseconds / 1_000_000)
             try? await speechService.startListening(startedAtMonotonicMs: nowMs)
             await coordinator.confirmCaptureStarted(generation: gen)
+
+            // Tactile audio chime on start
+            PipseySoundEffects.playCaptureStarted()
         } catch {
             await coordinator.fail(error: error.localizedDescription, generation: gen)
         }
@@ -657,8 +707,13 @@ public final class IslandViewModel: ObservableObject {
 
     public func stopCapture() async {
         guard state.isCapturing else { return }
+
+        // Tactile audio chime on stop
+        PipseySoundEffects.playCaptureStopped()
+
         let (_, frames, events) = await captureService.stop()
         let transcripts = await speechService.stop()
+        self.audioPowerLevel = 0.0
 
         for f in frames {
             await coordinator.appendFrame(metadata: f, generation: activeGeneration)
@@ -703,6 +758,9 @@ public final class IslandViewModel: ObservableObject {
             self.explanationSummary = explanation.spokenSummary
             self.showExplanationSheet = true
             await coordinator.conversationalResponseReady(explanation: explanation, generation: activeGeneration, speaks: true)
+
+            // Tactile audio chime when response is ready
+            PipseySoundEffects.playResponseReady()
 
             // Trigger spoken response
             SpokenVoiceSynthesizer.shared.speak(explanation.spokenSummary) { [weak self] in
@@ -757,6 +815,7 @@ public final class IslandViewModel: ObservableObject {
     public func cancel() async {
         SpokenVoiceSynthesizer.shared.stop()
         self.isSpeaking = false
+        self.audioPowerLevel = 0.0
         await captureService.cancel()
         await speechService.cancel()
         await coordinator.cancel(generation: activeGeneration)
@@ -765,6 +824,7 @@ public final class IslandViewModel: ObservableObject {
     public func resetToIdle() {
         SpokenVoiceSynthesizer.shared.stop()
         self.isSpeaking = false
+        self.audioPowerLevel = 0.0
         self.currentExplanation = nil
         self.explanationSummary = nil
         Task {

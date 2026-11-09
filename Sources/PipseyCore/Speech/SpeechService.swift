@@ -9,8 +9,13 @@ public actor SpeechService {
     private var recognitionTask: SFSpeechRecognitionTask?
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     private var startMonotonicMs: Int64 = 0
+    private var onAudioPowerChange: (@Sendable (Float) -> Void)?
 
     public init() {}
+
+    public func setAudioPowerHandler(_ handler: (@Sendable (Float) -> Void)?) {
+        self.onAudioPowerChange = handler
+    }
 
     public func startListening(startedAtMonotonicMs: Int64) async throws {
         self.startMonotonicMs = startedAtMonotonicMs
@@ -29,8 +34,23 @@ public actor SpeechService {
         let inputNode = audioEngine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
 
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
             request.append(buffer)
+
+            // Compute RMS audio power level for real-time waveform visualization
+            if let channelData = buffer.floatChannelData?[0] {
+                let frameLength = Int(buffer.frameLength)
+                var sum: Float = 0
+                for i in 0..<frameLength {
+                    let sample = channelData[i]
+                    sum += sample * sample
+                }
+                let rms = sqrt(sum / Float(max(frameLength, 1)))
+                let normalized = min(max(rms * 10.0, 0.0), 1.0)
+                Task { [weak self] in
+                    await self?.publishAudioPower(normalized)
+                }
+            }
         }
 
         audioEngine.prepare()
@@ -47,6 +67,10 @@ public actor SpeechService {
                 await self.appendRecognizedText(text: text, isFinal: isFinal)
             }
         }
+    }
+
+    private func publishAudioPower(_ power: Float) {
+        onAudioPowerChange?(power)
     }
 
     public func appendRecognizedText(text: String, isFinal: Bool) {
@@ -72,11 +96,13 @@ public actor SpeechService {
         recognitionTask?.cancel()
         recognitionTask = nil
 
+        onAudioPowerChange?(0.0)
         return transcripts
     }
 
     public func cancel() {
         _ = stop()
         transcripts = []
+        onAudioPowerChange?(0.0)
     }
 }
