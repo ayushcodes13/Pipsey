@@ -45,6 +45,7 @@ public struct HistoryView: View {
     @State private var selectedRecordId: UUID? = nil
     @State private var searchQuery: String = ""
     @State private var hasCopied: Bool = false
+    @State private var toastMessage: String? = nil
 
     private var filteredRecords: [SavedSessionRecord] {
         let q = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -91,9 +92,12 @@ public struct HistoryView: View {
 
                     Spacer()
 
-                    Text("\(records.count) Interactions Saved")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.5))
+                    HStack(spacing: 8) {
+                        ShortcutComboBadge(["⌘", "H"])
+                        Text("\(records.count) Interactions")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.6))
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -150,6 +154,16 @@ public struct HistoryView: View {
                         }
                     }
                 }
+            }
+
+            if let msg = toastMessage {
+                VStack {
+                    Spacer()
+                    HUDNotificationView(title: msg)
+                        .padding(.bottom, 24)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                .animation(.spring(response: 0.35, dampingFraction: 0.75), value: toastMessage)
             }
         }
         .task {
@@ -247,6 +261,8 @@ public struct HistoryView: View {
                                 let pb = NSPasteboard.general
                                 pb.clearContents()
                                 pb.setString(record.detailedMarkdown, forType: .string)
+                                PipseySoundEffects.playCopyFeedback()
+                                showToast("Copied code to clipboard!")
                                 hasCopied = true
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                                     hasCopied = false
@@ -303,9 +319,33 @@ public struct HistoryView: View {
                 .foregroundColor(.white.opacity(0.6))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 380)
+
+            Button(action: {
+                NotificationCenter.default.post(name: NSNotification.Name("PipseyTriggerDemoSimulation"), object: nil)
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                    Text("Try Demo Simulation Now")
+                }
+                .font(.system(size: 12, weight: .semibold))
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color(hex: "00F0FF"))
+            .foregroundColor(.black)
+            .padding(.top, 4)
+
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func showToast(_ message: String) {
+        toastMessage = message
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            if toastMessage == message {
+                toastMessage = nil
+            }
+        }
     }
 
     private func reloadRecords() async {
@@ -329,6 +369,7 @@ public struct HistoryView: View {
             do {
                 try markdown.write(to: url, atomically: true, encoding: .utf8)
                 PipseySoundEffects.playCopyFeedback()
+                showToast("Exported \(cleanName).md")
             } catch {
                 print("Failed to export record: \(error)")
             }

@@ -499,8 +499,7 @@ struct ShortcutsSettingsPane: View {
         Form {
             Section("Global Shortcuts & Gestures") {
                 LabeledContent("Hold-to-Record") {
-                    Text("⌥ ⌘ (Option + Command)")
-                        .font(.system(.body, design: .monospaced)).bold()
+                    ShortcutComboBadge(["⌥", "⌘"])
                 }
                 Text("Hold Option+Command anywhere to start recording your screen and voice. Releasing automatically finishes capture and begins analysis.")
                     .font(.caption)
@@ -509,8 +508,7 @@ struct ShortcutsSettingsPane: View {
                 Divider()
 
                 LabeledContent("Toggle Recording Hotkey") {
-                    Text("⌥ ⌘ P")
-                        .font(.system(.body, design: .monospaced)).bold()
+                    ShortcutComboBadge(["⌥", "⌘", "P"])
                 }
                 Text("Press once to start recording; press again to finish.")
                     .font(.caption)
@@ -519,8 +517,7 @@ struct ShortcutsSettingsPane: View {
                 Divider()
 
                 LabeledContent("Interaction Library") {
-                    Text("⌘ H")
-                        .font(.system(.body, design: .monospaced)).bold()
+                    ShortcutComboBadge(["⌘", "H"])
                 }
                 Text("Quickly open your saved UI explanations, history, and exported code.")
                     .font(.caption)
@@ -529,8 +526,7 @@ struct ShortcutsSettingsPane: View {
                 Divider()
 
                 LabeledContent("Open Settings") {
-                    Text("⌘ ,")
-                        .font(.system(.body, design: .monospaced)).bold()
+                    ShortcutComboBadge(["⌘", ","])
                 }
                 Text("Open this settings and AI configuration window.")
                     .font(.caption)

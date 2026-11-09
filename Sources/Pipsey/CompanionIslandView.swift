@@ -243,18 +243,13 @@ public struct CompanionIslandView: View {
                 Button(action: {
                     Task { await viewModel.triggerSession() }
                 }) {
-                    HStack(spacing: 4) {
-                        Circle().fill(Color(hex: "00F0FF")).frame(width: 5, height: 5)
-                        Text("Hold ⌥⌘")
-                            .font(.system(size: 9.5, weight: .semibold))
-                            .foregroundColor(Color(hex: "00F0FF"))
+                    HStack(spacing: 2) {
+                        KeyBadge("⌥", isAccent: true)
+                        KeyBadge("⌘", isAccent: true)
                     }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color(hex: "00F0FF").opacity(0.12))
-                    .cornerRadius(4)
                 }
                 .buttonStyle(.plain)
+                .help("Hold Option+Command to record interaction; tap to toggle")
 
                 Button(action: {
                     SettingsWindowController.show()

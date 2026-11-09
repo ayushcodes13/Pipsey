@@ -25,6 +25,25 @@
 
 ## Engineering log
 
+### 2026-11-10 — Dave Poon `macos-design` Skill Integration: Native <kbd> Badges, Layered Depth & HUD Feedback
+- **Goal and exact changes:**
+  1. **Installed `macos-design` Skill:**
+     - Cloned and installed `davepoon/buildwithclaude/plugins/all-skills/skills/macos-design` across global agent skills (`~/.gemini/config/skills/macos-design`) and repo skills (`.agents/skills/macos-design`).
+     - Covers Apple HIG visual design, layered dark mode surfaces, keyboard shortcut hints, micro-animations, and progressive disclosure.
+  2. **Created Native macOS Design Components (`MacOSDesignComponents.swift`):**
+     - `KeyBadge`: Translucent `<kbd>` style keyboard badge with rounded corners, 0.5px stroke, and subtle drop shadow.
+     - `ShortcutComboBadge`: Composes key combinations (`⌥`, `⌘`, `P`, `H`, etc.) with proper typography.
+     - `HUDNotificationView`: Floating capsule toast confirmation with spring animation for transient action feedback.
+     - `MacOSCardSurface`: Layered dark surface with Apple dark grays (`#1C1C1E`, `#2C2C2E`) and subtle borders, avoiding flat pitch black.
+  3. **UI/UX Implementations Across the Companion:**
+     - **Floating Island Capsule:** Replaced raw text button with native `KeyBadge` pills for `⌥` `⌘`.
+     - **Interaction Library (`HistoryWindow`):** Added `ShortcutComboBadge(["⌘", "H"])` in the top bar, floating `HUDNotificationView` toast on "Copied code" and "Exported markdown", and "Try Demo Simulation" in the empty state.
+     - **Settings Window (`SettingsView`):** Styled all shortcuts in `ShortcutsSettingsPane` with `ShortcutComboBadge`.
+  4. **Verification & Test Suite:**
+     - 308 / 308 unit and integration tests passing.
+     - Production bundle recompiled and running live at `build/Pipsey.app`.
+     - Release DMG verified at `build/Pipsey-0.1.0.dmg`.
+
 ### 2026-11-10 — Indragie Karunaratne "Shipped macOS App Built by AI" Integration: Interactive Demo Mode & Release Pipeline
 - **Goal and exact changes:**
   1. **Interactive Demo Simulation Mode (`DemoSimulationService.swift`):**
