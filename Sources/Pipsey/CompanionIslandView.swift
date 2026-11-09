@@ -198,14 +198,25 @@ public struct CompanionIslandView: View {
         }
     }
 
-    // MARK: - Idle State (Sleek Minimal Line with White Outline)
+    // MARK: - Idle State (White Outline with Neon Blue Center Line)
     @ViewBuilder
     private var idleContent: some View {
         if !viewModel.isHovering {
             ZStack {
                 Capsule()
-                    .fill(Color.white.opacity(0.85))
-                    .frame(width: 52, height: 3.5)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: "00F0FF"),
+                                Color(hex: "0072FF"),
+                                Color(hex: "00F0FF")
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: 68, height: 3.5)
+                    .shadow(color: Color(hex: "00F0FF").opacity(0.85), radius: 4, x: 0, y: 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
@@ -233,14 +244,14 @@ public struct CompanionIslandView: View {
                     Task { await viewModel.triggerSession() }
                 }) {
                     HStack(spacing: 4) {
-                        Circle().fill(Color.white.opacity(0.85)).frame(width: 5, height: 5)
+                        Circle().fill(Color(hex: "00F0FF")).frame(width: 5, height: 5)
                         Text("Hold ⌥⌘")
                             .font(.system(size: 9.5, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Color(hex: "00F0FF"))
                     }
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color.white.opacity(0.14))
+                    .background(Color(hex: "00F0FF").opacity(0.12))
                     .cornerRadius(4)
                 }
                 .buttonStyle(.plain)
@@ -281,9 +292,9 @@ public struct CompanionIslandView: View {
 
                     Text(viewModel.formattedDuration)
                         .font(.system(size: 10.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.95))
+                        .foregroundColor(Color(hex: "00F0FF"))
 
-                    // Live 5-bar reactive audio waveform in crisp white
+                    // Live 5-bar reactive audio waveform in vibrant electric cyan
                     LiveWaveformView(audioPowerLevel: viewModel.audioPowerLevel)
                 }
 
@@ -443,7 +454,7 @@ public struct CompanionIslandView: View {
     }
 }
 
-/// A 5-bar live reactive audio waveform visualizer (crisp Apple-style monochrome).
+/// A 5-bar live reactive audio waveform visualizer (in vibrant electric neon blue).
 public struct LiveWaveformView: View {
     public let audioPowerLevel: CGFloat
     private let barCount = 5
@@ -456,7 +467,7 @@ public struct LiveWaveformView: View {
                     RoundedRectangle(cornerRadius: 1.5, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [Color.white, Color.white.opacity(0.55)],
+                                colors: [Color(hex: "00F0FF"), Color(hex: "0072FF")],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -465,7 +476,7 @@ public struct LiveWaveformView: View {
                             width: 2.2,
                             height: barHeight(for: i, date: context.date)
                         )
-                        .shadow(color: Color.white.opacity(0.20), radius: 1, x: 0, y: 0)
+                        .shadow(color: Color(hex: "00F0FF").opacity(0.6), radius: 1.5, x: 0, y: 0)
                 }
             }
             .animation(.linear(duration: 0.08), value: audioPowerLevel)
