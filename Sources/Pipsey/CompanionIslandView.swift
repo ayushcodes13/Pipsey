@@ -513,9 +513,21 @@ public final class IslandViewModel: ObservableObject {
 
         // Generate conversational explanation using verified observations or ask redemonstration
         let questionText = transcripts.last?.text ?? "How does this demonstrated interaction work?"
-        let observations = (await coordinator.currentManifest)?.frames.isEmpty == false ? [
-            Observation(id: "obs-01", startMs: 100, endMs: 800, before: "initial state", after: "interacted state", evidenceFrameIds: frames.map { $0.frameId })
-        ] : []
+        let hasClick = events.contains { $0.type == .mouseDown || $0.type == .mouseUp }
+        let triggerType = hasClick ? "mouse click interaction" : "cursor hover interaction"
+
+        let observations: [Observation] = frames.isEmpty ? [] : [
+            Observation(
+                id: "obs-01",
+                startMs: frames.first?.relativeTimeMs ?? 0,
+                endMs: frames.last?.relativeTimeMs ?? 1000,
+                before: "initial element state",
+                after: "expanded / active element state",
+                evidenceFrameIds: frames.map { $0.frameId },
+                triggerHypothesis: triggerType,
+                confidenceLabel: .high
+            )
+        ]
 
         await coordinator.visualProcessingCompleted(generation: activeGeneration, validated: !observations.isEmpty)
 
@@ -527,6 +539,7 @@ public final class IslandViewModel: ObservableObject {
             )
             self.currentExplanation = explanation
             self.explanationSummary = explanation.spokenSummary
+            self.showExplanationSheet = true
             await coordinator.conversationalResponseReady(explanation: explanation, generation: activeGeneration, speaks: true)
 
             // Trigger spoken response
