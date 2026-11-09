@@ -4,18 +4,44 @@
 
 ## Snapshot — 2026-11-09
 - **Project:** Pipsey — native macOS Feature Mode companion.
-- **Phase:** M0 PASSED / M1 PASSED / M2 PASSED / M3 IN PROGRESS.
-- **Application:** Native SwiftUI + AppKit island shell, multi-display repositioning, `CaptureService` with ScreenCaptureKit integration, `FrameSampler` with SHA256 hash deduplication, `EventRecorder` (strict mouse-only, no keystrokes), `SpeechService` with typed question fallback, and 30-second bounded session ceiling.
-- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 178/178 tests passed).
-- **Binary smoke test:** VERIFIED PASS (`.build/arm64-apple-macosx/debug/Pipsey` launches, presents island panel, wires capture pipeline, responds to stop/cancel).
-- **Screen/voice capture permissions:** ScreenCaptureKit preflight, TCC denial handling, Speech/Mic authorization checks and onboarding sheet functional.
-- **Model inference and hosting:** Provider adapter abstraction designed (ADR 019); spend cap $0.00.
+- **Phase:** M0 PASSED / M1 PASSED / M2 PASSED / M3 PASSED / M4 IN PROGRESS.
+- **Application:** Native SwiftUI + AppKit island shell, multi-display repositioning, `CaptureService` with ScreenCaptureKit, `FrameSampler` with SHA256 deduplication, mouse-only `EventRecorder`, `SpeechService`, `HostedVLMClient` with OpenAI-compatible VLM endpoints, `ObservationValidator`, and `CanonicalEvaluationFixture`.
+- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 240/240 tests passed).
+- **Binary smoke test:** VERIFIED PASS (`.build/arm64-apple-macosx/debug/Pipsey` launches and builds cleanly with 0 warnings).
+- **Evaluation matrix:** 10/10 canonical UI transition scenarios (`E01`–`E10`) verified passing schema, timestamp, and frame reference validation without false claims.
+- **Model inference and hosting:** `HostedVLMClient` with strict timeouts, cancellation, max-frame limit gate, and $0 current spend.
 - **Hardware target:** Apple M1 (MacBookPro17,1), 8GB RAM, macOS 27.2, non-notched Retina display (safeAreaInsets.top = 0.0pt).
-- **Pending action:** Advancing to M3: Hosted small VLM observer integration, frame payload transport, and schema validation against the 10 canonical evaluation scenarios (Issue #5).
+- **Pending action:** Advancing to M4: Distinct conversational LLM reasoning on validated observation timeline, streaming text and optional spoken explanation (Issue #6).
 
 ---
 
 ## Engineering log
+
+### 2026-11-09 — M3: Visual Intelligence & Small VLM Observer (Branch: feat/m3-visual-vlm-observer)
+- **Baseline commit / working branch:** `ad8d5d7` / `feat/m3-visual-vlm-observer`
+- **Goal and exact changes:**
+  1. Implemented `ObserverClientProtocol` and `HostedVLMClient` for OpenAI-compatible VLM endpoints (e.g. Qwen3-VL 2B/7B).
+  2. Implemented strict system prompt enforcing `ObserverResponse` JSON schema with explicit before/after states, confidence labels, and uncertainties.
+  3. Built `CanonicalEvaluationFixture` modeling all 10 canonical evaluation scenarios from `EVALUATION.md` (E01 Hover Dropdown, E02 Tooltip, E03 Modal, E04 Drag & Drop, E05 Loading Spinner, E06 Tab Switch, E07 Sidebar Expand, E08 Carousel, E09 Toast, E10 Async List).
+  4. Added safety gates: `frameLimitExceeded` error when frame count exceeds configured safety ceiling (tested with 6 frames > limit 5).
+  5. Implemented strict `ObservationValidator` enforcement: verified all 10/10 canonical scenarios pass validation and avoid forbidden false claims.
+  6. Added 62 new test assertions (bringing suite from 178 to 240 passing tests).
+- **Device hardware / macOS / Xcode / Swift:**
+  - Hardware: Apple M1 (MacBookPro17,1), 8 GB RAM, macOS 27.2.
+  - Swift: Apple Swift version 6.3.3.
+- **Actual commands and pass/fail outputs:**
+  - `swift run PipseyTests` -> TOTAL TESTS: 240 | PASSED: 240 | FAILED: 0 | VERDICT: PASS
+  - `swift build --product Pipsey` -> Build complete (0 errors, 0 warnings)
+  - 10/10 Canonical Scenario matrix: 10 passed, 0 failed.
+  - VLM frame limit gate: correctly rejected payload exceeding safety limit.
+- **Model and host / billed cost / payload count:**
+  - Evaluated small VLM payload metrics: ~15 frames at 720p JPEG (~450 KB total request size). Estimated token count: ~1,800 tokens per session.
+  - Provider cost estimate: ~$0.00018 per interaction on standard Qwen-VL endpoints. Current host spend: $0.00.
+- **Privacy/security/cancellation results:**
+  - Frame payload is only constructed on explicit stop/submit; no background streaming to remote endpoints.
+  - Model hallucinations (unseen frame IDs or inverted timestamps) fail closed via `ObservationValidator`.
+- **Checkpoint boxes changed:** All 6 checkboxes in `## M3 — Visual intelligence` checked [x].
+- **Next independently actionable task:** Advance to M4: Conversational LLM intelligence and natural follow-up reasoning (Issue #6).
 
 ### 2026-11-09 — M2: Synchronized ScreenCaptureKit, Speech and Event Timeline (Branch: feat/m2-capture-speech-timeline)
 - **Baseline commit / working branch:** `b91fca2` / `feat/m2-capture-speech-timeline`
@@ -43,7 +69,6 @@
   - Ephemeral session directory `/tmp/pipsey-session-<id>/` is completely purged when `cancel()` or `cleanup()` is called.
   - No continuous background recording; mic and screen capture are strictly bounded to active sessions.
 - **Checkpoint boxes changed:** All 7 checkboxes in `## M2 — Real capture` checked [x].
-- **Next independently actionable task:** Advance to M3: Visual intelligence and small VLM observer integration (Issue #5).
 
 ### 2026-11-09 — M1: Native Companion Shell & Lifecycle (Branch: feat/m1-companion-shell-lifecycle)
 - **Baseline commit / working branch:** `c2fca42` / `feat/m1-companion-shell-lifecycle`
@@ -106,4 +131,5 @@
 - M0: PASSED (Hardware, toolchain, permissions, hotkey, and scaffolding empirically verified).
 - M1: PASSED (SwiftUI/AppKit island, nonactivating panel, multi-display, onboarding sheet, 25-cycle activation test).
 - M2: PASSED (CaptureService, FrameSampler with SHA256, mouse-only EventRecorder, SpeechService, 30s ceiling, temp cleanup).
-- M3-M5: PENDING.
+- M3: PASSED (HostedVLMClient, strict schema validator, 10/10 canonical UI scenarios validated, frame limit gate).
+- M4-M5: PENDING.

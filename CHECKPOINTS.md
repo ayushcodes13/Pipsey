@@ -30,12 +30,12 @@
 - [x] No keylogging and no unconsented upload.
 
 ## M3 — Visual intelligence
-- [ ] Small hosted VLM benchmark + GPU/cold-start/cost report.
-- [ ] Bounded adaptive frame sampling catches transient interactions.
-- [ ] Strict evidence JSON with valid frame IDs and timestamps.
-- [ ] ≥9/10 canonical main transitions recognized on real recordings.
-- [ ] Unknowns and model uncertainty handled without invented claims.
-- [ ] Timeouts, cost limit, authorization and cancel tests passed.
+- [x] Small hosted VLM benchmark + GPU/cold-start/cost report.
+- [x] Bounded adaptive frame sampling catches transient interactions.
+- [x] Strict evidence JSON with valid frame IDs and timestamps.
+- [x] ≥9/10 canonical main transitions recognized on real recordings.
+- [x] Unknowns and model uncertainty handled without invented claims.
+- [x] Timeouts, cost limit, authorization and cancel tests passed.
 
 ## M4 — Conversational intelligence
 - [ ] Separate text LLM uses only validated evidence and transcript.
