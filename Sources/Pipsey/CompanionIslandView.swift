@@ -958,10 +958,34 @@ public struct PermissionsOnboardingSheet: View {
 
             Divider()
 
-            Button("Refresh Status") {
-                snapshot = PermissionCoordinator.shared.currentSnapshot()
+            HStack {
+                Button("Refresh Status") {
+                    snapshot = PermissionCoordinator.shared.currentSnapshot()
+                }
+                .buttonStyle(.borderless)
+
+                Spacer()
+
+                if snapshot.screenRecording != .granted {
+                    Button("Restart Pipsey to Apply") {
+                        let url = Bundle.main.bundleURL
+                        let config = NSWorkspace.OpenConfiguration()
+                        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in
+                            DispatchQueue.main.async {
+                                NSApp.terminate(nil)
+                            }
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
             }
-            .buttonStyle(.borderless)
+
+            if snapshot.screenRecording != .granted {
+                Text("Note: macOS TCC security requires restarting Pipsey after toggling Screen Recording in System Settings.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
         }
         .padding(20)
         .frame(width: 480)
