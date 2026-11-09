@@ -25,6 +25,20 @@
 
 ## Engineering log
 
+### 2026-11-10 — Brand Asset Alignment: Canonical Peeking Robot Mascot Integrated Everywhere
+- **Goal and exact changes:**
+  1. **Replaced Generic Vector Placeholder with Canonical Pipsey Mascot:**
+     - Replaced the inline placeholder robot SVGs on the landing page with the authoritative brand asset (`Assets/pipsey-mascot-128.png` and `Assets/pipsey-mascot.svg`).
+     - Features Pipsey's signature white ceramic/metallic helmet dome, dark glass visor, mint luminous eyes, and cute paws peeking over the display edge.
+  2. **Deployed Across All Web & UI Surfaces:**
+     - Header navigation: 32×32pt canonical mascot avatar badge.
+     - Hero section: 64×64pt featured app icon card above the main headline.
+     - Simulated Hardware Notch: Interactive Dynamic Island container loads the exact same mascot PNG as `PipseyMascotView` in the native app.
+     - Footer: Brand signature next to copyright.
+     - Copied assets to `docs/assets/` and updated local Generative UI artifact.
+  3. **Verification:**
+     - Verified assets load cleanly in `docs/index.html` and artifact.
+
 ### 2026-11-10 — Complete Unslopping Pass: Elimination of AI Cyan & Glows across App and Landing Page
 - **Goal and exact changes:**
   1. **Purged AI-Slop Colors (`#00F0FF` Radioactive Cyan & Blurry Glows):**

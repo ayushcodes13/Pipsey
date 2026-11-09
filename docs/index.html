@@ -54,15 +54,9 @@
   <header class="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0B0C0E]/85 backdrop-blur-md">
     <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <!-- Mascot Avatar -->
-        <div class="w-7 h-7 rounded-lg bg-black border border-white/10 flex items-center justify-center overflow-hidden">
-          <svg viewBox="0 0 32 32" class="w-5 h-5" fill="none">
-            <rect x="5" y="10" width="22" height="15" rx="5" fill="#1C1C1E" stroke="#9CA3AF" stroke-width="1.5"/>
-            <circle cx="11" cy="17" r="2.2" fill="#0A84FF"/>
-            <circle cx="21" cy="17" r="2.2" fill="#0A84FF"/>
-            <path d="M16 6v4" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round"/>
-            <circle cx="16" cy="5" r="1.5" fill="#6B7280"/>
-          </svg>
+        <!-- Canonical Pipsey Robot Mascot Avatar -->
+        <div class="w-8 h-8 rounded-lg bg-[#141518] border border-white/10 flex items-center justify-center overflow-hidden shadow-sm p-0.5">
+          <img src="assets/pipsey-mascot-128.png" alt="Pipsey Logo" class="w-full h-full object-contain">
         </div>
         <span class="font-semibold text-sm tracking-tight text-white">Pipsey</span>
         <span class="text-[11px] text-[#A1A1AA] border border-white/10 rounded px-1.5 py-0.5 ml-1">v0.1.0</span>
@@ -88,7 +82,14 @@
   </header>
 
   <!-- Hero Section -->
-  <section class="relative pt-16 pb-20 px-6 max-w-5xl mx-auto text-center">
+  <section class="relative pt-12 pb-20 px-6 max-w-5xl mx-auto text-center">
+    <!-- Hero Canonical Mascot Icon -->
+    <div class="mb-5 flex justify-center">
+      <div class="w-16 h-16 rounded-2xl bg-[#141518] border border-white/10 shadow-xl flex items-center justify-center p-2.5">
+        <img src="assets/pipsey-mascot-128.png" alt="Pipsey Robot Mascot" class="w-full h-full object-contain">
+      </div>
+    </div>
+
     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs text-[#A1A1AA] mb-6">
       <span class="w-2 h-2 rounded-full bg-[#0A84FF]"></span>
       <span>Native Swift 6 &amp; Apple Silicon Companion</span>
@@ -138,14 +139,9 @@
             
             <!-- State 1: Idle Hover Mode -->
             <div id="notchIdle" class="w-full flex items-center justify-between">
-              <!-- Mascot Avatar -->
-              <div class="w-5 h-5 rounded bg-[#1C1C1E] flex items-center justify-center">
-                <svg viewBox="0 0 32 32" class="w-4 h-4" fill="none">
-                  <rect x="5" y="10" width="22" height="15" rx="5" fill="#1C1C1E" stroke="#9CA3AF" stroke-width="1.8"/>
-                  <circle cx="11" cy="17" r="2.2" fill="#0A84FF"/>
-                  <circle cx="21" cy="17" r="2.2" fill="#0A84FF"/>
-                  <path d="M16 6v4" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
+              <!-- Canonical Mascot Avatar -->
+              <div class="w-5 h-5 rounded bg-black flex items-center justify-center overflow-hidden">
+                <img src="assets/pipsey-mascot-128.png" alt="Pipsey" class="w-full h-full object-contain">
               </div>
 
               <!-- Shortcut Hint Pill -->
@@ -399,7 +395,8 @@
   <!-- Footer -->
   <footer class="py-8 px-6 border-t border-white/[0.06] text-center text-xs text-[#71717A]">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2.5">
+        <img src="assets/pipsey-mascot-128.png" alt="Pipsey" class="w-5 h-5 object-contain">
         <span>© 2026 Pipsey AI Companion. Built for macOS 13+.</span>
       </div>
       <div class="flex items-center gap-4">
