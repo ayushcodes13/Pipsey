@@ -23,12 +23,25 @@ public struct PipseyMascotView: View {
     }
 
     private func loadMascotImage() -> NSImage? {
-        if let url = Bundle.main.url(forResource: "pipsey-mascot-128", withExtension: "png") {
-            return NSImage(contentsOf: url)
+        if let url = Bundle.main.url(forResource: "pipsey-mascot-128", withExtension: "png"),
+           let img = NSImage(contentsOf: url) {
+            return img
+        }
+        if let resURL = Bundle.main.resourceURL?.appendingPathComponent("pipsey-mascot-128.png"),
+           let img = NSImage(contentsOf: resURL) {
+            return img
         }
         let local = URL(fileURLWithPath: "Assets/pipsey-mascot-128.png")
-        if FileManager.default.fileExists(atPath: local.path) {
-            return NSImage(contentsOf: local)
+        if let img = NSImage(contentsOf: local) {
+            return img
+        }
+        let directPath = URL(fileURLWithPath: "/Users/devayushrout/Desktop/Pipsey/Assets/pipsey-mascot-128.png")
+        if let img = NSImage(contentsOf: directPath) {
+            return img
+        }
+        if let data = Data(base64Encoded: PipseyMascotData.base64PNG),
+           let img = NSImage(data: data) {
+            return img
         }
         return nil
     }
@@ -198,75 +211,56 @@ public struct CompanionIslandView: View {
         }
     }
 
-    // MARK: - Idle State (White Outline with Neon Blue Center Line)
+    // MARK: - Idle State (Always showing Pipsey Mascot Logo)
     @ViewBuilder
     private var idleContent: some View {
-        if !viewModel.isHovering {
-            ZStack {
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: "0A84FF"),
-                                Color(hex: "0071E3"),
-                                Color(hex: "0A84FF")
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: 54, height: 3)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .contentShape(Rectangle())
-            .onTapGesture {
+        HStack(spacing: 8) {
+            Button(action: {
                 Task { await viewModel.triggerSession() }
+            }) {
+                PipseyMascotView(size: 20)
             }
-            .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record, or drag to move)")
-        } else {
-            HStack(spacing: 8) {
-                Button(action: {
-                    Task { await viewModel.triggerSession() }
-                }) {
-                    PipseyMascotView(size: 20)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Pipsey Mascot (Click to record)")
+            .buttonStyle(.plain)
+            .accessibilityLabel("Pipsey Mascot (Click to record)")
 
-                Spacer(minLength: 4)
+            Spacer(minLength: 4)
 
-                Button(action: {
-                    Task { await viewModel.triggerSession() }
-                }) {
-                    HStack(spacing: 2) {
-                        KeyBadge("⌥", isAccent: true)
-                        KeyBadge("⌘", isAccent: true)
-                    }
+            Button(action: {
+                Task { await viewModel.triggerSession() }
+            }) {
+                HStack(spacing: 2) {
+                    KeyBadge("⌥", isAccent: true)
+                    KeyBadge("⌘", isAccent: true)
                 }
-                .buttonStyle(.plain)
-                .help("Hold Option+Command to record interaction; tap to toggle")
-
-                Button(action: {
-                    SettingsWindowController.show()
-                }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(.gray)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Open Pipsey Settings")
-
-                Button(action: {
-                    HistoryWindowController.shared.showHistory()
-                }) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 11))
-                        .foregroundColor(.gray)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Open Pipsey History")
             }
-            .frame(height: viewModel.currentHeight - 6, alignment: .center)
+            .buttonStyle(.plain)
+            .help("Hold Option+Command to record interaction; tap to toggle")
+
+            Button(action: {
+                SettingsWindowController.show()
+            }) {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open Pipsey Settings")
+
+            Button(action: {
+                HistoryWindowController.shared.showHistory()
+            }) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open Pipsey History")
+        }
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            Task { await viewModel.triggerSession() }
         }
     }
 
@@ -1136,7 +1130,6 @@ public final class IslandViewModel: ObservableObject {
     }
 
     public func updateDimensions() {
-        let metrics = NotchMetrics.current()
         let w: CGFloat
         let h: CGFloat
         let topR: CGFloat
@@ -1144,17 +1137,10 @@ public final class IslandViewModel: ObservableObject {
 
         switch state {
         case .idle:
-            if isHovering {
-                w = 175
-                h = 32
-                topR = hasPhysicalNotch ? 8 : 16
-                botR = 16
-            } else {
-                w = hasPhysicalNotch ? metrics.closedWidth : 130
-                h = hasPhysicalNotch ? metrics.closedHeight : 14
-                topR = hasPhysicalNotch ? 6 : 7
-                botR = hasPhysicalNotch ? 14 : 7
-            }
+            w = 175
+            h = 32
+            topR = hasPhysicalNotch ? 8 : 16
+            botR = 16
         case .listeningAndCapturing:
             // Generous width for "Recording UI", live timer, 5-bar waveform, prompt, Done & Cancel
             w = 380

@@ -34,9 +34,9 @@ public struct NotchMetrics: Sendable {
             return NotchMetrics(hasPhysicalNotch: true, closedWidth: max(notchWidth, 185), closedHeight: notchHeight)
         } else {
             // Non-notched display (e.g. M1 MacBook Air, 13" MacBook Pro, Studio Display)
-            // Sleek Wispr-style minimal neon glowing pill
-            let notchWidth: CGFloat = 130
-            let notchHeight: CGFloat = 14
+            // Elegant companion island hosting the Pipsey mascot
+            let notchWidth: CGFloat = 175
+            let notchHeight: CGFloat = 32
             return NotchMetrics(hasPhysicalNotch: false, closedWidth: notchWidth, closedHeight: notchHeight)
         }
     }
