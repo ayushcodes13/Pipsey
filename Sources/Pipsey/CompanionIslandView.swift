@@ -119,41 +119,27 @@ public struct CompanionIslandView: View {
                             }
                     } else {
                         if viewModel.state == .idle && !viewModel.isHovering {
-                            // Wispr-Style Neon Line Pill
+                            // Minimal Sleek Line Pill with Crisp White Outline
                             Capsule()
-                                .fill(Color(hex: "080D1A").opacity(0.96))
+                                .fill(Color.black.opacity(0.92))
                                 .overlay(
                                     Capsule()
-                                        .stroke(
-                                            LinearGradient(
-                                                colors: [Color(hex: "00F0FF").opacity(0.85), Color(hex: "0072FF").opacity(0.4)],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            ),
-                                            lineWidth: 1.0
-                                        )
+                                        .stroke(Color.white.opacity(0.35), lineWidth: 1.0)
                                 )
                         } else if viewModel.state.isCapturing {
-                            // Blooming Neon Capture Capsule
+                            // Capturing Capsule with Elegant White Outline
                             RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                .fill(Color(hex: "070B18").opacity(0.96))
+                                .fill(Color.black.opacity(0.94))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                        .stroke(
-                                            LinearGradient(
-                                                colors: [Color(hex: "00F0FF"), Color(hex: "0072FF")],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            ),
-                                            lineWidth: 1.5
-                                        )
+                                        .stroke(Color.white.opacity(0.75), lineWidth: 1.2)
                                 )
                         } else {
                             RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
                                 .fill(Color.black.opacity(0.92))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                        .stroke(Color.white.opacity(0.20), lineWidth: 0.8)
+                                        .stroke(Color.white.opacity(0.35), lineWidth: 1.0)
                                 )
                         }
                     }
@@ -161,13 +147,11 @@ public struct CompanionIslandView: View {
             )
             .shadow(
                 color: viewModel.state.isCapturing
-                    ? Color(hex: "00F0FF").opacity(0.55)
-                    : (viewModel.state == .idle && !viewModel.isHovering
-                        ? Color(hex: "00F0FF").opacity(0.35)
-                        : Color.black.opacity(0.45)),
-                radius: viewModel.state.isCapturing ? 12 : (viewModel.state == .idle && !viewModel.isHovering ? 8 : 10),
+                    ? Color.white.opacity(0.20)
+                    : Color.black.opacity(0.45),
+                radius: viewModel.state.isCapturing ? 10 : (viewModel.state == .idle && !viewModel.isHovering ? 6 : 8),
                 x: 0,
-                y: viewModel.state.isCapturing ? 4 : 2
+                y: 2
             )
             .smoothWindowDrag()
             .onHover { hovering in
@@ -214,25 +198,14 @@ public struct CompanionIslandView: View {
         }
     }
 
-    // MARK: - Idle State (Wispr-style Neon Blue Line)
+    // MARK: - Idle State (Sleek Minimal Line with White Outline)
     @ViewBuilder
     private var idleContent: some View {
         if !viewModel.isHovering {
             ZStack {
                 Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: "00F0FF"),
-                                Color(hex: "0072FF"),
-                                Color(hex: "00F0FF")
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: 72, height: 3.5)
-                    .shadow(color: Color(hex: "00F0FF").opacity(0.9), radius: 5, x: 0, y: 0)
+                    .fill(Color.white.opacity(0.85))
+                    .frame(width: 52, height: 3.5)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
@@ -260,14 +233,14 @@ public struct CompanionIslandView: View {
                     Task { await viewModel.triggerSession() }
                 }) {
                     HStack(spacing: 4) {
-                        Circle().fill(Color(hex: "00F0FF")).frame(width: 5, height: 5)
+                        Circle().fill(Color.white.opacity(0.85)).frame(width: 5, height: 5)
                         Text("Hold ⌥⌘")
                             .font(.system(size: 9.5, weight: .semibold))
-                            .foregroundColor(Color(hex: "00F0FF"))
+                            .foregroundColor(.white)
                     }
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color(hex: "00F0FF").opacity(0.12))
+                    .background(Color.white.opacity(0.14))
                     .cornerRadius(4)
                 }
                 .buttonStyle(.plain)
@@ -308,9 +281,9 @@ public struct CompanionIslandView: View {
 
                     Text(viewModel.formattedDuration)
                         .font(.system(size: 10.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color(hex: "00F0FF"))
+                        .foregroundColor(.white.opacity(0.95))
 
-                    // Live 5-bar reactive audio waveform in vibrant neon blue
+                    // Live 5-bar reactive audio waveform in crisp white
                     LiveWaveformView(audioPowerLevel: viewModel.audioPowerLevel)
                 }
 
@@ -331,9 +304,9 @@ public struct CompanionIslandView: View {
                         .font(.system(size: 9.5, weight: .bold))
                 }
                 .foregroundColor(.black)
-                .padding(.horizontal, 7)
+                .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(Color(hex: "00F0FF"))
+                .background(Color.white)
                 .cornerRadius(8)
             }
             .buttonStyle(.plain)
@@ -470,7 +443,7 @@ public struct CompanionIslandView: View {
     }
 }
 
-/// A 5-bar live reactive audio waveform visualizer (in vibrant neon electric blue).
+/// A 5-bar live reactive audio waveform visualizer (crisp Apple-style monochrome).
 public struct LiveWaveformView: View {
     public let audioPowerLevel: CGFloat
     private let barCount = 5
@@ -483,16 +456,16 @@ public struct LiveWaveformView: View {
                     RoundedRectangle(cornerRadius: 1.5, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "00F0FF"), Color(hex: "0072FF")],
-                                startPoint: .bottom,
-                                endPoint: .top
+                                colors: [Color.white, Color.white.opacity(0.55)],
+                                startPoint: .top,
+                                endPoint: .bottom
                             )
                         )
                         .frame(
                             width: 2.2,
                             height: barHeight(for: i, date: context.date)
                         )
-                        .shadow(color: Color(hex: "00F0FF").opacity(0.6), radius: 2, x: 0, y: 0)
+                        .shadow(color: Color.white.opacity(0.20), radius: 1, x: 0, y: 0)
                 }
             }
             .animation(.linear(duration: 0.08), value: audioPowerLevel)
