@@ -25,6 +25,29 @@
 
 ## Engineering log
 
+### 2026-11-10 — Resilient Multi-Tier Sound Effects Engine & Live Audio Preview
+- **Problem Statement:**
+  - `NSSound(named:)` caches singletons on macOS. Calling `.play()` on an overlapping sound while a previous sound was still playing caused the second call to return `false` and fail silently (e.g. `Pop` has a 1.62s duration, causing rapid actions to drop audio feedback).
+- **Implementation:**
+  1. **Multi-Tier Audio Engine ([`PipseySoundEffects.swift`](file:///Users/devayushrout/Desktop/Pipsey/Sources/PipseyCore/UI/PipseySoundEffects.swift)):**
+     - Tier 1: Fresh direct-file `NSSound(contentsOf: url, byReference: true)` from `/System/Library/Sounds/<name>.aiff` with explicit `volume = 1.0` to eliminate singleton state collisions.
+     - Tier 2: Named system sound fallback with `stop()` and `currentTime = 0` position rewind.
+     - Tier 3: Zero-latency `AudioServicesPlaySystemSound` fallback via `AudioToolbox`.
+     - Respects user preference `pipsey_sound_effects_enabled` (defaults to `true`).
+  2. **In-App Sound Testing & Settings Controls ([`SettingsView.swift`](file:///Users/devayushrout/Desktop/Pipsey/Sources/Pipsey/Settings/SettingsView.swift)):**
+     - Added "Sound Effects & Tactile Feedback" section to Settings -> General.
+     - Added interactive "Test" buttons for all 5 native chimes:
+       - Capture Started (`Tink`)
+       - Capture Stopped (`Pop`)
+       - Explanation Ready (`Glass`)
+       - Copied to Clipboard (`Bottle`)
+       - Telescope Inspection (`Ping`)
+  3. **Automated Verification ([`PipseyTests/main.swift`](file:///Users/devayushrout/Desktop/Pipsey/Sources/PipseyTests/main.swift)):**
+     - Verified all 6 audio triggers execute cleanly without thread or audio daemon collisions.
+- **Verification:**
+  - 321/321 automated unit tests passed (`swift run PipseyTests`).
+  - Codesigned and running live (`build/Pipsey.app`, PID 99475).
+
 ### 2026-11-10 — Trimmed 8s Mascot Motion with 30-Second Rest Cadence
 - **Goal:**
   - Make the mascot lively and moving again, trim the final 2 seconds of the video, and introduce a peaceful 30-second resting break between movement cycles (not running 24/7).

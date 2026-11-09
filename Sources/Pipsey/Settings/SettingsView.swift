@@ -142,6 +142,7 @@ struct GeneralSettingsPane: View {
     @State private var companionStyle: String = UserDefaults.standard.string(forKey: "companionStyle") ?? CompanionStyle.floatingCircle.rawValue
     @State private var anchorCorner: String = UserDefaults.standard.string(forKey: "companionCorner") ?? CompanionCorner.topRight.rawValue
     @State private var idlePeekingEnabled: Bool = UserDefaults.standard.object(forKey: "pipsey_idle_peeking") as? Bool ?? true
+    @State private var soundEffectsEnabled: Bool = UserDefaults.standard.object(forKey: "pipsey_sound_effects_enabled") as? Bool ?? true
 
     var body: some View {
         Form {
@@ -254,10 +255,62 @@ struct GeneralSettingsPane: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+
+            Section("Sound Effects & Tactile Feedback") {
+                Toggle("Enable Sound Effects", isOn: $soundEffectsEnabled)
+                    .onChange(of: soundEffectsEnabled) { enabled in
+                        UserDefaults.standard.set(enabled, forKey: "pipsey_sound_effects_enabled")
+                    }
+                Text("Plays native macOS tactile audio chimes on capture start/stop, response completion, copy, and telescope inspection.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if soundEffectsEnabled {
+                    Divider()
+
+                    VStack(spacing: 8) {
+                        soundPreviewRow(title: "Capture Started", soundName: "Tink", icon: "record.circle") {
+                            PipseySoundEffects.playCaptureStarted()
+                        }
+                        soundPreviewRow(title: "Capture Stopped", soundName: "Pop", icon: "stop.circle") {
+                            PipseySoundEffects.playCaptureStopped()
+                        }
+                        soundPreviewRow(title: "Explanation Ready", soundName: "Glass", icon: "sparkles") {
+                            PipseySoundEffects.playResponseReady()
+                        }
+                        soundPreviewRow(title: "Copied to Clipboard", soundName: "Bottle", icon: "doc.on.doc") {
+                            PipseySoundEffects.playCopyFeedback()
+                        }
+                        soundPreviewRow(title: "Telescope Inspection (⌃⌥⌘)", soundName: "Ping", icon: "scope") {
+                            PipseySoundEffects.playTelescopeFocus()
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+            }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .settingsScrollMargins()
+    }
+
+    private func soundPreviewRow(title: String, soundName: String, icon: String, onPlay: @escaping () -> Void) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(.secondary)
+                .frame(width: 20)
+            Text(title)
+                .font(.body)
+            Spacer()
+            Text(soundName)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Button("Test") {
+                onPlay()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
     }
 }
 

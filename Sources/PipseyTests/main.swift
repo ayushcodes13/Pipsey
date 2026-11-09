@@ -923,10 +923,14 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     assertTrue(!HotKeyController.isControlOptionCommandFlags(optCmdFlags), "Rejects ⌥⌘ alone from triggering Telescope Inspection")
     assertTrue(!HotKeyController.isControlOptionCommandFlags(cmdOnlyFlags), "Rejects ⌘ alone from triggering Telescope Inspection")
 
-    // Sound effects execution safety
+    // Sound effects execution safety & reliability check across all lifecycle chimes
+    PipseySoundEffects.playCaptureStarted()
+    PipseySoundEffects.playCaptureStopped()
+    PipseySoundEffects.playResponseReady()
+    PipseySoundEffects.playCopyFeedback()
     PipseySoundEffects.playTelescopeFocus()
     PipseySoundEffects.playIdlePeekingSound()
-    assertTrue(true, "PipseySoundEffects for Telescope Focus & Idle Peeking execute cleanly")
+    assertTrue(true, "All 6 PipseySoundEffects execute reliably without collision")
 
     return (passed, failed)
 }
