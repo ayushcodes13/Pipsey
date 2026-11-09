@@ -15,6 +15,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hideDock = UserDefaults.standard.bool(forKey: "pipsey_hide_dock_icon")
         NSApp.setActivationPolicy(hideDock ? .accessory : .regular)
 
+        // Set native application icon to the 3D peeking mascot squircle
+        if let iconUrl = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+           let appIcon = NSImage(contentsOf: iconUrl) {
+            NSApp.applicationIconImage = appIcon
+        } else if let iconPng = Bundle.main.url(forResource: "pipsey-app-icon-1024", withExtension: "png"),
+                  let appIcon = NSImage(contentsOf: iconPng) {
+            NSApp.applicationIconImage = appIcon
+        }
+
         // Setup Standard macOS Main Application Menu (Edit, Window, Help, Preferences)
         setupMainMenu()
 

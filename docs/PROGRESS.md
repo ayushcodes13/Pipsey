@@ -25,6 +25,24 @@
 
 ## Engineering log
 
+### 2026-11-10 — Updated Native Application Icon (New Peeking Mascot Squircle)
+- **Goal:**
+  - Update macOS application icon (`AppIcon.icns`, Dock icon, Finder icon) to match the new 3D glowing robot mascot card.
+- **Implementation:**
+  1. **High-Res Master Icon (`Assets/pipsey-app-icon-1024.png`):**
+     - Cut out background corners from the user's uploaded 1024x1024 3D card image to create transparent corner alpha with 1.5px Gaussian edge smoothing.
+     - Preserved the neon cyan top-rim glow, 3D peeking robot mascot with glowing eyes, embossed pocket shelf, and subtle bottom reflection.
+  2. **macOS Multi-Resolution Iconset Compilation:**
+     - Generated 10 canonical resolutions (16x16, 32x32, 64x64, 128x128, 256x256, 512x512, 1024x1024 at 1x and 2x Retina scale).
+     - Compiled via Apple's native `iconutil -c icns` into `Assets/AppIcon.icns`.
+     - Updated `Assets/pipsey-logo.webp` (512x512).
+  3. **Runtime Dock Icon Synchronization:**
+     - Updated [`Sources/Pipsey/main.swift`](file:///Users/devayushrout/Desktop/Pipsey/Sources/Pipsey/main.swift) to dynamically assign `NSApp.applicationIconImage` from the bundled `AppIcon.icns`, ensuring immediate Dock icon refresh without needing a macOS Dock cache reset.
+- **Verification:**
+  - 321/321 unit tests passing (`swift run PipseyTests`).
+  - Native build and codesigning passed (`./scripts/build-app.sh`).
+  - Verified live running process (PID 96611) with 32 multi-resolution icon representations loaded.
+
 ### 2026-11-10 — Stable TCC Designated Requirement & Permission Persistence Bug Fix
 - **Problem Statement:**
   - Users who granted permissions in macOS System Settings were repeatedly prompted with permission dialogs/sheets upon every rebuild or restart.
