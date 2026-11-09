@@ -1,5 +1,4 @@
 <div align="center">
-
 <img src="Assets/pipsey-mascot-256.png" alt="Pipsey — a curious robot companion peeking over your display notch" width="160" />
 
 # Pipsey
