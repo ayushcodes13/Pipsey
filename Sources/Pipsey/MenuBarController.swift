@@ -7,15 +7,18 @@ public final class MenuBarController: NSObject {
     private let onActivate: () -> Void
     private let onCheckPermissions: () -> Void
     private let onOpenSettings: () -> Void
+    private let onResetPosition: () -> Void
 
     public init(
         onActivate: @escaping () -> Void,
         onCheckPermissions: @escaping () -> Void,
-        onOpenSettings: @escaping () -> Void = {}
+        onOpenSettings: @escaping () -> Void = {},
+        onResetPosition: @escaping () -> Void = {}
     ) {
         self.onActivate = onActivate
         self.onCheckPermissions = onCheckPermissions
         self.onOpenSettings = onOpenSettings
+        self.onResetPosition = onResetPosition
         super.init()
         setupStatusItem()
     }
@@ -44,6 +47,10 @@ public final class MenuBarController: NSObject {
         activateItem.target = self
         menu.addItem(activateItem)
 
+        let snapItem = NSMenuItem(title: "Snap to Top Center", action: #selector(handleResetPosition), keyEquivalent: "")
+        snapItem.target = self
+        menu.addItem(snapItem)
+
         let settingsItem = NSMenuItem(title: "Settings & AI Keys...", action: #selector(handleSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
@@ -63,6 +70,10 @@ public final class MenuBarController: NSObject {
 
     @objc private func handleActivate() {
         onActivate()
+    }
+
+    @objc private func handleResetPosition() {
+        onResetPosition()
     }
 
     @objc private func handleSettings() {

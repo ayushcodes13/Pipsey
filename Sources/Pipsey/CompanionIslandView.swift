@@ -38,6 +38,7 @@ public struct CompanionIslandView: View {
     @ObservedObject var viewModel: IslandViewModel
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @State private var hasCopiedCode: Bool = false
+    @State private var isDragging: Bool = false
 
     public init(viewModel: IslandViewModel) {
         self.viewModel = viewModel
@@ -48,8 +49,8 @@ public struct CompanionIslandView: View {
             VStack(spacing: 0) {
                 notchContent
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .padding(.horizontal, viewModel.hasPhysicalNotch ? (viewModel.topCornerRadius + 8) : 14)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, viewModel.hasPhysicalNotch ? (viewModel.topCornerRadius + 8) : 12)
+                    .padding(.vertical, 3)
             }
             .frame(width: viewModel.currentWidth, height: viewModel.currentHeight, alignment: .center)
             .background(
@@ -77,13 +78,31 @@ public struct CompanionIslandView: View {
                 }
             )
             .shadow(
-                color: Color.black.opacity(0.40),
-                radius: viewModel.state == .idle && !viewModel.isHovering ? 6 : 12,
+                color: Color.black.opacity(isDragging ? 0.55 : (viewModel.state == .idle && !viewModel.isHovering ? 0.35 : 0.45)),
+                radius: isDragging ? 14 : (viewModel.state == .idle && !viewModel.isHovering ? 6 : 10),
                 x: 0,
-                y: 5
+                y: isDragging ? 8 : 4
+            )
+            .scaleEffect(isDragging ? 1.02 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: isDragging)
+            .gesture(
+                DragGesture(minimumDistance: 2)
+                    .onChanged { value in
+                        if !isDragging {
+                            isDragging = true
+                            viewModel.onDragStart?()
+                        }
+                        viewModel.onDragChanged?(value.translation)
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                        viewModel.onDragEnded?()
+                    }
             )
             .onHover { hovering in
-                viewModel.isHovering = hovering
+                if !isDragging {
+                    viewModel.isHovering = hovering
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -118,60 +137,66 @@ public struct CompanionIslandView: View {
 
     // MARK: - Idle State
     private var idleContent: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Button(action: {
                 Task { await viewModel.triggerSession() }
             }) {
-                HStack(spacing: 6) {
-                    PipseyMascotView(size: 22)
+                HStack(spacing: 5) {
+                    PipseyMascotView(size: 18)
                     Text("Pipsey")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.white)
                 }
             }
             .buttonStyle(.plain)
 
-            Spacer(minLength: 4)
+            Spacer(minLength: 2)
 
             if viewModel.isHovering {
                 Button(action: {
                     Task { await viewModel.triggerSession() }
                 }) {
-                    HStack(spacing: 4) {
-                        Circle().fill(Color.red).frame(width: 7, height: 7)
+                    HStack(spacing: 3) {
+                        Circle().fill(Color.red).frame(width: 6, height: 6)
                         Text("Record")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 10, weight: .semibold))
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.red.opacity(0.85))
-                .controlSize(.small)
+                .tint(.red.opacity(0.9))
+                .controlSize(.mini)
 
                 Button(action: {
                     viewModel.showSettingsSheet = true
                 }) {
                     Image(systemName: "gearshape.fill")
-                        .font(.system(size: 11))
+                        .font(.system(size: 10))
                         .foregroundColor(.gray)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Open Pipsey Settings")
             } else {
-                Button(action: {
-                    Task { await viewModel.triggerSession() }
-                }) {
-                    Text("⌥⌘P")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.65))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2.5)
-                        .background(Color.white.opacity(0.14))
-                        .cornerRadius(5)
+                HStack(spacing: 4) {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 7))
+                        .foregroundColor(.white.opacity(0.35))
+
+                    Button(action: {
+                        Task { await viewModel.triggerSession() }
+                    }) {
+                        Text("⌥⌘P")
+                            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.white.opacity(0.70))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color.white.opacity(0.14))
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
-        .frame(height: viewModel.currentHeight - 8, alignment: .center)
+        .frame(height: viewModel.currentHeight - 6, alignment: .center)
     }
 
     // MARK: - Active Capturing State (with live reactive audio waveform)
@@ -773,10 +798,10 @@ public final class IslandViewModel: ObservableObject {
 
     // Geometry matching boring.notch or Dynamic Island
     public let hasPhysicalNotch: Bool
-    @Published public var currentWidth: CGFloat = 200
-    @Published public var currentHeight: CGFloat = 36
-    @Published public var topCornerRadius: CGFloat = 18
-    @Published public var bottomCornerRadius: CGFloat = 18
+    @Published public var currentWidth: CGFloat = 180
+    @Published public var currentHeight: CGFloat = 32
+    @Published public var topCornerRadius: CGFloat = 16
+    @Published public var bottomCornerRadius: CGFloat = 16
     @Published public var isHovering: Bool = false {
         didSet {
             updateDimensions()
@@ -785,6 +810,9 @@ public final class IslandViewModel: ObservableObject {
 
     public var onGeometryChange: ((CGFloat, CGFloat) -> Void)?
     public var onKeyWindowPermissionChange: ((Bool) -> Void)?
+    public var onDragStart: (() -> Void)?
+    public var onDragChanged: ((CGSize) -> Void)?
+    public var onDragEnded: (() -> Void)?
 
     private let coordinator: SessionCoordinator
     private let captureService = CaptureService()
@@ -808,8 +836,8 @@ public final class IslandViewModel: ObservableObject {
         self.hasPhysicalNotch = metrics.hasPhysicalNotch
         self.currentWidth = metrics.closedWidth
         self.currentHeight = metrics.closedHeight
-        self.topCornerRadius = metrics.hasPhysicalNotch ? 6 : 18
-        self.bottomCornerRadius = metrics.hasPhysicalNotch ? 14 : 18
+        self.topCornerRadius = metrics.hasPhysicalNotch ? 6 : 16
+        self.bottomCornerRadius = metrics.hasPhysicalNotch ? 14 : 16
 
         Task {
             await coordinator.addStateChangeHandler { [weak self] newState in
@@ -830,36 +858,36 @@ public final class IslandViewModel: ObservableObject {
         switch state {
         case .idle:
             if isHovering {
-                w = 260
-                h = max(metrics.closedHeight + 6, 42)
-                topR = hasPhysicalNotch ? 8 : 18
-                botR = 18
+                w = 230
+                h = 36
+                topR = hasPhysicalNotch ? 8 : 16
+                botR = 16
             } else {
                 w = metrics.closedWidth
                 h = metrics.closedHeight
-                topR = hasPhysicalNotch ? 6 : 18
-                botR = hasPhysicalNotch ? 14 : 18
+                topR = hasPhysicalNotch ? 6 : 16
+                botR = hasPhysicalNotch ? 14 : 16
             }
         case .listeningAndCapturing:
-            w = 390
-            h = 58
-            topR = hasPhysicalNotch ? 12 : 20
-            botR = 20
-        case .processingVisual, .generatingResponse, .starting, .stopping, .cancelling:
             w = 340
             h = 50
-            topR = hasPhysicalNotch ? 10 : 20
-            botR = 20
+            topR = hasPhysicalNotch ? 12 : 18
+            botR = 18
+        case .processingVisual, .generatingResponse, .starting, .stopping, .cancelling:
+            w = 300
+            h = 44
+            topR = hasPhysicalNotch ? 10 : 18
+            botR = 18
         case .readyForFollowup, .speaking:
-            w = 540
-            h = 175
-            topR = hasPhysicalNotch ? 16 : 22
-            botR = 22
-        case .error:
-            w = 350
-            h = 54
-            topR = hasPhysicalNotch ? 10 : 20
+            w = 460
+            h = 150
+            topR = hasPhysicalNotch ? 16 : 20
             botR = 20
+        case .error:
+            w = 320
+            h = 48
+            topR = hasPhysicalNotch ? 10 : 18
+            botR = 18
         }
 
         withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {

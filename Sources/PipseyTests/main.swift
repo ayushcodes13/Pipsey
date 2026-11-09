@@ -549,6 +549,27 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     let hallResult3 = validator.validate(response: spoofedObs, expectedSessionId: m3SessionId, availableFrameIds: validFrameIds, sessionDurationMs: 500)
     assertTrue(!hallResult3.isValid, "ObservationValidator rejects responses with spoofed/mismatched session IDs")
 
+    // TEST 22: Draggable Floating Island & Custom Screen Positioning (Wispr Flow Pattern)
+    print("\n--- Test 22: Draggable Floating Island & Custom Positioning ---")
+    let dragPanel = FloatingIslandPanel(contentRect: NSRect(x: 0, y: 0, width: 180, height: 32))
+    dragPanel.reposition(width: 180, height: 32)
+    assertTrue(dragPanel.customOrigin == nil, "Initial panel starts at default top center without custom origin")
+
+    // Simulate user dragging companion to lower right (e.g. x: 900, y: 150)
+    dragPanel.setCustomOrigin(NSPoint(x: 900, y: 150))
+    assertTrue(dragPanel.customOrigin != nil, "Custom origin set after user drag")
+    assertEqual(dragPanel.frame.origin.x, 900.0, "Panel X origin placed at dragged coordinate")
+    assertEqual(dragPanel.frame.origin.y, 150.0, "Panel Y origin placed at dragged coordinate")
+
+    // State expansion retains custom drag origin without resetting to top
+    dragPanel.updateGeometry(width: 260, height: 42)
+    assertTrue(dragPanel.customOrigin != nil, "Custom origin preserved during hover expansion")
+    assertTrue(dragPanel.frame.origin.x < 900.0, "Expanding width shifts X leftward to preserve center")
+
+    // Reset snaps cleanly back to top center
+    dragPanel.resetToDefaultPosition()
+    assertEqual(dragPanel.customOrigin, nil, "Custom origin cleared after snap to top center")
+
     return (passed, failed)
 }
 

@@ -59,4 +59,4 @@
 Every PR: record milestone state (NOT STARTED / IN PROGRESS / BLOCKED / PASSED), branch/PR, device/tool versions, exact commands & outputs, real capture/model results, errors, privacy/cost, next action, and changed checkboxes. Never invent a pass.
 
 ## Current Resolution
-M0–M5 milestones complete and hardened via adversarial audit on Apple M1 macOS 27.2. ScreenCaptureKit operational video streaming, mouse tracking, two-model AI pipeline, pure robot vector mascot system, bezel-anchored floating notch, Keychain BYOK credential management, and 262/262 passing unit/contract tests verified. Release bundle built and code-signed at `build/Pipsey.app`.
+M0–M5 milestones complete and hardened via adversarial audit on Apple M1 macOS 27.2. ScreenCaptureKit operational video streaming, mouse tracking, two-model AI pipeline, pure robot vector mascot system, bezel-anchored floating notch with full-screen draggability (Wispr Flow pattern), Keychain BYOK credential management, and 269/269 passing unit/contract tests verified. Release bundle built and code-signed at `build/Pipsey.app`.

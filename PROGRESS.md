@@ -16,14 +16,30 @@
   - P1-1: Dynamic `allowsKeyWindow` toggling so text fields in modal sheets receive focus without breaking background non-activating island behavior.
   - P1-2: Pure robot mascot asset system (no burned-in text) across `AppIcon.icns`, menu bar template, and SwiftUI views.
   - UI Polish: Bezel-anchored notch (`Y = 0`, layer `.mainMenu + 3`), 5-bar live reactive audio waveform, and native tactile feedback sounds.
-- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 262/262 tests passed, 0 failures).
+- **Native build/test:** VERIFIED PASS (`swift run PipseyTests` — 269/269 tests passed, 0 failures).
 - **Release application bundle:** VERIFIED PASS (`./scripts/build-app.sh` -> codesigned `build/Pipsey.app`).
 - **Hardware performance (Apple M1):**
-  - Footprint: ~60 MB RSS, < 0.1% CPU idle, flush notch window at `X=622, Y=0, W=195, H=33`.
+  - Footprint: ~60 MB RSS, < 0.1% CPU idle, compact sleek pill (180x32pt) placed at top center by default (`X=630, Y=39`), draggable anywhere on screen (Wispr Flow pattern), with "Snap to Top Center" reset.
 
 ---
 
 ## Engineering log
+
+### 2026-11-09 — Draggable Floating Island (Wispr Flow Pattern) & Screen Placement
+- **Goal and exact changes:**
+  1. Investigated camera/menu bar notch clipping on non-notched MacBook Air displays: on non-notched hardware, the macOS system menu bar occupies Y=0..31pt. Anchoring flush to Y=0 places the window underneath the native menu bar, leaving only a 2px sliver visible.
+  2. Implemented full-screen draggability (Wispr Flow pattern) in `FloatingIslandPanel.swift` (`customOrigin`, `isMovableByWindowBackground`, `setCustomOrigin`, `resetToDefaultPosition`).
+  3. Added interactive drag gesture in `CompanionIslandView.swift` with subtle drag handle (`Image(systemName: "line.3.horizontal")`), tactile shadow feedback, and coordinate inversion bridge between SwiftUI screen coordinates and AppKit Cocoa coordinates.
+  4. Refined closed pill dimensions to a sleek, compact 180x32pt in `NotchMetrics.swift`, avoiding obstruction of menu items or window playables.
+  5. Added "Snap to Top Center" action in `MenuBarController.swift` to quickly reset position to default.
+  6. Added Test 22 (`Draggable Floating Island & Custom Positioning`), testing custom coordinate placement, center-preserving width expansion, and default position snap reset. Total passing tests: 269.
+- **Device hardware / macOS / Xcode / Swift:**
+  - Hardware: Apple M1 (MacBookPro17,1), 8 GB RAM, macOS 27.2.
+  - Swift: Apple Swift version 6.3.3.
+- **Actual commands and pass/fail outputs:**
+  - `swift run PipseyTests` -> TOTAL TESTS: 269 | PASSED: 269 | FAILED: 0 | VERDICT: PASS
+  - `./scripts/build-app.sh` -> Successfully built and signed `build/Pipsey.app`
+  - Drag coordinate test -> Dragged to `{X: 900, Y: 150}` and verified via System Events and screencapture. Snap back to `{X: 630, Y: 39}` verified.
 
 ### 2026-11-09 — Autonomous Recovery, Adversarial Audit & Product Polish
 - **Goal and exact changes:**

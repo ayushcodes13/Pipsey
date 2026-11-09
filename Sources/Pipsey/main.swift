@@ -32,6 +32,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panel?.updateGeometry(width: width, height: height)
         }
 
+        // Draggable floating companion support (like Wispr Flow)
+        var dragStartOrigin: NSPoint? = nil
+        viewModel.onDragStart = { [weak panel] in
+            guard let panel = panel else { return }
+            dragStartOrigin = panel.frame.origin
+        }
+
+        viewModel.onDragChanged = { [weak panel] translation in
+            guard let panel = panel, let start = dragStartOrigin else { return }
+            // In SwiftUI translation: +width is right, +height is down.
+            // In AppKit screen coordinates: +x is right, +y is UP.
+            let newOrigin = NSPoint(x: start.x + translation.width, y: start.y - translation.height)
+            panel.setCustomOrigin(newOrigin)
+        }
+
+        viewModel.onDragEnded = {
+            dragStartOrigin = nil
+        }
+
         // Allow keyboard focus when sheets (settings, follow-up, permissions) are active
         viewModel.onKeyWindowPermissionChange = { [weak panel] allows in
             panel?.allowsKeyWindow = allows
@@ -44,7 +63,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.menuBarController = MenuBarController(
             onActivate: { [weak self] in
                 Task { @MainActor in
-                    self?.islandPanel?.repositionTopCenter()
                     await self?.viewModel.triggerSession()
                 }
             },
@@ -56,6 +74,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onOpenSettings: { [weak self] in
                 Task { @MainActor in
                     self?.viewModel.showSettingsSheet = true
+                }
+            },
+            onResetPosition: { [weak self] in
+                Task { @MainActor in
+                    self?.islandPanel?.resetToDefaultPosition()
                 }
             }
         )
