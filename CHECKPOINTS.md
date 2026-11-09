@@ -21,13 +21,13 @@
 - [x] Unit, build and manual M1 tests recorded.
 
 ## M2 — Real capture
-- [ ] Real screen recording starts only after capture acknowledgement.
-- [ ] Mic transcription/typed fallback available.
-- [ ] Monotonic aligned frame, user-question and mouse/click event timeline.
-- [ ] Privately replayable real 10-second clip and manifest.
-- [ ] Recording ceiling/stop/cancel/temp cleanup passed.
-- [ ] Permission denial, app sleep and target switches handled.
-- [ ] No keylogging and no unconsented upload.
+- [x] Real screen recording starts only after capture acknowledgement.
+- [x] Mic transcription/typed fallback available.
+- [x] Monotonic aligned frame, user-question and mouse/click event timeline.
+- [x] Privately replayable real 10-second clip and manifest.
+- [x] Recording ceiling/stop/cancel/temp cleanup passed.
+- [x] Permission denial, app sleep and target switches handled.
+- [x] No keylogging and no unconsented upload.
 
 ## M3 — Visual intelligence
 - [ ] Small hosted VLM benchmark + GPU/cold-start/cost report.

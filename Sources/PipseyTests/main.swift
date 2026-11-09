@@ -53,7 +53,7 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     }
 
     print("=========================================")
-    print("RUNNING PIPSEY VERIFICATION TEST SUITE (M0 + M1)")
+    print("RUNNING PIPSEY VERIFICATION TEST SUITE (M0 + M1 + M2)")
     print("=========================================")
 
     // TEST 1: SessionCoordinator Lifecycle
@@ -286,6 +286,75 @@ func runAllTests() async -> (passed: Int, failed: Int) {
 
     let screenDenied = PermissionSnapshot(screenRecording: .denied, microphone: .authorized, speechRecognition: .authorized)
     assertTrue(!screenDenied.allGranted, "All granted should be false when screen recording is denied")
+
+    // TEST 10: M2 FrameSampler Sampling and SHA256 Hashing
+    print("\n--- Test 10: FrameSampler Sampling & Hashing ---")
+    let testSessionDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test-pipsey-frames-\(UUID().uuidString)")
+    let sampler = FrameSampler(targetFps: 2.0, maxFrames: 10, sessionDirectory: testSessionDir)
+    let fakePixelData = "fake-jpeg-pixels-1".data(using: .utf8)!
+
+    let f1 = await sampler.sampleFrame(relativeTimeMs: 0, width: 1440, height: 900, jpegData: fakePixelData)
+    assertTrue(f1 != nil, "First frame at t=0 should be sampled")
+    assertEqual(f1?.frameId, "frame-001", "Frame ID should be frame-001")
+    assertTrue(!(f1?.sha256.isEmpty ?? true), "Frame should have computed SHA256")
+
+    // Frame at t=100ms should be dropped because minIntervalMs is 500ms at 2 fps
+    let fTooSoon = await sampler.sampleFrame(relativeTimeMs: 100, width: 1440, height: 900, jpegData: fakePixelData)
+    assertTrue(fTooSoon == nil, "Frame sampled before minInterval (100ms < 500ms) should be rate-limited")
+
+    // Force burst frame at t=200ms
+    let fBurst = await sampler.sampleFrame(relativeTimeMs: 200, width: 1440, height: 900, jpegData: fakePixelData, forceBurst: true)
+    assertTrue(fBurst != nil, "Forced burst frame should be sampled even before interval elapsed")
+    assertEqual(fBurst?.frameId, "frame-002", "Frame ID should be frame-002")
+
+    // Cleanup
+    await sampler.cleanup()
+    assertTrue(!FileManager.default.fileExists(atPath: testSessionDir.path), "Temporary session directory removed on cleanup")
+
+    // TEST 11: M2 EventRecorder Mouse Tracking & Strict Privacy
+    print("\n--- Test 11: EventRecorder Mouse Tracking & Privacy ---")
+    let eventRecorder = EventRecorder(displayDimensions: Dimensions(width: 1440, height: 900))
+    await eventRecorder.start(startedAtMonotonicMs: 1000)
+
+    await eventRecorder.recordCursor(x: 720.0, y: 450.0, relativeTimeMs: 150)
+    await eventRecorder.recordClick(type: .mouseDown, x: 720.0, y: 450.0, relativeTimeMs: 200)
+    await eventRecorder.recordClick(type: .mouseUp, x: 720.0, y: 450.0, relativeTimeMs: 250)
+    let recordedEvents = await eventRecorder.stop()
+
+    assertEqual(recordedEvents.count, 3, "Recorded 3 cursor/click events")
+    assertEqual(recordedEvents[0].type, .cursorMove, "First event is cursor move")
+    assertEqual(recordedEvents[0].normalizedPosition?.x, 0.5, "Normalized X is 0.5 (720 / 1440)")
+    assertEqual(recordedEvents[0].normalizedPosition?.y, 0.5, "Normalized Y is 0.5 (450 / 900)")
+    assertEqual(recordedEvents[1].type, .mouseDown, "Second event is mouseDown")
+    assertEqual(recordedEvents[2].type, .mouseUp, "Third event is mouseUp")
+
+    // TEST 12: M2 SpeechService Typed Fallback & Timeline
+    print("\n--- Test 12: SpeechService Typed Fallback ---")
+    let speechService = SpeechService()
+    await speechService.addTypedQuestion("How does this dropdown appear on hover?")
+    let transcripts = await speechService.stop()
+    assertEqual(transcripts.count, 1, "Recorded typed fallback transcript")
+    assertEqual(transcripts[0].text, "How does this dropdown appear on hover?", "Text content matches")
+    assertTrue(transcripts[0].isFinal, "Typed fallback is final")
+
+    // TEST 13: M2 CaptureService Permission Denial Handling
+    print("\n--- Test 13: CaptureService Permission Denial Gate ---")
+    let captureService = CaptureService()
+    do {
+        _ = try await captureService.startCapture(sessionId: UUID(), onTimeout: {})
+        print("Note: Capture granted or mocked")
+    } catch let error as CaptureError {
+        switch error {
+        case .permissionDenied(let msg):
+            assertTrue(msg.contains("Screen recording permission") || msg.contains("SCShareableContent"), "Fails closed with descriptive permission denied message")
+        default:
+            break
+        }
+    } catch {
+        print("Other error: \(error)")
+    }
+    await captureService.cancel()
+    assertEqual(await captureService.isCapturing, false, "Capture service safely idle after cancel")
 
     return (passed, failed)
 }

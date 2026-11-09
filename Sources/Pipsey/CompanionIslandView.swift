@@ -4,7 +4,6 @@ import PipseyCore
 public struct CompanionIslandView: View {
     @ObservedObject var viewModel: IslandViewModel
     @Environment(\.accessibilityReduceMotion) var reduceMotion
-    @State private var showPermissionsSheet: Bool = false
 
     public init(viewModel: IslandViewModel) {
         self.viewModel = viewModel
@@ -85,7 +84,7 @@ public struct CompanionIslandView: View {
                     .accessibilityLabel("Activate observation mode")
 
                     Button(action: {
-                        showPermissionsSheet = true
+                        viewModel.showPermissionsSheet = true
                     }) {
                         Image(systemName: "gearshape")
                             .font(.system(size: 11))
@@ -106,8 +105,8 @@ public struct CompanionIslandView: View {
                 )
         )
         .shadow(color: .black.opacity(0.18), radius: 10, x: 0, y: 5)
-        .sheet(isPresented: $showPermissionsSheet) {
-            PermissionsOnboardingSheet(isPresented: $showPermissionsSheet)
+        .sheet(isPresented: $viewModel.showPermissionsSheet) {
+            PermissionsOnboardingSheet(isPresented: $viewModel.showPermissionsSheet)
         }
     }
 
@@ -260,8 +259,11 @@ public final class IslandViewModel: ObservableObject {
     @Published public var state: SessionState = .idle
     @Published public var explanationSummary: String? = nil
     @Published public var elapsedSeconds: Int = 0
+    @Published public var showPermissionsSheet: Bool = false
 
     private let coordinator: SessionCoordinator
+    private let captureService = CaptureService()
+    private let speechService = SpeechService()
     private var activeGeneration: Int = 0
     private var timerTask: Task<Void, Never>?
 
@@ -309,16 +311,55 @@ public final class IslandViewModel: ObservableObject {
     }
 
     public func triggerSession() async {
-        let (_, gen) = await coordinator.startSession()
+        let snapshot = PermissionCoordinator.shared.currentSnapshot()
+        if snapshot.screenRecording != .granted {
+            self.showPermissionsSheet = true
+            await coordinator.fail(error: "Screen Recording permission required. Click Gear or check System Settings.")
+            return
+        }
+
+        let (sessionId, gen) = await coordinator.startSession()
         self.activeGeneration = gen
-        await coordinator.confirmCaptureStarted(generation: gen)
+
+        do {
+            let (_, _, _) = try await captureService.startCapture(
+                sessionId: sessionId,
+                onTimeout: { [weak self] in
+                    Task { @MainActor [weak self] in
+                        await self?.stopCapture()
+                    }
+                }
+            )
+
+            let nowMs = Int64(DispatchTime.now().uptimeNanoseconds / 1_000_000)
+            try? await speechService.startListening(startedAtMonotonicMs: nowMs)
+            await coordinator.confirmCaptureStarted(generation: gen)
+        } catch {
+            await coordinator.fail(error: error.localizedDescription, generation: gen)
+        }
     }
 
     public func stopCapture() async {
+        guard state.isCapturing else { return }
+        let (_, frames, events) = await captureService.stop()
+        let transcripts = await speechService.stop()
+
+        for f in frames {
+            await coordinator.appendFrame(metadata: f, generation: activeGeneration)
+        }
+        for e in events {
+            await coordinator.appendEvent(metadata: e, generation: activeGeneration)
+        }
+        for t in transcripts {
+            await coordinator.appendTranscript(text: t.text, isFinal: t.isFinal, generation: activeGeneration)
+        }
+
         await coordinator.stopCapture(generation: activeGeneration)
     }
 
     public func cancel() async {
+        await captureService.cancel()
+        await speechService.cancel()
         await coordinator.cancel(generation: activeGeneration)
     }
 }
