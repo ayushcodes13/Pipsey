@@ -1,0 +1,62 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*~
+
+# Xcode / Swift
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.ipa
+*.dSYM/
+*.dSYM.zip
+*.app/
+*.pkg
+*.xcarchive/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.p8
+*.p12
+*.mobileprovision
+*.key
+*.pem
+secrets.*
+!.env.example
+
+# Recordings, frames, transcripts, private data
+recordings/
+captures/
+sessions/
+transcripts/
+artifacts/private/
+*.mov
+*.mp4
+*.m4a
+*.wav
+*.caf
+*.heic
+*.log
+*.trace
+
+# Benchmarks and local caches
+.cache/
+.tmp/
+tmp/
+coverage/
+*.profraw
+*.profdata
+
+# Editor / tooling
+.vscode/settings.json
+.idea/
+node_modules/
