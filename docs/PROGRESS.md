@@ -25,6 +25,24 @@
 
 ## Engineering log
 
+### 2026-11-10 — Indragie Karunaratne "Shipped macOS App Built by AI" Integration: Interactive Demo Mode & Release Pipeline
+- **Goal and exact changes:**
+  1. **Interactive Demo Simulation Mode (`DemoSimulationService.swift`):**
+     - Adopted Indragie's Section 11 methodology ("Claude generated great mock data in seconds... to validate the UI without waiting for real data").
+     - Created `DemoSimulationService.swift` with realistic fluid spring interaction scenarios (`DemoScenario.springButton`).
+     - Added `runDemoSimulation()` in `IslandViewModel`: animates recording with realistic live waveform bouncing, switches to visual processing, formulates a grounded explanation with full SwiftUI code, synthesizes spoken audio via `SpokenVoiceSynthesizer`, and saves to the local Interaction Library.
+     - Exposed with 1-click access across Settings (*Try Demo Simulation*), First-Run Onboarding (*Try Demo Simulation Now*), Menu Bar (*⌥⌘D*), and Dock Menu. Allows full UX and companion verification with zero API keys required.
+  2. **Automated Release Pipeline (`scripts/release.py`):**
+     - Adopted Indragie's Section 12 methodology ("Building High Quality Automation Is (Almost) Free Now").
+     - Automated toolchain validation (`swift`, `codesign`, `hdiutil`, `git`).
+     - Generated structured `RELEASE_NOTES.md` and categorized changelog (`feat`, `fix`, `refine`) automatically from git commits.
+     - Built native macOS bundle (`build/Pipsey.app`), verified hardened code signature and entitlements, and created compressed DMG (`build/Pipsey-0.1.0.dmg`) in 25.3s with styled terminal progress.
+  3. **Agent Prompt Priming & Modern Swift Guidelines in `AGENTS.md`:**
+     - Incorporated Indragie & Peter Steinberger rules: strict Swift 6 concurrency, breaking complex SwiftUI body closures into smaller expressions to avoid compiler type-checking timeouts, and idiomatic macOS HIG design with SF Symbols.
+  4. **Verification & Test Suite:**
+     - 308 / 308 unit and integration tests passing.
+     - Release bundle built and running live at `build/Pipsey.app` and packaged into `build/Pipsey-0.1.0.dmg`.
+
 ### 2026-11-10 — macos-app-skills Integration: Liquid Glass Settings Window, Screen Capture Self-Exclusion & App Activation Policy
 - **Goal and exact changes:**
   1. **Installed `macos-app-skills`:**

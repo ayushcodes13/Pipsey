@@ -73,6 +73,11 @@ public final class MenuBarController: NSObject {
         guideItem.target = self
         menu.addItem(guideItem)
 
+        let demoItem = NSMenuItem(title: "Try Demo Simulation...", action: #selector(handleDemoSimulation), keyEquivalent: "d")
+        demoItem.keyEquivalentModifierMask = [.option, .command]
+        demoItem.target = self
+        menu.addItem(demoItem)
+
         menu.addItem(NSMenuItem.separator())
 
         let quitItem = NSMenuItem(title: "Quit Pipsey", action: #selector(handleQuit), keyEquivalent: "q")
@@ -104,6 +109,10 @@ public final class MenuBarController: NSObject {
 
     @objc private func handleGuide() {
         OnboardingWindowController.shared.showOnboarding(force: true)
+    }
+
+    @objc private func handleDemoSimulation() {
+        NotificationCenter.default.post(name: NSNotification.Name("PipseyTriggerDemoSimulation"), object: nil)
     }
 
     @objc private func handleQuit() {

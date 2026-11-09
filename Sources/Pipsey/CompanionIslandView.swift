@@ -1485,6 +1485,83 @@ public final class IslandViewModel: ObservableObject {
         }
     }
 
+    public func runDemoSimulation(scenario: DemoScenario = .springButton) async {
+        await cancel()
+        let (sessionId, gen) = await coordinator.startSession()
+        self.activeGeneration = gen
+        self.activeSessionId = sessionId
+        self.activeAppContext = AppContext(
+            appName: scenario.appName,
+            bundleIdentifier: "com.figma.Desktop",
+            category: scenario.appCategory,
+            suggestedFramework: scenario.suggestedFramework
+        )
+        self.isHovering = true
+        self.processingStatusText = "Simulating demonstration: '\(scenario.question)'"
+        await coordinator.confirmCaptureStarted(generation: gen)
+        PipseySoundEffects.playCaptureStarted()
+
+        // 1. Simulate 2s of recording with realistic audio waveform bouncing
+        for _ in 1...10 {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            self.audioPowerLevel = CGFloat.random(in: 0.35...0.90)
+        }
+        self.audioPowerLevel = 0.0
+        PipseySoundEffects.playCaptureStopped()
+
+        // 2. Transition to visual processing
+        await coordinator.beginVisualProcessing(generation: gen)
+        self.processingStatusText = "Analyzing demonstrated frames with VLM..."
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        await coordinator.visualProcessingCompleted(generation: gen, validated: true)
+
+        // 3. Transition to conversational response
+        self.processingStatusText = "Formulating explanation..."
+        try? await Task.sleep(nanoseconds: 800_000_000)
+
+        let explanation = ConversationalExplanation(
+            observedBehavior: "The user interacted with the UI component. On hover, the button scales up slightly, and on press it depresses with fluid spring damping before releasing with subtle overshoot.",
+            likelyMechanism: scenario.likelyMechanism,
+            implementationApproach: scenario.implementationApproach,
+            uncertainties: [],
+            spokenSummary: scenario.spokenSummary,
+            detailedMarkdown: scenario.detailedMarkdown
+        )
+
+        self.currentExplanation = explanation
+        self.explanationSummary = explanation.spokenSummary
+        self.showExplanationSheet = true
+        await coordinator.conversationalResponseReady(explanation: explanation, generation: gen, speaks: true)
+
+        // Save to History
+        let record = SavedSessionRecord(
+            appName: scenario.appName,
+            appCategory: scenario.appCategory,
+            suggestedFramework: scenario.suggestedFramework,
+            question: scenario.question,
+            spokenSummary: scenario.spokenSummary,
+            likelyMechanism: scenario.likelyMechanism,
+            implementationApproach: scenario.implementationApproach,
+            detailedMarkdown: scenario.detailedMarkdown,
+            frameCount: scenario.frameCount,
+            durationMs: scenario.durationMs
+        )
+        Task {
+            await SessionHistoryManager.shared.save(record: record)
+        }
+
+        PipseySoundEffects.playResponseReady()
+
+        // Spoken audio synthesis
+        SpokenVoiceSynthesizer.shared.speak(scenario.spokenSummary) { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.isSpeaking = false
+                await self?.coordinator.finishSpeaking(generation: gen)
+            }
+        }
+        self.isSpeaking = true
+    }
+
     public func cancel() async {
         activeInferenceTask?.cancel()
         activeInferenceTask = nil

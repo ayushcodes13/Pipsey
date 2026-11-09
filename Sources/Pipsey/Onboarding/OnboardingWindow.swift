@@ -453,6 +453,21 @@ public struct OnboardingView: View {
                 .background(Color.white.opacity(0.05))
                 .cornerRadius(8)
             }
+
+            Button(action: {
+                controller?.finishOnboarding()
+                NotificationCenter.default.post(name: NSNotification.Name("PipseyTriggerDemoSimulation"), object: nil)
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                    Text("Try Demo Simulation Now")
+                }
+                .font(.system(size: 13, weight: .semibold))
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color(hex: "00F0FF"))
+            .foregroundColor(.black)
+            .padding(.top, 4)
         }
     }
 }

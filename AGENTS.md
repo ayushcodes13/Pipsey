@@ -30,6 +30,11 @@ Build a **real, working, native macOS companion called Pipsey**. Its first and o
 ## Build constraints
 - Prefer SwiftUI + AppKit for the shell, ScreenCaptureKit for capture, supported Apple speech APIs with fallback, and narrowly scoped service protocols.
 - Avoid Electron, unnecessary backend frameworks, databases, agents, and needless dependencies.
+- Swift 6 & SwiftUI Best Practices (Indragie / Peter Steinberger agent rules):
+  - Design UI idiomatically for macOS following Apple Human Interface Guidelines and SF Symbols for iconography.
+  - Break complex SwiftUI view bodies into smaller sub-expressions to prevent compiler type-checking bottlenecks.
+  - Strict concurrency: isolate UI state to `@MainActor`, use `actor` for shared stores, and handle structured `Task` cancellation cleanly.
+  - Maintain a realistic interactive demo simulation mode (`DemoScenario`) so the full companion lifecycle can be validated without external API keys.
 - App's main responsibilities: shell, session state machine, capture/timestamps, speech, sampling, VLM transport, evidence validation, conversation/TTS, storage and permissions.
 - Server responsibilities only if needed: authenticated VLM inference, request limits, schema/version enforcement, cost/timeouts. Model backend could be an existing hosted endpoint. **Hosting platform ION is unspecified and must be confirmed via an actual deployment probe.**
 - Real model and provider selection follow benchmarks, not popularity claims. Qwen3-VL 2B is a *candidate*, not a validated commitment.

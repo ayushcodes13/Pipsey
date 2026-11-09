@@ -125,6 +125,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         print("  Top-Center Notch presented: \(panel.isVisible)")
         print("  Notch footprint: \(metrics.closedWidth)x\(metrics.closedHeight) (Physical notch: \(metrics.hasPhysicalNotch))")
 
+        // Observe Demo Simulation requests from Settings or Onboarding
+        NotificationCenter.default.addObserver(forName: NSNotification.Name("PipseyTriggerDemoSimulation"), object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                await self?.viewModel.runDemoSimulation()
+            }
+        }
+
         // First-Run Onboarding Wizard: guides new users through permissions & interactive gesture
         OnboardingWindowController.shared.showOnboarding()
     }
@@ -160,6 +167,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let snapItem = NSMenuItem(title: "Snap to Top Center", action: #selector(handleResetPosition), keyEquivalent: "")
         snapItem.target = self
         menu.addItem(snapItem)
+
+        menu.addItem(NSMenuItem.separator())
+        let demoItem = NSMenuItem(title: "Try Demo Simulation", action: #selector(handleDemoSimulation), keyEquivalent: "")
+        demoItem.target = self
+        menu.addItem(demoItem)
         return menu
     }
 
@@ -185,6 +197,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let guideItem = NSMenuItem(title: "Welcome & Quickstart Guide...", action: #selector(handleGuide), keyEquivalent: "")
         guideItem.target = self
         appMenu.addItem(guideItem)
+
+        let demoItem = NSMenuItem(title: "Try Demo Simulation...", action: #selector(handleDemoSimulation), keyEquivalent: "d")
+        demoItem.keyEquivalentModifierMask = [.option, .command]
+        demoItem.target = self
+        appMenu.addItem(demoItem)
 
         appMenu.addItem(NSMenuItem.separator())
         let hideItem = NSMenuItem(title: "Hide Pipsey", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
@@ -249,6 +266,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func handleActivate() {
         Task { @MainActor in
             await viewModel.triggerSession()
+        }
+    }
+
+    @objc private func handleDemoSimulation() {
+        Task { @MainActor in
+            await viewModel.runDemoSimulation()
         }
     }
 

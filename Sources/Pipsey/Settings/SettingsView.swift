@@ -235,6 +235,23 @@ struct ModelsSettingsPane: View {
                     .foregroundColor(.secondary)
             }
 
+            Section("Interactive Demo (Zero-Config Testing)") {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Simulate Live Feature Mode")
+                            .font(.body).bold()
+                        Text("Test Pipsey's entire interactive companion workflow, audio waveform, voice explanation, and code library without entering API keys.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Button("Try Demo Simulation") {
+                        NotificationCenter.default.post(name: NSNotification.Name("PipseyTriggerDemoSimulation"), object: nil)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+
             Section {
                 HStack {
                     Button(action: { Task { await testConnection() } }) {
