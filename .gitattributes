@@ -1,0 +1,11 @@
+* text=auto
+*.md text eol=lf
+*.swift text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.webp binary
+*.png binary
+*.jpg binary
+*.mov binary
+*.mp4 binary
