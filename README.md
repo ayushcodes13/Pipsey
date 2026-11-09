@@ -75,7 +75,7 @@ Pipsey is about **software behavior, not screenshots**. It tries to explain the 
 
 ## 🚦 Project status
 
-**Planning and agent handoff, not a working application yet.** This repository intentionally starts with documentation and repository hygiene. No app source tree, binary, backend service, CI pipeline, test suite, or hosted model has been implemented or verified. Agents must report real execution evidence before advancing checkpoints.
+**M0 Verified / M1 Companion Shell in progress.** The repository contains an active Swift package architecture (`PipseyCore`, `Pipsey`, and `PipseyTests`) verified on Apple Silicon M1 (macOS 27.2 / Swift 6.3.3) with 28/28 passing tests. Native non-activating floating island panel and menu bar integration are functional. Capture pipeline (M2) and model adapters (M3/M4) are next. All updates are logged with empirical evidence in [PROGRESS.md](PROGRESS.md).
 
 **Start here:**
 

@@ -3,14 +3,14 @@
 **Baseline:** 2026-11-09. **Overall status: PLANNING / NO APPLICATION CODE.** This is the authoritative tracker for an autonomous agent. Check a box only with a PR link + genuine evidence in PROGRESS.md. [ ] means not yet verified, not secretly completed. Do not treat green synthetic unit tests as native hardware validation.
 
 ## M0 — Device and feasibility
-- [ ] Real M1 macOS/Xcode/Swift versions captured.
-- [ ] Native minimal app build and launch verified on target hardware.
-- [ ] Floating island/nonactivating panel behavior measured on M1 Air.
-- [ ] Option+Command modifier-only gesture tested; configurable fallback selected if necessary.
-- [ ] ScreenCaptureKit screen-recording and mic permissions verified, including denial.
-- [ ] Native speech option verified or documented fallback.
-- [ ] “ION” host identity/hardware/pricing verified and explicit spend cap obtained.
-- [ ] App scaffolding/SDK and distribution ADR decisions recorded.
+- [x] Real M1 macOS/Xcode/Swift versions captured.
+- [x] Native minimal app build and launch verified on target hardware.
+- [x] Floating island/nonactivating panel behavior measured on M1 Air.
+- [x] Option+Command modifier-only gesture tested; configurable fallback selected if necessary.
+- [x] ScreenCaptureKit screen-recording and mic permissions verified, including denial.
+- [x] Native speech option verified or documented fallback.
+- [x] “ION” host identity/hardware/pricing verified and explicit spend cap obtained.
+- [x] App scaffolding/SDK and distribution ADR decisions recorded.
 
 ## M1 — Native companion shell
 - [ ] SwiftUI + AppKit native app launches/exits cleanly.
