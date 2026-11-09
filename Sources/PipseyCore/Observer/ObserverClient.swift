@@ -8,16 +8,18 @@ public enum ObserverError: Error, CustomStringConvertible, Sendable {
     case serverError(Int, String)
     case schemaValidationFailed([String])
     case frameLimitExceeded(Int)
+    case unconfigured(String)
 
     public var description: String {
         switch self {
         case .invalidEndpoint(let url): return "Invalid VLM endpoint: \(url)"
-        case .unauthorized: return "Unauthorized: VLM API key invalid or missing"
+        case .unauthorized: return "Unauthorized: VLM API key invalid or missing. Please configure your API key in Settings (⌘,)."
         case .timeout: return "VLM request timed out"
         case .cancelled: return "VLM request cancelled by user"
         case .serverError(let code, let msg): return "VLM server error (\(code)): \(msg)"
-        case .schemaValidationFailed(let errors): return "Schema validation failed: \(errors.joined(separator: ", "))"
+        case .schemaValidationFailed(let errors): return "VLM Schema validation failed: \(errors.joined(separator: ", "))"
         case .frameLimitExceeded(let count): return "Payload frame count \(count) exceeds safety limit"
+        case .unconfigured(let msg): return "VLM unconfigured: \(msg)"
         }
     }
 }
@@ -36,11 +38,31 @@ public struct VLMConfiguration: Sendable {
     public var timeoutSeconds: TimeInterval
     public var maxFrames: Int
 
+    public var isAzure: Bool {
+        return baseURL.absoluteString.contains("openai.azure.com")
+    }
+
+    public var chatCompletionsEndpoint: URL {
+        if isAzure {
+            var urlString = baseURL.absoluteString
+            if !urlString.hasSuffix("/") {
+                urlString += "/"
+            }
+            if urlString.contains("/deployments/") {
+                return URL(string: "\(urlString)chat/completions?api-version=2024-02-15-preview") ?? baseURL
+            }
+            let host = baseURL.host ?? ""
+            return URL(string: "https://\(host)/openai/deployments/\(model)/chat/completions?api-version=2024-02-15-preview")!
+        } else {
+            return baseURL.appendingPathComponent("chat/completions")
+        }
+    }
+
     public init(
         baseURL: URL = URL(string: "https://api.openai.com/v1")!,
         apiKey: String = "",
         model: String = "gpt-4o-mini",
-        timeoutSeconds: TimeInterval = 15.0,
+        timeoutSeconds: TimeInterval = 25.0,
         maxFrames: Int = 30
     ) {
         self.baseURL = baseURL
@@ -51,17 +73,26 @@ public struct VLMConfiguration: Sendable {
     }
 
     public static func loadDefault() -> VLMConfiguration {
+        let defaults = UserDefaults.standard
         let env = ProcessInfo.processInfo.environment
-        let key = KeychainManager.shared.readSecret(account: "pipsey-vlm-api-key")
-            ?? env["PIPSEY_VLM_API_KEY"]
-            ?? env["OPENAI_API_KEY"]
-            ?? env["AZURE_OPENAI_API_KEY"]
+
+        let savedBase = defaults.string(forKey: "pipsey_vlm_base_url")
+        let savedModel = defaults.string(forKey: "pipsey_vlm_model")
+
+        let envKey = env["PIPSEY_VLM_API_KEY"]
             ?? env["ONEPAGER_AZURE_OPENAI_API_KEY"]
+            ?? env["AZURE_OPENAI_API_KEY"]
+            ?? env["OPENAI_API_KEY"]
+        let key = envKey
+            ?? KeychainManager.shared.readSecret(account: "pipsey-vlm-api-key")
             ?? ""
-        let base = env["PIPSEY_VLM_BASE_URL"]
+        let base = savedBase
+            ?? env["PIPSEY_VLM_BASE_URL"]
             ?? env["ONEPAGER_AZURE_OPENAI_BASE_URL"]
             ?? "https://api.openai.com/v1"
-        let model = env["PIPSEY_VLM_MODEL"] ?? "gpt-4o-mini"
+        let defaultModel = base.contains("openai.azure.com") ? "gpt-5-mini" : "gpt-4o-mini"
+        let model = savedModel ?? env["PIPSEY_VLM_MODEL"] ?? defaultModel
+
         return VLMConfiguration(
             baseURL: URL(string: base) ?? URL(string: "https://api.openai.com/v1")!,
             apiKey: key,
@@ -90,13 +121,17 @@ public actor HostedVLMClient: ObserverClientProtocol {
             throw ObserverError.frameLimitExceeded(frames.count)
         }
 
-        // Construct request payload
-        let endpoint = config.baseURL.appendingPathComponent("chat/completions")
+        guard !config.apiKey.isEmpty else {
+            throw ObserverError.unconfigured("VLM API Key not set. Please open Settings (⌘,) to configure your credentials.")
+        }
+
+        let endpoint = config.chatCompletionsEndpoint
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if !config.apiKey.isEmpty {
-            request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+        if config.isAzure {
+            request.setValue(config.apiKey, forHTTPHeaderField: "api-key")
         }
         request.timeoutInterval = config.timeoutSeconds
 
@@ -129,7 +164,7 @@ public actor HostedVLMClient: ObserverClientProtocol {
         """
 
         var contentArray: [[String: Any]] = [
-            ["type": "text", "text": "Analyze the UI changes demonstrated in these frames:"]
+            ["type": "text", "text": "Analyze the UI changes demonstrated in these captured screen frames:"]
         ]
 
         for frame in frames {
@@ -142,16 +177,22 @@ public actor HostedVLMClient: ObserverClientProtocol {
             }
         }
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": config.model,
             "messages": [
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": contentArray]
             ],
-            "response_format": ["type": "json_object"],
-            "max_tokens": 1024,
-            "temperature": 0.1
+            "response_format": ["type": "json_object"]
         ]
+
+        // On reasoning models, use low reasoning effort for fast interactive observation
+        if config.model.contains("gpt-5") || config.model.contains("o1") || config.model.contains("o3") {
+            body["reasoning_effort"] = "low"
+        } else {
+            body["temperature"] = 0.1
+            body["max_tokens"] = 1500
+        }
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
@@ -169,6 +210,8 @@ public actor HostedVLMClient: ObserverClientProtocol {
 
         if let httpResponse = response as? HTTPURLResponse {
             if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                let msg = String(data: data, encoding: .utf8) ?? "Empty body"
+                print("⚠️ VLM HTTP \(httpResponse.statusCode) error body: \(msg)")
                 throw ObserverError.unauthorized
             }
             guard (200...299).contains(httpResponse.statusCode) else {
@@ -184,7 +227,8 @@ public actor HostedVLMClient: ObserverClientProtocol {
               let message = firstChoice["message"] as? [String: Any],
               let contentString = message["content"] as? String,
               let contentData = contentString.data(using: .utf8) else {
-            throw ObserverError.schemaValidationFailed(["Malformed response from model"])
+            let bodyStr = String(data: data, encoding: .utf8) ?? "Unreadable"
+            throw ObserverError.schemaValidationFailed(["Malformed response from model: \(bodyStr.prefix(200))"])
         }
 
         let observerResponse = try JSONDecoder().decode(ObserverResponse.self, from: contentData)

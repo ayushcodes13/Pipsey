@@ -41,11 +41,13 @@ public actor EventRecorder {
     private var isRecording: Bool = false
     private var startedAtMonotonicMs: Int64 = 0
     private var displayDimensions: Dimensions
+    private var screenOrigin: CGPoint
     private var lastMouseMoveRecordedMs: Int64 = 0
     private var onBurst: (@Sendable () -> Void)?
 
-    public init(displayDimensions: Dimensions = Dimensions(width: 1440, height: 900)) {
+    public init(displayDimensions: Dimensions = Dimensions(width: 1440, height: 900), screenOrigin: CGPoint = .zero) {
         self.displayDimensions = displayDimensions
+        self.screenOrigin = screenOrigin
     }
 
     public func setBurstHandler(_ handler: (@Sendable () -> Void)?) {
@@ -96,9 +98,11 @@ public actor EventRecorder {
 
     public func recordCursor(x: Double, y: Double, relativeTimeMs: Int64) {
         guard isRecording else { return }
-        let normX = max(0.0, min(1.0, x / Double(displayDimensions.width)))
+        let relX = x - Double(screenOrigin.x)
+        let relY = y - Double(screenOrigin.y)
+        let normX = max(0.0, min(1.0, relX / Double(displayDimensions.width)))
         // Convert Cocoa bottom-left origin to normalized 0-1 (top-left)
-        let rawNormY = y / Double(displayDimensions.height)
+        let rawNormY = relY / Double(displayDimensions.height)
         let normY = max(0.0, min(1.0, 1.0 - rawNormY))
 
         events.append(EventMetadata(
@@ -110,8 +114,10 @@ public actor EventRecorder {
 
     public func recordClick(type: EventType, x: Double, y: Double, relativeTimeMs: Int64) {
         guard isRecording else { return }
-        let normX = max(0.0, min(1.0, x / Double(displayDimensions.width)))
-        let rawNormY = y / Double(displayDimensions.height)
+        let relX = x - Double(screenOrigin.x)
+        let relY = y - Double(screenOrigin.y)
+        let normX = max(0.0, min(1.0, relX / Double(displayDimensions.width)))
+        let rawNormY = relY / Double(displayDimensions.height)
         let normY = max(0.0, min(1.0, 1.0 - rawNormY))
 
         events.append(EventMetadata(

@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import LocalAuthentication
 
 public enum KeychainError: Error, Sendable {
     case itemNotFound
@@ -35,12 +36,16 @@ public struct KeychainManager: Sendable {
     }
 
     public func readSecret(account: String) -> String? {
+        let authContext = LAContext()
+        authContext.interactionNotAllowed = true
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
             kSecAttrAccount as String: account,
             kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecUseAuthenticationContext as String: authContext
         ]
 
         var item: CFTypeRef?

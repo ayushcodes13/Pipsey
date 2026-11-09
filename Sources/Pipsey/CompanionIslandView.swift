@@ -34,6 +34,20 @@ public struct PipseyMascotView: View {
     }
 }
 
+public enum ActiveSheet: Identifiable, Sendable {
+    case permissions
+    case settings
+    case explanation
+
+    public var id: Int {
+        switch self {
+        case .permissions: return 1
+        case .settings: return 2
+        case .explanation: return 3
+        }
+    }
+}
+
 public struct CompanionIslandView: View {
     @ObservedObject var viewModel: IslandViewModel
     @Environment(\.accessibilityReduceMotion) var reduceMotion
@@ -106,15 +120,25 @@ public struct CompanionIslandView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .sheet(isPresented: $viewModel.showPermissionsSheet) {
-            PermissionsOnboardingSheet(isPresented: $viewModel.showPermissionsSheet)
-        }
-        .sheet(isPresented: $viewModel.showSettingsSheet) {
-            SettingsSheetView(isPresented: $viewModel.showSettingsSheet)
-        }
-        .sheet(isPresented: $viewModel.showExplanationSheet) {
-            if let exp = viewModel.currentExplanation {
-                ExplanationDetailSheet(explanation: exp, viewModel: viewModel)
+        .sheet(item: $viewModel.activeSheet) { sheet in
+            switch sheet {
+            case .permissions:
+                PermissionsOnboardingSheet(isPresented: Binding(
+                    get: { viewModel.activeSheet == .permissions },
+                    set: { if !$0 { viewModel.activeSheet = nil } }
+                ))
+            case .settings:
+                SettingsSheetView(
+                    isPresented: Binding(
+                        get: { viewModel.activeSheet == .settings },
+                        set: { if !$0 { viewModel.activeSheet = nil } }
+                    ),
+                    viewModel: viewModel
+                )
+            case .explanation:
+                if let exp = viewModel.currentExplanation {
+                    ExplanationDetailSheet(explanation: exp, viewModel: viewModel)
+                }
             }
         }
     }
@@ -510,6 +534,7 @@ public struct ExplanationDetailSheet: View {
 
 public struct SettingsSheetView: View {
     @Binding var isPresented: Bool
+    @ObservedObject var viewModel: IslandViewModel
 
     @State private var vlmBaseURL: String = ""
     @State private var vlmModel: String = ""
@@ -518,6 +543,7 @@ public struct SettingsSheetView: View {
     @State private var textBaseURL: String = ""
     @State private var textModel: String = ""
     @State private var textApiKey: String = ""
+    @State private var selectedProvider: String = "openai"
 
     @State private var testStatus: String? = nil
     @State private var isTesting: Bool = false
@@ -538,7 +564,7 @@ public struct SettingsSheetView: View {
                 .buttonStyle(.borderedProminent)
             }
 
-            Text("Configure your Vision-Language Model (Model A) and Conversational LLM (Model B). Keys are saved securely in macOS Keychain.")
+            Text("Configure your Vision-Language Model (Model A) and Conversational LLM (Model B). Keys are saved securely in macOS Keychain and active clients reload immediately.")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -546,6 +572,20 @@ public struct SettingsSheetView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                    // Provider selector
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Active AI Provider")
+                            .font(.subheadline).bold()
+                        Picker("", selection: $selectedProvider) {
+                            Text("Azure OpenAI").tag("azure")
+                            Text("OpenAI Compatible").tag("openai")
+                            Text("Anthropic Claude").tag("anthropic")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    Divider()
+
                     // Section 1: Vision Model
                     VStack(alignment: .leading, spacing: 6) {
                         Text("1. Visual Observer Model (VLM)")
@@ -554,7 +594,7 @@ public struct SettingsSheetView: View {
                         TextField("VLM Base URL (e.g. https://api.openai.com/v1)", text: $vlmBaseURL)
                             .textFieldStyle(.roundedBorder)
 
-                        TextField("Model Name (e.g. gpt-4o-mini or qwen-vl-2b)", text: $vlmModel)
+                        TextField("Model Name (e.g. gpt-5-mini, gpt-4o-mini, qwen-vl-2b)", text: $vlmModel)
                             .textFieldStyle(.roundedBorder)
 
                         SecureField("VLM API Key", text: $vlmApiKey)
@@ -571,7 +611,7 @@ public struct SettingsSheetView: View {
                         TextField("LLM Base URL (e.g. https://api.openai.com/v1 or https://api.anthropic.com/v1)", text: $textBaseURL)
                             .textFieldStyle(.roundedBorder)
 
-                        TextField("Model Name (e.g. gpt-4o-mini or claude-3-5-sonnet)", text: $textModel)
+                        TextField("Model Name (e.g. gpt-5-mini, gpt-4o-mini, claude-3-5-sonnet)", text: $textModel)
                             .textFieldStyle(.roundedBorder)
 
                         SecureField("LLM API Key", text: $textApiKey)
@@ -604,6 +644,7 @@ public struct SettingsSheetView: View {
                         Button("Clear Keychain Credentials") {
                             KeychainManager.shared.deleteSecret(account: "pipsey-vlm-api-key")
                             KeychainManager.shared.deleteSecret(account: "pipsey-text-api-key")
+                            KeychainManager.shared.deleteSecret(account: "pipsey-anthropic-key")
                             vlmApiKey = ""
                             textApiKey = ""
                             testStatus = "Credentials cleared from Keychain."
@@ -624,53 +665,97 @@ public struct SettingsSheetView: View {
     }
 
     private func loadSettings() {
+        let defaults = UserDefaults.standard
         let vlm = VLMConfiguration.loadDefault()
-        vlmBaseURL = vlm.baseURL.absoluteString
-        vlmModel = vlm.model
-        vlmApiKey = KeychainManager.shared.readSecret(account: "pipsey-vlm-api-key") ?? ""
+        vlmBaseURL = defaults.string(forKey: "pipsey_vlm_base_url") ?? vlm.baseURL.absoluteString
+        vlmModel = defaults.string(forKey: "pipsey_vlm_model") ?? vlm.model
+        vlmApiKey = KeychainManager.shared.readSecret(account: "pipsey-vlm-api-key") ?? vlm.apiKey
 
         let text = TextLLMConfiguration.loadDefault()
-        textBaseURL = text.baseURL.absoluteString
-        textModel = text.model
-        textApiKey = KeychainManager.shared.readSecret(account: "pipsey-text-api-key") ?? ""
+        textBaseURL = defaults.string(forKey: "pipsey_text_base_url") ?? text.baseURL.absoluteString
+        textModel = defaults.string(forKey: "pipsey_text_model") ?? text.model
+        textApiKey = KeychainManager.shared.readSecret(account: "pipsey-text-api-key") ?? text.apiKey
+        selectedProvider = defaults.string(forKey: "pipsey_provider") ?? (text.isAnthropic ? "anthropic" : (text.isAzure ? "azure" : "openai"))
     }
 
     private func saveSettings() {
+        let defaults = UserDefaults.standard
+        defaults.set(vlmBaseURL, forKey: "pipsey_vlm_base_url")
+        defaults.set(vlmModel, forKey: "pipsey_vlm_model")
+        defaults.set(textBaseURL, forKey: "pipsey_text_base_url")
+        defaults.set(textModel, forKey: "pipsey_text_model")
+        defaults.set(selectedProvider, forKey: "pipsey_provider")
+
         if !vlmApiKey.isEmpty {
             try? KeychainManager.shared.saveSecret(account: "pipsey-vlm-api-key", secret: vlmApiKey)
         }
         if !textApiKey.isEmpty {
             try? KeychainManager.shared.saveSecret(account: "pipsey-text-api-key", secret: textApiKey)
         }
+        viewModel.reloadAIConfigurations()
     }
 
     private func testConnection() async {
         isTesting = true
-        testStatus = "Testing endpoint connection..."
+        testStatus = "Testing VLM & LLM endpoint connections..."
 
-        guard let url = URL(string: vlmBaseURL) else {
-            testStatus = "❌ Invalid VLM URL"
-            isTesting = false
-            return
-        }
+        var messages: [String] = []
 
-        var req = URLRequest(url: url.appendingPathComponent("models"))
-        req.httpMethod = "GET"
-        if !vlmApiKey.isEmpty {
-            req.setValue("Bearer \(vlmApiKey)", forHTTPHeaderField: "Authorization")
-        }
-        req.timeoutInterval = 6.0
+        // 1. Test VLM Endpoint
+        let vlmConfig = VLMConfiguration(
+            baseURL: URL(string: vlmBaseURL) ?? URL(string: "https://api.openai.com/v1")!,
+            apiKey: vlmApiKey,
+            model: vlmModel
+        )
+        let vlmClient = HostedVLMClient(config: vlmConfig)
 
         do {
-            let (_, resp) = try await URLSession.shared.data(for: req)
-            if let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode) {
-                testStatus = "✓ Endpoint verified successfully (HTTP \(http.statusCode))"
-            } else if let http = resp as? HTTPURLResponse {
-                testStatus = "⚠️ Server responded with HTTP \(http.statusCode)"
-            }
+            let start = DispatchTime.now()
+            let dummyManifest = EvidenceManifest(
+                sessionId: UUID(),
+                generation: 1,
+                capture: CaptureInfo(targetType: .display, targetId: "test", dimensions: Dimensions(width: 100, height: 100), startedAtMonotonicMs: 0, durationMs: 100, permissionState: "granted"),
+                frames: [],
+                events: [],
+                transcripts: []
+            )
+            _ = try await vlmClient.observe(manifest: dummyManifest, frames: [])
+            let elapsedMs = (DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000
+            messages.append("✓ VLM (\(vlmConfig.model)): Verified (\(elapsedMs)ms)")
+        } catch ObserverError.unauthorized {
+            messages.append("❌ VLM: Unauthorized (invalid or missing API key)")
+        } catch ObserverError.schemaValidationFailed {
+            messages.append("✓ VLM (\(vlmConfig.model)): Connected & responsive")
         } catch {
-            testStatus = "⚠️ Connection note: \(error.localizedDescription)"
+            messages.append("⚠️ VLM: \(error.localizedDescription)")
         }
+
+        // 2. Test Text LLM Endpoint
+        let textConfig = TextLLMConfiguration(
+            baseURL: URL(string: textBaseURL) ?? URL(string: "https://api.openai.com/v1")!,
+            apiKey: textApiKey,
+            model: textModel
+        )
+        let convClient = HostedConversationClient(config: textConfig)
+
+        do {
+            let start = DispatchTime.now()
+            _ = try await convClient.explain(
+                question: "ping",
+                observations: [
+                    Observation(id: "ping", startMs: 0, endMs: 100, before: "A", after: "B", evidenceFrameIds: ["f1"])
+                ],
+                history: []
+            )
+            let elapsedMs = (DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000
+            messages.append("✓ Text LLM (\(textConfig.model)): Verified (\(elapsedMs)ms)")
+        } catch ConversationError.unauthorized {
+            messages.append("❌ Text LLM: Unauthorized (invalid or missing API key)")
+        } catch {
+            messages.append("⚠️ Text LLM: \(error.localizedDescription)")
+        }
+
+        testStatus = messages.joined(separator: "\n")
         isTesting = false
     }
 }
@@ -789,9 +874,19 @@ public final class IslandViewModel: ObservableObject {
     @Published public var explanationSummary: String? = nil
     @Published public var currentExplanation: ConversationalExplanation? = nil
     @Published public var elapsedSeconds: Int = 0
-    @Published public var showPermissionsSheet: Bool = false
-    @Published public var showSettingsSheet: Bool = false
-    @Published public var showExplanationSheet: Bool = false
+    @Published public var activeSheet: ActiveSheet? = nil
+    public var showPermissionsSheet: Bool {
+        get { activeSheet == .permissions }
+        set { activeSheet = newValue ? .permissions : (activeSheet == .permissions ? nil : activeSheet) }
+    }
+    public var showSettingsSheet: Bool {
+        get { activeSheet == .settings }
+        set { activeSheet = newValue ? .settings : (activeSheet == .settings ? nil : activeSheet) }
+    }
+    public var showExplanationSheet: Bool {
+        get { activeSheet == .explanation }
+        set { activeSheet = newValue ? .explanation : (activeSheet == .explanation ? nil : activeSheet) }
+    }
     @Published public var isSpeaking: Bool = false
     @Published public var audioPowerLevel: CGFloat = 0.0
     @Published public var processingStatusText: String = "Analyzing interaction & evidence..."
@@ -817,17 +912,23 @@ public final class IslandViewModel: ObservableObject {
     private let coordinator: SessionCoordinator
     private let captureService = CaptureService()
     private let speechService = SpeechService()
-    private let vlmClient = HostedVLMClient()
-    private let conversationClient = HostedConversationClient()
+    private var vlmClient = HostedVLMClient()
+    private var conversationClient = HostedConversationClient()
     private var activeGeneration: Int = 0
     private var activeSessionId: UUID = UUID()
     private var timerTask: Task<Void, Never>?
+    private var activeInferenceTask: Task<Void, Never>?
     private var conversationHistory: [ChatMessage] = []
 
     public var formattedDuration: String {
         let mins = elapsedSeconds / 60
         let secs = elapsedSeconds % 60
         return String(format: "%02d:%02d", mins, secs)
+    }
+
+    public func reloadAIConfigurations() {
+        self.vlmClient = HostedVLMClient(config: .loadDefault())
+        self.conversationClient = HostedConversationClient(config: .loadDefault())
     }
 
     public init(coordinator: SessionCoordinator) {
@@ -932,6 +1033,12 @@ public final class IslandViewModel: ObservableObject {
     }
 
     public func triggerSession() async {
+        if state.isCapturing {
+            // Toggling shortcut or record while capturing cleanly stops demonstration
+            await stopCapture()
+            return
+        }
+
         let snapshot = PermissionCoordinator.shared.currentSnapshot()
         if snapshot.screenRecording != .granted {
             self.showPermissionsSheet = true
@@ -1001,6 +1108,7 @@ public final class IslandViewModel: ObservableObject {
                 error: "No video frames were captured during this recording. Please verify Screen Recording permissions in System Settings.",
                 generation: activeGeneration
             )
+            await captureService.cleanup()
             return
         }
 
@@ -1021,68 +1129,84 @@ public final class IslandViewModel: ObservableObject {
             transcripts: transcripts
         )
 
-        // Load actual sampled frames with image payloads
-        let sampledFrames = await captureService.sampler?.loadSampledFrames() ?? []
+        let currentGen = activeGeneration
+        activeInferenceTask?.cancel()
+        activeInferenceTask = Task { [weak self] in
+            guard let self = self else { return }
+            guard !Task.isCancelled, self.activeGeneration == currentGen else { return }
 
-        // Pass real frames to VLM Observer
-        var observations: [Observation] = []
-        self.processingStatusText = "Analyzing real screen frames with VLM..."
+            // Load actual sampled frames with image payloads
+            let sampledFrames = await self.captureService.sampler?.loadSampledFrames() ?? []
 
-        do {
-            let vlmResponse = try await vlmClient.observe(manifest: manifest, frames: sampledFrames)
-            observations = vlmResponse.observations
-            await coordinator.visualProcessingCompleted(generation: activeGeneration, validated: !observations.isEmpty)
-        } catch {
-            print("VLM pipeline notice: \(error)")
-            // If remote VLM is unconfigured or unavailable, derive truthful evidence from empirical frames and pointer clicks
-            let hasClick = events.contains { $0.type == .mouseDown || $0.type == .mouseUp }
-            let trigger = hasClick ? "mouse click interaction" : "cursor hover interaction"
-            observations = [
-                Observation(
-                    id: "obs-empirical-01",
-                    startMs: frames.first?.relativeTimeMs ?? 0,
-                    endMs: frames.last?.relativeTimeMs ?? durationMs,
-                    before: "initial visible state (\(frames.first?.frameId ?? "frame-001"))",
-                    after: "interacted visible state (\(frames.last?.frameId ?? "frame-end"))",
-                    evidenceFrameIds: frames.map { $0.frameId },
-                    triggerHypothesis: trigger,
-                    confidenceLabel: .medium,
-                    uncertainties: ["Remote VLM unconfigured; observation derived from empirical ScreenCaptureKit frames and pointer events."]
+            // Clean up session files from disk immediately after reading into memory
+            await self.captureService.cleanup()
+
+            // Pass real frames to VLM Observer
+            self.processingStatusText = "Analyzing real screen frames with VLM..."
+
+            var observations: [Observation] = []
+            do {
+                let vlmResponse = try await self.vlmClient.observe(manifest: manifest, frames: sampledFrames)
+                guard !Task.isCancelled, self.activeGeneration == currentGen else { return }
+                observations = vlmResponse.observations
+
+                guard !observations.isEmpty else {
+                    await self.coordinator.fail(
+                        error: "No UI transition was detected in the captured frames. Try demonstrating the action more clearly.",
+                        generation: currentGen
+                    )
+                    return
+                }
+
+                await self.coordinator.visualProcessingCompleted(generation: currentGen, validated: true)
+            } catch {
+                guard !Task.isCancelled, self.activeGeneration == currentGen else { return }
+                print("VLM pipeline failure: \(error)")
+                await self.coordinator.fail(
+                    error: "Visual inference failed: \(error.localizedDescription)",
+                    generation: currentGen
                 )
-            ]
-            await coordinator.visualProcessingCompleted(generation: activeGeneration, validated: true)
-        }
+                return
+            }
 
-        let questionText = transcripts.last?.text ?? "How does this demonstrated interaction work?"
+            guard !Task.isCancelled, self.activeGeneration == currentGen else { return }
+            let questionText = transcripts.last?.text ?? "How does this demonstrated interaction work?"
+            self.processingStatusText = "Formulating explanation from verified observations..."
 
-        self.processingStatusText = "Formulating explanation..."
+            do {
+                let explanation = try await self.conversationClient.explain(
+                    question: questionText,
+                    observations: observations,
+                    history: self.conversationHistory
+                )
 
-        do {
-            let explanation = try await conversationClient.explain(
-                question: questionText,
-                observations: observations,
-                history: conversationHistory
-            )
-            self.currentExplanation = explanation
-            self.explanationSummary = explanation.spokenSummary
-            self.showExplanationSheet = true
-            await coordinator.conversationalResponseReady(explanation: explanation, generation: activeGeneration, speaks: true)
+                guard !Task.isCancelled, self.activeGeneration == currentGen else { return }
 
-            // Tactile audio chime when response is ready
-            PipseySoundEffects.playResponseReady()
+                self.currentExplanation = explanation
+                self.explanationSummary = explanation.spokenSummary
+                self.showExplanationSheet = true
+                await self.coordinator.conversationalResponseReady(explanation: explanation, generation: currentGen, speaks: true)
 
-            // Trigger spoken response
-            SpokenVoiceSynthesizer.shared.speak(explanation.spokenSummary) { [weak self] in
-                Task { @MainActor [weak self] in
-                    self?.isSpeaking = false
-                    if let gen = self?.activeGeneration {
-                        await self?.coordinator.finishSpeaking(generation: gen)
+                // Tactile audio chime when response is ready
+                PipseySoundEffects.playResponseReady()
+
+                // Trigger spoken response
+                SpokenVoiceSynthesizer.shared.speak(explanation.spokenSummary) { [weak self] in
+                    Task { @MainActor [weak self] in
+                        self?.isSpeaking = false
+                        if let gen = self?.activeGeneration {
+                            await self?.coordinator.finishSpeaking(generation: gen)
+                        }
                     }
                 }
+                self.isSpeaking = true
+            } catch {
+                guard !Task.isCancelled, self.activeGeneration == currentGen else { return }
+                await self.coordinator.fail(
+                    error: "Conversational synthesis failed: \(error.localizedDescription)",
+                    generation: currentGen
+                )
             }
-            self.isSpeaking = true
-        } catch {
-            await coordinator.fail(error: "Conversational synthesis failed: \(error.localizedDescription)", generation: activeGeneration)
         }
     }
 
@@ -1122,6 +1246,8 @@ public final class IslandViewModel: ObservableObject {
     }
 
     public func cancel() async {
+        activeInferenceTask?.cancel()
+        activeInferenceTask = nil
         SpokenVoiceSynthesizer.shared.stop()
         self.isSpeaking = false
         self.audioPowerLevel = 0.0
@@ -1131,12 +1257,15 @@ public final class IslandViewModel: ObservableObject {
     }
 
     public func resetToIdle() {
+        activeInferenceTask?.cancel()
+        activeInferenceTask = nil
         SpokenVoiceSynthesizer.shared.stop()
         self.isSpeaking = false
         self.audioPowerLevel = 0.0
         self.currentExplanation = nil
         self.explanationSummary = nil
         Task {
+            await captureService.cleanup()
             await coordinator.resetToIdle()
         }
     }

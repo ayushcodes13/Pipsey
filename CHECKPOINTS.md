@@ -59,4 +59,10 @@
 Every PR: record milestone state (NOT STARTED / IN PROGRESS / BLOCKED / PASSED), branch/PR, device/tool versions, exact commands & outputs, real capture/model results, errors, privacy/cost, next action, and changed checkboxes. Never invent a pass.
 
 ## Current Resolution
-M0–M5 milestones complete and hardened via adversarial audit on Apple M1 macOS 27.2. ScreenCaptureKit operational video streaming, mouse tracking, two-model AI pipeline, pure robot vector mascot system, bezel-anchored floating notch with full-screen draggability (Wispr Flow pattern), Keychain BYOK credential management, and 269/269 passing unit/contract tests verified. Release bundle built and code-signed at `build/Pipsey.app`.
+M0–M5 milestones complete, audited, and verified via end-to-end two-model empirical testing on Apple M1 macOS 27.2:
+- **Two-Model Architecture:** Hosted small VLM (`gpt-5-mini` on Azure OpenAI, 10/10 canonical empirical scenarios passed) produces timestamped evidence frames, verified by `ObservationValidator`; independent conversational LLM reasons strictly over grounded evidence and user transcript. Zero synthetic/mock fallbacks in production paths.
+- **ScreenCaptureKit & Event Pipeline:** Operational `SCStream` capturing real display buffers with cursor-matched multi-display resolution, passive rate-limited mouse tracking (15 Hz) with burst triggers, and microphone buffer finalization.
+- **Panel & UX:** Sleek, compact pill (180x32pt) anchored at top center with full-screen draggability (Wispr Flow pattern) and "Snap to Top Center" reset. Modal sheet isolation with dedicated `ActiveSheet` state machine preventing window collisions.
+- **Security & BYOK Settings:** Dynamic in-app Settings sheet with provider selection (Azure OpenAI, OpenAI, Anthropic), live client reload, and non-blocking macOS Keychain storage with `LAContext.interactionNotAllowed`.
+- **Test Matrix:** 274 offline automated tests passing in 1.4s; 277 total tests passing including live two-model network inference with zero fake streaming or simulated delays.
+- **Signed App Bundle:** Code-signed release application bundle verified at `build/Pipsey.app`.

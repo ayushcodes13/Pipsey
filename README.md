@@ -7,7 +7,7 @@
 
 **A native macOS AI companion that watches a software interaction you demonstrate and explains how it works.**
 
-[![Status](https://img.shields.io/badge/status-Native%20macOS%20Verified-0b7863?style=flat-square)](#project-status) [![Tests](https://img.shields.io/badge/tests-262%20passed-0b7863?style=flat-square)](#project-status) [![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-20242a?style=flat-square&logo=apple)](#platform) [![License: MIT](https://img.shields.io/badge/license-MIT-0b7863?style=flat-square)](LICENSE)
+[![Status](https://img.shields.io/badge/status-Native%20macOS%20Verified-0b7863?style=flat-square)](#project-status) [![Tests](https://img.shields.io/badge/tests-277%20passed-0b7863?style=flat-square)](#project-status) [![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-20242a?style=flat-square&logo=apple)](#platform) [![License: MIT](https://img.shields.io/badge/license-MIT-0b7863?style=flat-square)](LICENSE)
 
 *An independent, open-source project inspired by [HeyClicky](https://www.heyclicky.com/), [boring.notch](https://github.com/TheBoredTeam/boring.notch), and [clicky](https://github.com/farzaa/clicky). Not affiliated with HeyClicky or its creator.*
 

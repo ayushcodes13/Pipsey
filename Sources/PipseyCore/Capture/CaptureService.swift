@@ -1,37 +1,35 @@
 import Foundation
 import ScreenCaptureKit
 import CoreMedia
-import CoreGraphics
 import CoreImage
-import CoreVideo
 import ImageIO
+import AppKit
 
 public enum CaptureError: Error, CustomStringConvertible, Sendable {
     case permissionDenied(String)
     case noDisplayAvailable
     case streamInitializationFailed(String)
     case timeoutExceeded
+    case cancelled
 
     public var description: String {
         switch self {
-        case .permissionDenied(let msg): return "Screen Capture Permission Denied: \(msg)"
-        case .noDisplayAvailable: return "No active display available for capture"
+        case .permissionDenied(let msg): return "Permission Denied: \(msg)"
+        case .noDisplayAvailable: return "No display available for capture"
         case .streamInitializationFailed(let msg): return "Stream Initialization Failed: \(msg)"
-        case .timeoutExceeded: return "Capture reached maximum 30-second ceiling"
+        case .timeoutExceeded: return "Capture exceeded maximum allowed duration (30s)"
+        case .cancelled: return "Capture cancelled by user"
         }
     }
 }
 
-/// Real-time sample handler delivering CMSampleBuffer video frames from ScreenCaptureKit
-private final class CaptureStreamOutputHandler: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
+final class CaptureStreamOutputHandler: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
     private let sampler: FrameSampler
     private let startMonotonicMs: Int64
-    private let ciContext = CIContext()
-    private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
     private let displayWidth: Int
     private let displayHeight: Int
-    private var isStopped = false
-    private let lock = NSLock()
+    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+    private var isRunning: Bool = true
 
     init(sampler: FrameSampler, startMonotonicMs: Int64, displayWidth: Int, displayHeight: Int) {
         self.sampler = sampler
@@ -42,41 +40,32 @@ private final class CaptureStreamOutputHandler: NSObject, SCStreamOutput, SCStre
     }
 
     func stop() {
-        lock.lock()
-        isStopped = true
-        lock.unlock()
+        isRunning = false
     }
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        guard type == .screen else { return }
-
-        lock.lock()
-        if isStopped {
-            lock.unlock()
-            return
-        }
-        lock.unlock()
-
-        guard let imageBuffer = sampleBuffer.imageBuffer else { return }
+        guard isRunning, type == .screen else { return }
+        guard let pixelBuffer = sampleBuffer.imageBuffer else { return }
 
         let nowMs = Int64(DispatchTime.now().uptimeNanoseconds / 1_000_000)
         let relativeTimeMs = max(0, nowMs - startMonotonicMs)
 
-        // Convert CVImageBuffer to compressed JPEG using hardware-accelerated CIContext
-        let ciImage = CIImage(cvImageBuffer: imageBuffer)
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
         guard let jpegData = ciContext.jpegRepresentation(
             of: ciImage,
             colorSpace: colorSpace,
-            options: [CIImageRepresentationOption(rawValue: kCGImageDestinationLossyCompressionQuality as String): 0.70]
+            options: [CIImageRepresentationOption(rawValue: "kCGImageDestinationLossyFactor"): 0.75]
         ) else {
             return
         }
 
-        Task {
-            _ = await sampler.sampleFrame(
+        Task { [weak self] in
+            guard let self = self, self.isRunning else { return }
+            _ = await self.sampler.sampleFrame(
                 relativeTimeMs: relativeTimeMs,
-                width: displayWidth,
-                height: displayHeight,
+                width: self.displayWidth,
+                height: self.displayHeight,
                 jpegData: jpegData
             )
         }
@@ -89,14 +78,14 @@ private final class CaptureStreamOutputHandler: NSObject, SCStreamOutput, SCStre
 
 public actor CaptureService {
     public private(set) var isCapturing: Bool = false
-    public private(set) var startMonotonicMs: Int64 = 0
     public private(set) var sessionDir: URL?
     public private(set) var sampler: FrameSampler?
     public private(set) var eventRecorder: EventRecorder?
 
-    private var timeoutTask: Task<Void, Never>?
     private var stream: SCStream?
     private var outputHandler: CaptureStreamOutputHandler?
+    private var timeoutTask: Task<Void, Never>?
+    private var startMonotonicMs: Int64 = 0
     private let captureQueue = DispatchQueue(label: "com.pipsey.screencapture.video", qos: .userInitiated)
     private let maxDurationSeconds: Int = 30
 
@@ -122,14 +111,28 @@ public actor CaptureService {
             throw CaptureError.permissionDenied("Failed to access SCShareableContent: \(error.localizedDescription)")
         }
 
-        guard let display = shareable.displays.first else {
+        // Multi-monitor aware: select display containing user's cursor
+        let (screenNumber, screenOrigin) = await MainActor.run { () -> (CGDirectDisplayID?, CGPoint) in
+            let mouseLocation = NSEvent.mouseLocation
+            let activeScreen = NSScreen.screens.first { $0.frame.contains(mouseLocation) } ?? NSScreen.main ?? NSScreen.screens.first
+            let num = activeScreen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+            let origin = activeScreen?.frame.origin ?? .zero
+            return (num, origin)
+        }
+
+        var targetDisplay = shareable.displays.first
+        if let num = screenNumber, let matched = shareable.displays.first(where: { $0.displayID == num }) {
+            targetDisplay = matched
+        }
+
+        guard let display = targetDisplay else {
             throw CaptureError.noDisplayAvailable
         }
 
         let dimensions = Dimensions(width: display.width, height: display.height)
         let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("pipsey-session-\(sessionId.uuidString)")
         let sampler = FrameSampler(targetFps: 2.0, maxFrames: 60, sessionDirectory: dir)
-        let eventRecorder = EventRecorder(displayDimensions: dimensions)
+        let eventRecorder = EventRecorder(displayDimensions: dimensions, screenOrigin: screenOrigin)
 
         self.sessionDir = dir
         self.sampler = sampler
@@ -183,22 +186,18 @@ public actor CaptureService {
             }
         }
 
-        // Setup 30-second hard ceiling
-        timeoutTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(30_000_000_000))
+        // 30s recording ceiling guard
+        self.timeoutTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(self?.maxDurationSeconds ?? 30) * 1_000_000_000)
             guard !Task.isCancelled else { return }
-            await self?.handleTimeout()
+            print("⏱️ Screen recording reached ceiling of 30s. Automatically concluding.")
             onTimeout()
         }
 
         return (dimensions, sampler, eventRecorder)
     }
 
-    private func handleTimeout() {
-        self.isCapturing = false
-    }
-
-    public func stop() async -> (durationMs: Int64, frames: [FrameMetadata], events: [EventMetadata]) {
+    public func stop() async -> (Int64, [FrameMetadata], [EventMetadata]) {
         timeoutTask?.cancel()
         timeoutTask = nil
         isCapturing = false
@@ -233,9 +232,17 @@ public actor CaptureService {
             self.stream = nil
         }
 
-        await sampler?.cleanup()
+        await cleanup()
         _ = await eventRecorder?.stop()
-        self.sampler = nil
         self.eventRecorder = nil
+    }
+
+    public func cleanup() async {
+        if let dir = self.sessionDir {
+            try? FileManager.default.removeItem(at: dir)
+            self.sessionDir = nil
+        }
+        await sampler?.cleanup()
+        self.sampler = nil
     }
 }

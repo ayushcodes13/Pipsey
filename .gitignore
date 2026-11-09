@@ -35,6 +35,7 @@ secrets.*
 !.env.example
 
 # Recordings, frames, transcripts, private data
+scripts/empirical_evaluation/frames/
 recordings/
 captures/
 sessions/

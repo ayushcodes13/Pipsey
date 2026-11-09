@@ -85,7 +85,32 @@ public actor SpeechService {
         transcripts.append(TranscriptItem(startMs: 0, endMs: elapsed, text: text, isFinal: true))
     }
 
-    public func stop() -> [TranscriptItem] {
+    public func stop() async -> [TranscriptItem] {
+        audioEngine?.stop()
+        audioEngine?.inputNode.removeTap(onBus: 0)
+        audioEngine = nil
+
+        recognitionRequest?.endAudio()
+
+        // Allow in-flight speech recognition to finalize buffers (up to 400ms)
+        if let task = recognitionTask, task.state == .running {
+            for _ in 0..<8 {
+                if task.state == .completed || task.state == .canceling || (transcripts.last?.isFinal == true) {
+                    break
+                }
+                try? await Task.sleep(nanoseconds: 50_000_000)
+            }
+        }
+
+        recognitionRequest = nil
+        recognitionTask?.finish()
+        recognitionTask = nil
+
+        onAudioPowerChange?(0.0)
+        return transcripts
+    }
+
+    public func cancel() {
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine = nil
@@ -96,12 +121,6 @@ public actor SpeechService {
         recognitionTask?.cancel()
         recognitionTask = nil
 
-        onAudioPowerChange?(0.0)
-        return transcripts
-    }
-
-    public func cancel() {
-        _ = stop()
         transcripts = []
         onAudioPowerChange?(0.0)
     }

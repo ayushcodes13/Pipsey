@@ -1,0 +1,150 @@
+{
+  "timestamp": "2026-11-09T22:08:37Z",
+  "model": "gpt-5-mini",
+  "provider": "Azure OpenAI",
+  "passed": 10,
+  "total": 10,
+  "pass_rate": 1.0,
+  "results": [
+    {
+      "id": "E01",
+      "name": "Hover Dropdown",
+      "pass": true,
+      "latency_ms": 8222,
+      "before": "Top-left 'Products \u25be' button shown in its default/unfocused state on a light background; page body displays the text 'Welcome to the application dashboard.' and no menu is visible.",
+      "after": "The 'Products' button appears visually active (darker background) with the mouse cursor positioned over it, and a bordered dropdown menu has appeared beneath the button listing 'Analytics', 'Integrations', and 'Documentation'.",
+      "trigger": "Mouse cursor hover (mouseover) over the 'Products' button caused the dropdown to appear (a click could also produce this, but the visible cursor over the button suggests hover).",
+      "evidence_frames": [
+        "frame-001",
+        "frame-002"
+      ],
+      "tokens": 1342
+    },
+    {
+      "id": "E02",
+      "name": "Tooltip Appearance",
+      "pass": true,
+      "latency_ms": 8874,
+      "before": "Small light-blue square icon containing a small yellow glyph sits near the top-left of a white canvas with the label 'Documenteditor view' visible beneath it; no mouse pointer or tooltip is present.",
+      "after": "A black triangular mouse cursor is positioned over the icon and a dark rectangular tooltip reading 'Add to favorites' has appeared to the right/below the icon; the previous label is no longer visible in the cropped view.",
+      "trigger": "A mouse hover (cursor moved over the small icon) triggered the tooltip to appear.",
+      "evidence_frames": [
+        "frame-001",
+        "frame-002"
+      ],
+      "tokens": 1442
+    },
+    {
+      "id": "E03",
+      "name": "Modal Dialog Open",
+      "pass": true,
+      "latency_ms": 5097,
+      "before": "Light background (off-white/very light gray) with a blue \"New Project\" button near the top-left and the text \"Project dashboard listing 5 items\" below it; no modal or dim overlay present.",
+      "after": "Screen is darkened by a translucent dark-gray backdrop and a centered white modal titled \"Create New Project\" appears containing a text input placeholder \"Project Name...\" and a blue \"Confirm\" button at the lower right of the modal.",
+      "trigger": "User likely clicked the \"New Project\" button, opening a modal dialog and adding a dark translucent backdrop to dim the rest of the screen.",
+      "evidence_frames": [
+        "frame-001",
+        "frame-002"
+      ],
+      "tokens": 987
+    },
+    {
+      "id": "E04",
+      "name": "Drag and Drop Task",
+      "pass": true,
+      "latency_ms": 7081,
+      "before": "Two-column task board with headings 'TO DO' (left) and 'IN PROGRESS' (right). A white task card labeled 'Design App Icon' is inside the left 'TO DO' column near the top. The right column contains no cards.",
+      "after": "The same white task card labeled 'Design App Icon' is now inside the right 'IN PROGRESS' column at roughly the same vertical position. A mouse pointer is visible hovering over or just to the right of the moved card.",
+      "trigger": "The item was moved from the left 'TO DO' column to the right 'IN PROGRESS' column, most likely via a drag-and-drop action (mouse pointer visible near the card in frame 2 indicates recent or ongoing pointer interaction).",
+      "evidence_frames": [
+        "frame-001",
+        "frame-002"
+      ],
+      "tokens": 1137
+    },
+    {
+      "id": "E05",
+      "name": "Loading Spinner to Content",
+      "pass": true,
+      "latency_ms": 5383,
+      "before": "Page titled 'Data Feed' with a large blue circular loading spinner centered and the caption 'Loading metrics..' beneath it on an otherwise blank white background.",
+      "after": "The loading spinner is gone; two pale rectangular metric panels appear under the 'Data Feed' title showing 'Active Users: 12,450' in the first panel and 'Uptime: 99.98%' in the second.",
+      "trigger": "The system finished fetching data while the user waited, replacing the loading indicator with populated metric cards (automatic data load completion).",
+      "evidence_frames": [
+        "frame-001",
+        "frame-002"
+      ],
+      "tokens": 906
+    },
+    {
+      "id": "E06",
+      "name": "Tab Switch",
+      "pass": true,
+      "latency_ms": 5259,
+      "before": "Top tab bar shows 'Overview' as active (blue underline). Main content reads 'Welcome to system overview report' on an otherwise blank page.",
+      "after": "Top tab bar shows 'Settings' as active (blue underline) with a small triangular pointer near the label. Main content reads 'Configure application preferences and notifications.'",
+      "trigger": "User selected the 'Settings' tab (likely clicked the 'Settings' label), causing the active tab and main content to switch.",
+      "evidence_frames": [
+        "frame-001",
+        "frame-002"
+      ],
+      "tokens": 1016
+    },
+    {
+      "id": "E07",
+      "name": "Sidebar Expansion",
+      "pass": true,
+      "latency_ms": 8075,
+      "before": "Left sidebar is collapsed to a narrow dark strip showing three small square icons stacked vertically; main workspace area labeled 'Main workspace content area' occupies the rest of the screen.",
+      "after": "Left sidebar is expanded to a wider dark panel showing the same icons with text labels ('Home', 'Settings') and a white triangular indicator near the top icon; the main workspace area is shifted right.",
+      "trigger": "Most likely the user activated the menu button at the top of the collapsed sidebar (e.g., clicked the top icon/hamburger) which expanded the sidebar to reveal labels.",
+      "evidence_frames": [
+        "frame-001",
+        "frame-002"
+      ],
+      "tokens": 1357
+    },
+    {
+      "id": "E08",
+      "name": "Carousel Slide Transition",
+      "pass": true,
+      "latency_ms": 7219,
+      "before": "Slide displayed on a pale blue rectangular area with centered text 'Slide 1: Summer Sale'. A small square/control icon is visible near the right edge of the slide area.",
+      "after": "Slide content changed to a pale peach rectangular area with centered text 'Slide 2: Autumn Styles'. A black triangular mouse cursor appears near the same right-edge control icon.",
+      "trigger": "The user advanced to the next slide, likely by clicking the right-side next/control button (cursor is visible near that control in the second frame).",
+      "evidence_frames": [
+        "frame-001",
+        "frame-002"
+      ],
+      "tokens": 1192
+    },
+    {
+      "id": "E09",
+      "name": "Toast Notification",
+      "pass": true,
+      "latency_ms": 5724,
+      "before": "A page with a blue 'Save Changes' button near the top-left and grey text 'Profile settings form fields' below; no notification is visible.",
+      "after": "A green notification bar appears at the top-right with white text reading 'Changes saved successfully' (with a small icon), while the blue 'Save Changes' button and grey descriptive text remain.",
+      "trigger": "User clicked the 'Save Changes' button, causing a success notification to appear.",
+      "evidence_frames": [
+        "frame-001",
+        "frame-002"
+      ],
+      "tokens": 952
+    },
+    {
+      "id": "E10",
+      "name": "Async List Update",
+      "pass": true,
+      "latency_ms": 7485,
+      "before": "Inbox header reads 'Inbox (2 messages)'. Two list items shown: '1. Alex: Review design doc' and '2. Sam: Standup 10am', each in a white rounded rectangle.",
+      "after": "Inbox header reads 'Inbox (3 messages)'. A new top item '1. Taylor: PR ready for review (NEW)' appears above the previous items. The new item is visually highlighted with a light-blue background and blue border, and the existing items are renumbered to 2 and 3 and pushed down.",
+      "trigger": "A new message was added to the inbox and inserted at the top; the new entry is marked '(NEW)' and appears to be automatically focused/selected (highlighted) by the UI rather than just hovered.",
+      "evidence_frames": [
+        "frame-001",
+        "frame-002"
+      ],
+      "tokens": 1239
+    }
+  ]
+}

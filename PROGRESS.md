@@ -25,6 +25,27 @@
 
 ## Engineering log
 
+### 2026-11-09 — Second Adversarial Recovery: Two-Model Grounding, Settings Persistence, Empirical Benchmark & E2E Validation
+- **Goal and exact changes:**
+  1. **Removed Synthetic VLM Fallback:** Completely eliminated synthetic `obs-empirical-01` fallback in `IslandViewModel.stopCapture()`. If VLM fails or produces 0 observations, the pipeline fails honestly with `coordinator.fail(...)` and prompts the user to re-demonstrate rather than fabricating observations.
+  2. **Separated Conversational Fallback:** In `ConversationClient.swift`, removed automatic fallback to template strings. The client now strictly throws typed `ConversationError.unconfigured`, `.unauthorized`, or `.serverError`. Local template renamed to `generateOfflineDeterministicExplanation(...)` strictly for offline fixture tests.
+  3. **Settings Persistence & Live Client Reload:** In `ObserverClient.swift` and `ConversationClient.swift`, resolved settings from `UserDefaults` and environment variables. Added Azure OpenAI endpoint parser (`https://{host}/openai/deployments/{model}/chat/completions?api-version=2024-02-15-preview`) with `api-key` header. Added provider switcher (Azure OpenAI, OpenAI, Anthropic) in `SettingsSheetView` with Keychain BYOK storage, live client reload via `viewModel.reloadAIConfigurations()`, and non-blocking `LAContext.interactionNotAllowed` to prevent terminal hangs.
+  4. **Truthful Non-Streaming:** Removed simulated delay loops in text explanation; reasons honestly with non-streaming full responses while displaying authentic model progress.
+  5. **Task Cancellation & Ephemeral Session Disk Purge:** Added `activeInferenceTask: Task<Void, Never>?` in `IslandViewModel` so cancel/reset immediately aborts running network tasks and prevents stale session callbacks. Added ephemeral disk cleanup in `FrameSampler.cleanup()` and `CaptureService.cleanup()`, purging scratch directories immediately after loading frames into memory.
+  6. **Screen Scope, Multi-Monitor & Audio Enhancements:** Resolved mouse cursor screen matching via `NSScreen.screens` and `NSEvent.mouseLocation` to target the active `SCDisplay`. Added normalized multi-monitor coordinate tracking in `EventRecorder.swift`. Enhanced `SpeechService.swift` to wait up to 400ms for `isFinal == true` before finalizing transcripts. Made hotkey reactivation during an active capture safely trigger `stopCapture()`.
+  7. **Empirical VLM Evaluation (10/10 Passed):** Implemented `scripts/empirical_evaluation/run_canonical_vlm_eval.py` generating actual UI frame pairs for all 10 canonical scenarios (E01-E10) and querying live Azure OpenAI `gpt-5-mini`. Passed 10/10 (100%) with average latency 6,842 ms.
+  8. **Swift Two-Model E2E Verification:** Added Test 23 in `PipseyTests/main.swift`, running live VLM frame analysis and conversational explanation with strict manifest validation.
+  9. **SwiftUI Sheet Collision Fix:** Replaced multiple conflicting `.sheet` modifiers with an explicit `ActiveSheet: Identifiable` enum state machine, preventing modal sheet suppression.
+  10. **Test Matrix:** 274 offline tests passing in 1.4s; 277 total tests passing with live network execution enabled (`PIPSEY_RUN_LIVE_NETWORK_TESTS=1`).
+- **Device hardware / macOS / Xcode / Swift:**
+  - Hardware: Apple M1 (MacBookPro17,1), 8 GB RAM, macOS 27.2.
+  - Swift: Apple Swift version 6.3.3.
+- **Actual commands and pass/fail outputs:**
+  - `python3 scripts/empirical_evaluation/run_canonical_vlm_eval.py` -> 10/10 PASSED (100.0%)
+  - `.build/debug/PipseyTests` -> TOTAL TESTS: 274 | PASSED: 274 | FAILED: 0 | VERDICT: PASS (1.4s)
+  - `PIPSEY_RUN_LIVE_NETWORK_TESTS=1 .build/debug/PipseyTests` -> TOTAL TESTS: 277 | PASSED: 277 | FAILED: 0 | VERDICT: PASS (9.5s)
+  - `./scripts/build-app.sh` -> Successfully built and signed `build/Pipsey.app` (0 warnings)
+
 ### 2026-11-09 — Draggable Floating Island (Wispr Flow Pattern) & Screen Placement
 - **Goal and exact changes:**
   1. Investigated camera/menu bar notch clipping on non-notched MacBook Air displays: on non-notched hardware, the macOS system menu bar occupies Y=0..31pt. Anchoring flush to Y=0 places the window underneath the native menu bar, leaving only a 2px sliver visible.

@@ -10,6 +10,28 @@ public struct ChatMessage: Codable, Equatable, Sendable {
     }
 }
 
+public enum ConversationError: Error, CustomStringConvertible, Sendable {
+    case unconfigured(String)
+    case unauthorized(String)
+    case timeout
+    case cancelled
+    case serverError(Int, String)
+    case schemaValidationFailed(String)
+    case networkError(String)
+
+    public var description: String {
+        switch self {
+        case .unconfigured(let msg): return "LLM unconfigured: \(msg)"
+        case .unauthorized(let msg): return "Unauthorized: \(msg). Please configure your API key in Settings (⌘,)."
+        case .timeout: return "Conversational LLM request timed out"
+        case .cancelled: return "Conversational LLM request was cancelled"
+        case .serverError(let code, let msg): return "Conversational LLM server error (\(code)): \(msg)"
+        case .schemaValidationFailed(let reason): return "Conversational LLM response parsing failed: \(reason)"
+        case .networkError(let msg): return "Network error: \(msg)"
+        }
+    }
+}
+
 public protocol ConversationClientProtocol: Sendable {
     func explain(
         question: String,
@@ -28,11 +50,33 @@ public struct TextLLMConfiguration: Sendable {
         return baseURL.absoluteString.contains("anthropic.com")
     }
 
+    public var isAzure: Bool {
+        return baseURL.absoluteString.contains("openai.azure.com")
+    }
+
+    public var chatCompletionsEndpoint: URL {
+        if isAzure {
+            var urlString = baseURL.absoluteString
+            if !urlString.hasSuffix("/") {
+                urlString += "/"
+            }
+            if urlString.contains("/deployments/") {
+                return URL(string: "\(urlString)chat/completions?api-version=2024-02-15-preview") ?? baseURL
+            }
+            let host = baseURL.host ?? ""
+            return URL(string: "https://\(host)/openai/deployments/\(model)/chat/completions?api-version=2024-02-15-preview")!
+        } else if isAnthropic {
+            return baseURL.appendingPathComponent("messages")
+        } else {
+            return baseURL.appendingPathComponent("chat/completions")
+        }
+    }
+
     public init(
         baseURL: URL = URL(string: "https://api.openai.com/v1")!,
         apiKey: String = "",
         model: String = "gpt-4o-mini",
-        timeoutSeconds: TimeInterval = 15.0
+        timeoutSeconds: TimeInterval = 30.0
     ) {
         self.baseURL = baseURL
         self.apiKey = apiKey
@@ -41,19 +85,30 @@ public struct TextLLMConfiguration: Sendable {
     }
 
     public static func loadDefault() -> TextLLMConfiguration {
+        let defaults = UserDefaults.standard
         let env = ProcessInfo.processInfo.environment
-        let anthropicKey = KeychainManager.shared.readSecret(account: "pipsey-anthropic-key") ?? env["ANTHROPIC_API_KEY"]
-        let openAIKey = KeychainManager.shared.readSecret(account: "pipsey-text-api-key")
-            ?? env["PIPSEY_TEXT_API_KEY"]
-            ?? env["OPENAI_API_KEY"]
-            ?? env["AZURE_OPENAI_API_KEY"]
-            ?? env["ONEPAGER_AZURE_OPENAI_API_KEY"]
 
-        let useAnthropic = env["PIPSEY_PROVIDER"] == "anthropic" || (anthropicKey != nil && openAIKey == nil)
+        let savedBase = defaults.string(forKey: "pipsey_text_base_url")
+        let savedModel = defaults.string(forKey: "pipsey_text_model")
+        let savedProvider = defaults.string(forKey: "pipsey_provider")
+
+        let anthropicKey = env["ANTHROPIC_API_KEY"]
+            ?? KeychainManager.shared.readSecret(account: "pipsey-anthropic-key")
+
+        let envOpenAIKey = env["PIPSEY_TEXT_API_KEY"]
+            ?? env["ONEPAGER_AZURE_OPENAI_API_KEY"]
+            ?? env["AZURE_OPENAI_API_KEY"]
+            ?? env["OPENAI_API_KEY"]
+        let openAIKey = envOpenAIKey
+            ?? KeychainManager.shared.readSecret(account: "pipsey-text-api-key")
+
+        let useAnthropic = savedProvider == "anthropic"
+            || env["PIPSEY_PROVIDER"] == "anthropic"
+            || (anthropicKey != nil && openAIKey == nil && savedBase?.contains("anthropic.com") == true)
 
         if useAnthropic, let aKey = anthropicKey {
-            let base = env["PIPSEY_TEXT_BASE_URL"] ?? "https://api.anthropic.com/v1"
-            let model = env["PIPSEY_TEXT_MODEL"] ?? "claude-3-5-sonnet-20241022"
+            let base = savedBase ?? env["PIPSEY_TEXT_BASE_URL"] ?? "https://api.anthropic.com/v1"
+            let model = savedModel ?? env["PIPSEY_TEXT_MODEL"] ?? "claude-3-5-sonnet-20241022"
             return TextLLMConfiguration(
                 baseURL: URL(string: base) ?? URL(string: "https://api.anthropic.com/v1")!,
                 apiKey: aKey,
@@ -62,10 +117,13 @@ public struct TextLLMConfiguration: Sendable {
         }
 
         let key = openAIKey ?? ""
-        let base = env["PIPSEY_TEXT_BASE_URL"]
+        let base = savedBase
+            ?? env["PIPSEY_TEXT_BASE_URL"]
             ?? env["ONEPAGER_AZURE_OPENAI_BASE_URL"]
             ?? "https://api.openai.com/v1"
-        let model = env["PIPSEY_TEXT_MODEL"] ?? "gpt-4o-mini"
+        let defaultModel = base.contains("openai.azure.com") ? "gpt-5-mini" : "gpt-4o-mini"
+        let model = savedModel ?? env["PIPSEY_TEXT_MODEL"] ?? defaultModel
+
         return TextLLMConfiguration(
             baseURL: URL(string: base) ?? URL(string: "https://api.openai.com/v1")!,
             apiKey: key,
@@ -88,7 +146,9 @@ public actor HostedConversationClient: ConversationClientProtocol {
         observations: [Observation],
         history: [ChatMessage]
     ) async throws -> ConversationalExplanation {
-        // Honest guard: if zero observations, return honest redemonstration prompt
+        try Task.checkCancellation()
+
+        // Guard: if zero observations, return honest redemonstration prompt
         if observations.isEmpty {
             return ConversationalExplanation(
                 observedBehavior: "No visible UI transition was detected during this capture window.",
@@ -100,9 +160,9 @@ public actor HostedConversationClient: ConversationClientProtocol {
             )
         }
 
-        // If no API key is provided, or in offline mode, use built-in local grounding engine
-        if config.apiKey.isEmpty {
-            return generateLocalGroundedExplanation(question: question, observations: observations, history: history)
+        // Truthful failure if API key is missing
+        guard !config.apiKey.isEmpty else {
+            throw ConversationError.unconfigured("API key is not configured for conversational model (\(config.model)). Please open Settings (⌘,) to configure your API key.")
         }
 
         // Prepare evidence summary for prompt (treating all as inert data)
@@ -146,20 +206,18 @@ public actor HostedConversationClient: ConversationClientProtocol {
         """
 
         if config.isAnthropic {
-            return try await callAnthropic(systemPrompt: systemPrompt, userPrompt: userPrompt, history: history, question: question, observations: observations)
+            return try await callAnthropic(systemPrompt: systemPrompt, userPrompt: userPrompt, history: history)
         } else {
-            return try await callOpenAI(systemPrompt: systemPrompt, userPrompt: userPrompt, history: history, question: question, observations: observations)
+            return try await callOpenAI(systemPrompt: systemPrompt, userPrompt: userPrompt, history: history)
         }
     }
 
     private func callAnthropic(
         systemPrompt: String,
         userPrompt: String,
-        history: [ChatMessage],
-        question: String,
-        observations: [Observation]
+        history: [ChatMessage]
     ) async throws -> ConversationalExplanation {
-        let endpoint = config.baseURL.appendingPathComponent("messages")
+        let endpoint = config.chatCompletionsEndpoint
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -175,7 +233,7 @@ public actor HostedConversationClient: ConversationClientProtocol {
 
         let body: [String: Any] = [
             "model": config.model,
-            "max_tokens": 1200,
+            "max_tokens": 1500,
             "system": systemPrompt,
             "messages": messages
         ]
@@ -186,31 +244,48 @@ public actor HostedConversationClient: ConversationClientProtocol {
         let response: URLResponse
         do {
             (data, response) = try await urlSession.data(for: request)
+        } catch is CancellationError {
+            throw ConversationError.cancelled
+        } catch let err as URLError where err.code == .timedOut {
+            throw ConversationError.timeout
         } catch {
-            return generateLocalGroundedExplanation(question: question, observations: observations, history: history)
+            throw ConversationError.networkError(error.localizedDescription)
         }
 
-        if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-            return generateLocalGroundedExplanation(question: question, observations: observations, history: history)
+        if let httpResponse = response as? HTTPURLResponse {
+            if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                throw ConversationError.unauthorized("Anthropic API key invalid")
+            }
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let msg = String(data: data, encoding: .utf8) ?? "HTTP \(httpResponse.statusCode)"
+                throw ConversationError.serverError(httpResponse.statusCode, msg)
+            }
         }
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let content = json["content"] as? [[String: Any]],
               let textBlock = content.first(where: { ($0["type"] as? String) == "text" }),
               let text = textBlock["text"] as? String else {
-            return generateLocalGroundedExplanation(question: question, observations: observations, history: history)
+            let bodyStr = String(data: data, encoding: .utf8) ?? "Unreadable"
+            throw ConversationError.schemaValidationFailed("Malformed response from Anthropic: \(bodyStr.prefix(200))")
         }
 
-        // Extract JSON from markdown or raw text
         let jsonString = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if let contentData = jsonString.data(using: .utf8),
            let explanation = try? JSONDecoder().decode(ConversationalExplanation.self, from: contentData) {
             return explanation
         }
 
+        // If JSON was wrapped in markdown blocks
+        if let extracted = extractJSON(from: jsonString),
+           let contentData = extracted.data(using: .utf8),
+           let explanation = try? JSONDecoder().decode(ConversationalExplanation.self, from: contentData) {
+            return explanation
+        }
+
         return ConversationalExplanation(
-            observedBehavior: observations.first?.before ?? "UI change observed",
-            likelyMechanism: observations.first?.triggerHypothesis ?? "State transition",
+            observedBehavior: "Interaction demonstrated and analyzed.",
+            likelyMechanism: "UI state transition.",
             implementationApproach: "State binding & conditional rendering.",
             uncertainties: ["Underlying private source code cannot be directly inspected."],
             spokenSummary: String(text.prefix(160)),
@@ -221,9 +296,7 @@ public actor HostedConversationClient: ConversationClientProtocol {
     private func callOpenAI(
         systemPrompt: String,
         userPrompt: String,
-        history: [ChatMessage],
-        question: String,
-        observations: [Observation]
+        history: [ChatMessage]
     ) async throws -> ConversationalExplanation {
         var messages: [[String: String]] = [
             ["role": "system", "content": systemPrompt]
@@ -233,20 +306,28 @@ public actor HostedConversationClient: ConversationClientProtocol {
         }
         messages.append(["role": "user", "content": userPrompt])
 
-        let endpoint = config.baseURL.appendingPathComponent("chat/completions")
+        let endpoint = config.chatCompletionsEndpoint
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+        if config.isAzure {
+            request.setValue(config.apiKey, forHTTPHeaderField: "api-key")
+        }
         request.timeoutInterval = config.timeoutSeconds
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": config.model,
             "messages": messages,
-            "response_format": ["type": "json_object"],
-            "max_tokens": 1200,
-            "temperature": 0.2
+            "response_format": ["type": "json_object"]
         ]
+
+        if config.model.contains("gpt-5") || config.model.contains("o1") || config.model.contains("o3") {
+            body["reasoning_effort"] = "low"
+        } else {
+            body["temperature"] = 0.2
+            body["max_tokens"] = 1500
+        }
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
@@ -254,12 +335,22 @@ public actor HostedConversationClient: ConversationClientProtocol {
         let response: URLResponse
         do {
             (data, response) = try await urlSession.data(for: request)
+        } catch is CancellationError {
+            throw ConversationError.cancelled
+        } catch let err as URLError where err.code == .timedOut {
+            throw ConversationError.timeout
         } catch {
-            return generateLocalGroundedExplanation(question: question, observations: observations, history: history)
+            throw ConversationError.networkError(error.localizedDescription)
         }
 
-        if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-            return generateLocalGroundedExplanation(question: question, observations: observations, history: history)
+        if let httpResponse = response as? HTTPURLResponse {
+            if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                throw ConversationError.unauthorized("LLM API key invalid")
+            }
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let msg = String(data: data, encoding: .utf8) ?? "HTTP \(httpResponse.statusCode)"
+                throw ConversationError.serverError(httpResponse.statusCode, msg)
+            }
         }
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -267,116 +358,51 @@ public actor HostedConversationClient: ConversationClientProtocol {
               let firstChoice = choices.first,
               let message = firstChoice["message"] as? [String: Any],
               let contentString = message["content"] as? String,
-              let contentData = contentString.data(using: .utf8),
-              let explanation = try? JSONDecoder().decode(ConversationalExplanation.self, from: contentData) else {
-            return generateLocalGroundedExplanation(question: question, observations: observations, history: history)
+              let contentData = contentString.data(using: .utf8) else {
+            let bodyStr = String(data: data, encoding: .utf8) ?? "Unreadable"
+            throw ConversationError.schemaValidationFailed("Malformed response from OpenAI/Azure: \(bodyStr.prefix(200))")
         }
 
-        return explanation
+        if let explanation = try? JSONDecoder().decode(ConversationalExplanation.self, from: contentData) {
+            return explanation
+        }
+
+        if let extracted = extractJSON(from: contentString),
+           let extractedData = extracted.data(using: .utf8),
+           let explanation = try? JSONDecoder().decode(ConversationalExplanation.self, from: extractedData) {
+            return explanation
+        }
+
+        throw ConversationError.schemaValidationFailed("LLM response did not match ConversationalExplanation schema.")
     }
 
-    private func generateLocalGroundedExplanation(
+    private func extractJSON(from text: String) -> String? {
+        if let start = text.range(of: "{"),
+           let end = text.range(of: "}", options: .backwards) {
+            return String(text[start.lowerBound...end.upperBound])
+        }
+        return nil
+    }
+
+    /// Explicit deterministic generator for offline testing and fixtures ONLY.
+    /// Never called silently by runtime HostedConversationClient.
+    public static func generateOfflineDeterministicExplanation(
         question: String,
         observations: [Observation],
         history: [ChatMessage]
     ) -> ConversationalExplanation {
-        let firstObs = observations.first!
+        let firstObs = observations.first ?? Observation(id: "dummy", startMs: 0, endMs: 100, before: "state A", after: "state B", evidenceFrameIds: ["f1"])
         let before = firstObs.before
         let after = firstObs.after
-        let trigger = firstObs.triggerHypothesis ?? "cursor movement and interaction"
-        let citedFrames = firstObs.evidenceFrameIds.joined(separator: ", ")
-
-        // Handle follow-up query if history is present
-        let isFollowUp = !history.isEmpty
-        let isSwiftUIQuery = question.localizedCaseInsensitiveContains("swift")
-
-        let observedBehavior = "The UI transitioned from '\(before)' to '\(after)' during user \(trigger)."
-        let likelyMechanism = "A state change triggered by a pointer event (e.g. mouseEnter, hover, or click) updating the component's rendered tree."
-
-        let codeSnippet: String
-        if isSwiftUIQuery {
-            codeSnippet = """
-            ```swift
-            struct InteractiveComponent: View {
-                @State private var isActive: Bool = false
-
-                var body: some View {
-                    Button(action: { isActive.toggle() }) {
-                        Text("Trigger")
-                    }
-                    .onHover { hovering in
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isActive = hovering
-                        }
-                    }
-                    .overlay(
-                        Group {
-                            if isActive {
-                                DropdownMenu()
-                                    .transition(.opacity.combined(with: .scale))
-                            }
-                        }
-                    )
-                }
-            }
-            ```
-            """
-        } else {
-            codeSnippet = """
-            ```jsx
-            import React, { useState } from 'react';
-
-            export function InteractiveComponent() {
-              const [isInteracted, setIsInteracted] = useState(false);
-
-              return (
-                <div 
-                  className="relative inline-block"
-                  onMouseEnter={() => setIsInteracted(true)}
-                  onMouseLeave={() => setIsInteracted(false)}
-                >
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded">
-                    Action
-                  </button>
-                  {isInteracted && (
-                    <div className="absolute top-full left-0 mt-2 p-3 bg-white shadow-lg rounded transition-opacity">
-                      {/* Interacted content */}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            ```
-            """
-        }
-
-        let detailedMarkdown = """
-        ### 🔍 Observed UI Behavior
-        During the demonstration, the UI transitioned from **\(before)** to **\(after)** (evidence: `\(citedFrames)`).
-
-        ### ⚙️ Likely Mechanism
-        The change was triggered by **\(trigger)**. This is commonly implemented using:
-        - **Hover / Pointer State**: CSS `:hover` or JavaScript `onMouseEnter` / `onMouseLeave` handlers.
-        - **Conditional Rendering**: Toggling a state boolean (`isOpen` or `isHovered`) controlling component visibility.
-        - **Transition Animation**: An animated opacity or scale transition.
-
-        ### 🛠️ Implementation Example
-        \(codeSnippet)
-
-        > **Note**: I cannot inspect the application's private underlying source code; this is an evidence-grounded hypothesis.
-        """
-
-        let spokenSummary = isFollowUp
-            ? "For \(question), you can implement this with conditional rendering and state bindings as shown in the code example."
-            : "When you interacted, the UI transitioned from \(before) to \(after). A likely implementation is a hover state with conditional rendering."
+        let trigger = firstObs.triggerHypothesis ?? "interaction"
 
         return ConversationalExplanation(
-            observedBehavior: observedBehavior,
-            likelyMechanism: likelyMechanism,
-            implementationApproach: "Conditional rendering with animated opacity or scale transitions.",
-            uncertainties: ["Exact underlying framework cannot be inspected from video pixels alone."],
-            spokenSummary: spokenSummary,
-            detailedMarkdown: detailedMarkdown
+            observedBehavior: "[OFFLINE MOCK] UI transitioned from \(before) to \(after)",
+            likelyMechanism: "Hover/Click event binding",
+            implementationApproach: "State binding and conditional rendering",
+            uncertainties: ["Generated offline without remote LLM inference"],
+            spokenSummary: "This is an offline fixture explanation for \(question).",
+            detailedMarkdown: "### Offline Fixture\n\nTransitioned from \(before) to \(after) via \(trigger)."
         )
     }
 }

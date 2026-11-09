@@ -86,7 +86,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Setup Global Hotkey (⌥⌘P)
         let hotKeyRegistered = hotKeyController.register { [weak self] in
             Task { @MainActor in
-                self?.islandPanel?.repositionTopCenter()
+                if self?.islandPanel?.customOrigin == nil {
+                    self?.islandPanel?.repositionTopCenter()
+                }
                 await self?.viewModel.triggerSession()
             }
         }
