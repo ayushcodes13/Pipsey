@@ -25,6 +25,25 @@
 
 ## Engineering log
 
+### 2026-11-10 — Official Landing Page Built with Native macOS Design & Generative UI
+- **Goal and exact changes:**
+  1. **Designed & Built Production Landing Page (`docs/index.html`):**
+     - Authored responsive, clean landing page adhering strictly to `unslop`, Apple Human Interface Guidelines, and `macos-design` standards.
+     - Dark graphite surfaces (`#0D0E12`, `#16171D`), hairline borders (`rgba(255,255,255,0.08)`), subtle neon blue accents (`#00F0FF`), and zero AI slop / gradient clutter.
+  2. **Interactive Live Notch Simulator (Generative UI):**
+     - Implemented an interactive hardware notch simulation directly in the hero section.
+     - Visitors can click "Simulate Hold ⌥⌘" to trigger live transition states:
+       - **Idle:** Compact 175x32pt notch with mascot eye blink.
+       - **Recording:** Expands to 380x46pt with live elapsed timer, recording indicator, and 5-bar animated audio waveform.
+       - **Processing:** Expands to 420x42pt showing vision frame sampling and VLM query.
+       - **Explanation:** Expands to 520x145pt displaying step-by-step breakdown and copyable Swift syntax-highlighted code.
+  3. **Product Showcase Grid:**
+     - 6 feature deep-dive cards covering: Bounded Capture, Two-Model Pipeline, Hardware Notch & Island, Tactile Audio Waveform, Keychain BYOK Privacy, and Library & Search.
+     - Native `<kbd>` keyboard shortcut cheat sheet (`⌥⌘`, `⌥⌘D`, `⌘H`, `⌘,`).
+     - Release distribution card with DMG download link and CLI release script documentation.
+  4. **Generative UI Artifact:**
+     - Artifact saved at `<artifact_dir>/pipsey_landing_page.html` for instant preview and inspection.
+
 ### 2026-11-10 — Notch Island Refinement: Text Removal & Dynamic Width Auto-Expansion
 - **Goal and exact changes:**
   1. **Removed Text "Pipsey" from Notch Island:**
