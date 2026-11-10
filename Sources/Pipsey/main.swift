@@ -15,7 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hideDock = UserDefaults.standard.bool(forKey: "pipsey_hide_dock_icon")
         NSApp.setActivationPolicy(hideDock ? .accessory : .regular)
 
-        // Set native application icon to the circular glowing aperture mascot dock icon
+        // Set native application icon to the squircle mascot dock icon with transparent corners
         if let iconUrl = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
            let appIcon = NSImage(contentsOf: iconUrl) {
             NSApp.applicationIconImage = appIcon

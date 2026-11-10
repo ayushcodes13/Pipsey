@@ -25,6 +25,22 @@
 
 ## Engineering log
 
+### 2026-11-10 — Native macOS Squircle Badge App Icon with Transparent Vertices
+- **Problem Statement:**
+  - The user clarified that the dock icon should NOT be a circle, but rather the exact Apple squircle card with rounded rectangle vertices and transparent background corners outside the vertices (`media_1794293218748_fecc7ddf.png`).
+- **Deliverables & Implementation:**
+  1. **Squircle Alpha Channel Extraction & High-Res Preservation:**
+     - Extracted the exact squircle mask (with smooth continuous antialiased rounded vertices) from the user's uploaded icon (`media_1794293218748_fecc7ddf.png`).
+     - Applied the alpha mask to the uncompressed 1024×1024 master source (`media_1794292398014_1ababf62.jpg`), preserving full razor-sharp high-DPI fidelity of the glowing aperture, cyan eyes, headphones, and paws while ensuring all 4 corners outside the squircle are 100% transparent (`alpha = 0`).
+  2. **Apple Multi-Resolution Iconset & Bundle Generation:**
+     - Recompiled all 10 standard macOS icon resolutions in `/tmp/AppIcon.iconset` into `Assets/AppIcon.icns` via `iconutil -c icns`.
+     - Synchronized `Assets/pipsey-mascot-head-*`, `pipsey-logo.png`, and `pipsey-logo.webp`.
+     - Packaged and codesigned into `build/Pipsey.app/Contents/Resources/AppIcon.icns`.
+  3. **Verification:**
+     - 321/321 automated unit tests passed (`swift run PipseyTests`).
+     - App bundle rebuilt and codesigned via `./scripts/build-app.sh`.
+     - Relaunched `build/Pipsey.app` (PID 46801) and restarted macOS Dock (`killall Dock`).
+
 ### 2026-11-10 — Companion Aesthetic Redesign: The Liquid Glass Pod
 - **Problem Statement:**
   - The companion interface felt unfinished: flat dark rectangles with 1px borders, abrupt pop-in hover transitions, chunky keyboard badges, and lack of visual soul matching the new robot aperture mascot.
