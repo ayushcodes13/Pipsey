@@ -1,5 +1,5 @@
 <div align="center">
-<img src="Assets/pipsey-mascot-256.png" alt="Pipsey — a curious robot companion peeking over your display notch" width="160" />
+<img src="Assets/pipsey-readme-app-icon.webp" alt="Pipsey — premium macOS app icon featuring the peeking robot mascot" width="180" />
 
 # Pipsey
 
