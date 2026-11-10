@@ -25,6 +25,29 @@
 
 ## Engineering log
 
+### 2026-11-10 — Circular Mascot Dock Icon with Glowing Camera Aperture
+- **Problem Statement:**
+  - The user requested updating the macOS Dock icon to the new mascot with the glowing camera aperture on its forehead, specifically requesting "only the circular part" rather than the dark squircle box/card with square corners.
+- **Root Cause & Deliverables:**
+  1. **Clean Feature Isolation & Edge Antialiasing:**
+     - Isolated the new mascot from `media_1794292398014_1ababf62.jpg` (white pearlescent head dome, glowing cyan camera aperture lens on forehead, cyan eyes, side headphones, top-right antennae, and paws resting over the bottom shelf).
+     - Removed outer squircle borders, corner glare reflections, and rectangular boundaries.
+  2. **Apple HIG Circular Dock Icon Specification:**
+     - Designed standard macOS circular dock icon: 824px circular disc centered on a 1024×1024 canvas (leaving padding for the soft macOS perspective drop shadow).
+     - Rendered with 2x supersampling (2048×2048) downscaled with Lanczos interpolation for crisp edges.
+     - Added glowing cyan bezel rim ring (`#40F0D7`) and subtle glass glow matching the companion's neon aesthetic.
+     - Ensured outer corners outside the circle are 100% transparent (`alpha = 0`).
+  3. **Multi-Resolution Apple Iconset & Bundle Packaging:**
+     - Generated all 10 standard macOS iconset resolutions (16×16 through 512×512@2x / 1024×1024) in `/tmp/AppIcon.iconset`.
+     - Compiled to `Assets/AppIcon.icns` using Apple's `iconutil -c icns`.
+     - Synchronized `Assets/pipsey-mascot-head-{32,64,128,256,512,1024}.png`, `Assets/pipsey-logo.png`, and `Assets/pipsey-logo.webp`.
+     - Bundled and codesigned into `build/Pipsey.app/Contents/Resources/AppIcon.icns`.
+  4. **Runtime Activation & Verification:**
+     - Verified `NSApp.applicationIconImage` loads the new circular icon on launch.
+     - Restarted Dock (`killall Dock`) to flush cached icon representations.
+     - 321/321 unit tests passing (`swift run PipseyTests`).
+     - App running under PID 29397 with valid app icon loaded by AppKit (`NSWorkspace.shared.runningApplications`).
+
 ### 2026-11-10 — Permanently Blocked Auto-Onboarding & Fixed Permission Discrepancy
 - **Problem Statement:**
   - Launching or clicking Pipsey from the Dock caused the onboarding wizard to repeatedly pop up asking for permissions.
