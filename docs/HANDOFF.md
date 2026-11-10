@@ -3,8 +3,8 @@
 ## Bootstrap
 Read **AGENTS.md** first (CLAUDE.md symlinks to it), then README.md, PRODUCT.md, ARCHITECTURE.md, API_CONTRACTS.md, IMPLEMENTATION_PLAN.md, CHECKPOINTS.md, EVALUATION.md, SECURITY.md, DEVELOPMENT.md, DECISIONS.md and PROGRESS.md.
 
-## Goal
-Deliver a real, verified native macOS **Pipsey** application, starting from the current docs-only repo. Keep scope to Feature Mode: Option+Command (if reliable, else configurable fallback) → top-center companion → user asks aloud → short screen/audio demonstration → small hosted VLM produces frame-linked visible changes → separate conversational text LLM explains observed behavior and plausible implementation → natural follow-ups.
+## Current State & Goal
+The native macOS **Pipsey** application is fully implemented, verified, and operational (M0–M5 complete, 321 passing unit tests). It provides complete Feature Mode workflow: global hotkey (`⌥⌘P` or `⌥⌘` chord) → top-center Notch Island or Liquid Glass Floating Pod → verbal inquiry → bounded ScreenCaptureKit recording with 5-bar reactive audio waveform → hosted VLM visual observation timeline → independent conversational LLM grounded explanation → spoken voice & follow-up chat. Supports optical Telescope mode (`⌃⌥⌘`), 30-second curiosity peeking, and BYOK Keychain credentials.
 
 ## Work sequence
 1. Check git status/current HEAD and preserve existing work; M0 machine/SDK/API feasibility. Record actual environment.

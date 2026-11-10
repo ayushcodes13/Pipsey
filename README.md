@@ -7,7 +7,7 @@
 
 **A native macOS AI companion that watches a software interaction you demonstrate and explains how it works.**
 
-[![Status](https://img.shields.io/badge/status-Native%20macOS%20Verified-0b7863?style=flat-square)](#project-status) [![Tests](https://img.shields.io/badge/tests-277%20passed-0b7863?style=flat-square)](#project-status) [![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-20242a?style=flat-square&logo=apple)](#platform) [![License: MIT](https://img.shields.io/badge/license-MIT-0b7863?style=flat-square)](LICENSE)
+[![Status](https://img.shields.io/badge/status-Native%20macOS%20Verified-0b7863?style=flat-square)](#project-status) [![Tests](https://img.shields.io/badge/tests-321%20passed-0b7863?style=flat-square)](#project-status) [![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-20242a?style=flat-square&logo=apple)](#platform) [![License: MIT](https://img.shields.io/badge/license-MIT-0b7863?style=flat-square)](LICENSE)
 
 <p align="center">
   <b>Made with ❤️ by Devayush</b>
@@ -79,14 +79,18 @@ Pipsey is about **software behavior, not screenshots**. It tries to explain the 
 ## 🚦 Project status
 
 **Native macOS Application Fully Operational (Feature Mode MVP Verified).** Pipsey is a working native macOS companion built with Swift 6, SwiftUI, AppKit, ScreenCaptureKit, and CoreImage. It features:
-- **Top-Center Bezel-Anchored Notch:** Anchored flush at `Y = 0` (`.mainMenu + 3` layer) matching physical MacBook notch geometry and non-notched M1 displays with smooth spring animations.
-- **Pure Mascot Visual Identity:** High-resolution native vector robot mascot system (app icon, notch peeking avatar, status item template icon) free of embedded text.
+- **Dual Companion Form Factors:**
+  - **Screen Notch Island:** Anchored flush at `Y = 0` (`.mainMenu + 3` layer) with concave Bezier ear curves matching MacBook notch geometry and non-notched M1 displays.
+  - **Liquid Glass Floating Pod:** Draggable anywhere across displays with magnetic corner snapping, Apple Sequoia/Tahoe obsidian translucent glass, specular top rim sheen, and a subtle 3.2s cyan breathing aura.
+- **High-Tech Telescope Mode (⌃⌥⌘):** Full-screen optical context scanner with rotating aperture sweep HUD, crosshair indicators, and micro-context capture.
+- **30-Second Mascot Curiosity Loop:** Peeking animation running on a realistic 8-second motion cadence followed by a 30-second resting phase.
+- **Updated Mascot Branding & Squircle Dock Icon:** High-resolution vector robot avatar with glowing cyan camera aperture shutter lens on forehead, cyan eyes, headphones, and paws, enclosed in an Apple-standard squircle badge with transparent vertices.
 - **Operational ScreenCaptureKit Stream:** Live `SCStream` capturing real display buffers with hardware-accelerated `CIContext` JPEG encoding, adaptive 2 fps frame sampling with SHA256 deduplication, and burst-capture on pointer interactions.
 - **Passive Mouse Event Recording:** Zero-keystroke pointer tracking capturing mouse clicks and rate-limited cursor movements to ground visual observations.
-- **Audio Capture & Reactive Waveform:** Live RMS audio power metering with 5-bar reactive audio waveform and tactile native audio feedback.
+- **Audio Capture & Reactive Waveform:** Live RMS audio power metering with 5-bar reactive audio waveform (in vibrant cyan-to-teal gradient) and multi-tier native audio feedback with an interactive test panel in Settings.
 - **Two-Model AI Pipeline:** Remotely hosted small VLM observer (`HostedVLMClient`) analyzing real screen frames, validated against schema and timestamp bounds (`ObservationValidator`), coupled with an independent conversational LLM (`HostedConversationClient`) for code-level explanations and follow-ups.
 - **BYOK & macOS Keychain Storage:** In-app Settings sheet with Keychain credential storage (`kSecClassGenericPassword`), live connection testing, and support for OpenAI-compatible and Anthropic endpoints.
-- **274+ Automated Tests:** 274 passing offline unit, contract, and adversarial hallucination defense tests (277 total including live two-model network suites).
+- **321 Automated Tests:** 321 passing offline unit, contract, and adversarial hallucination defense tests across 32 comprehensive suites.
 
 ## 📚 Documentation
 
@@ -115,7 +119,7 @@ Detailed architectural, technical, and engineering specifications are located in
 git clone https://github.com/ayushcodes13/Pipsey.git
 cd Pipsey
 
-# Run test verification suite (274 tests)
+# Run test verification suite (321 tests)
 swift run PipseyTests
 
 # Run Pipsey in debug mode

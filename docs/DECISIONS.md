@@ -25,8 +25,17 @@ These are **locked product requirements** or **still-unverified engineering choi
 | 019 | Model provider adapter protocol abstraction | ADOPTED | Decouples VLM/LLM from unverified "ION"; spend cap $0 |
 | 020 | SPM Swift 6 executable architecture & test runner | ADOPTED | Verified with Swift 6.3.3 on macOS 27.2 SDK |
 | 021 | macOS Keychain BYOK secrets & .app bundle packaging | ADOPTED | Zero plaintext credential leakage; reproducible bundle |
+| 022 | Dual companion forms (Notch Island & Floating Pod with corner snapping) | ADOPTED | Wispr Flow draggable interaction pattern with magnetic docking |
+| 023 | Telescope Optical Inspection HUD mode (⌃⌥⌘) | ADOPTED | High-tech viewfinder crosshair scanning & radar sweep |
+| 024 | Apple Liquid Glass Pod UI with ambient breathing aura | ADOPTED | Sequoia/Tahoe obsidian glass, specular rim sheen, 3.2s breathing |
+| 025 | Exact Apple squircle app icon & persistent permission state | ADOPTED | Transparent outer vertices (`alpha = 0`), zero repetitive popups |
 
 ## Changes
+### 2026-11-10 — Companion Form Factor, Aesthetics & Icon Hardening
+- **ADR 022 (Dual Companion Forms & Corner Snapping):** Added `floatingCircle` companion style in addition to `notchIsland`. Features full-screen dragging, magnetic corner snapping, and a 30-second curiosity peeking cadence (8s motion, 30s rest).
+- **ADR 023 (Telescope Optical HUD Mode):** Implemented global `⌃⌥⌘` (Control+Option+Command) hotkey trigger for Telescope Inspection mode. Renders rotating radar aperture ring, optical viewfinder status, and live context capture.
+- **ADR 024 (Liquid Glass Pod Aesthetic):** Replaced flat black boxes with multi-layer obsidian translucent glass (`#101622` to `#080B11`), an Apple-style specular top rim highlight, and an organic 3.2-second cyan breathing pulse around the mascot pebble.
+- **ADR 025 (Exact Squircle App Icon & Persistent Permissions):** Applied exact continuous rounded squircle mask from user artwork with 100% transparent corners outside the vertices. Enhanced `PermissionCoordinator` with live `SCShareableContent` checks and persistent grant flags, completely eliminating repetitive onboarding popups upon launch and dock reopening.
 ### 2026-11-09 — M5 Hardening Decisions
 - **ADR 021 (Keychain & Packaging):** Model API credentials are stored securely in macOS Keychain (`kSecClassGenericPassword`), avoiding plaintext credentials in `.env` files. Native macOS application bundle packaging (`Pipsey.app`) automated via `scripts/build-app.sh` with complete `Info.plist` and sandbox/entitlement metadata.
 

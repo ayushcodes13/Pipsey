@@ -1,6 +1,6 @@
 # Agent-executable implementation plan
 
-**Current state: DOCUMENTATION ONLY.** No application, server, test suite, build, or deployment exists yet. This document defines future tasks and proof gates, not completed work.
+**Current state: FULLY IMPLEMENTED & OPERATIONAL (M0–M5 Complete).** The native macOS companion application (`build/Pipsey.app`) is built, code-signed, and verified with 321 passing unit tests across 32 comprehensive suites. This document preserves the architectural gates and milestones achieved.
 
 ## Workflow
 Read AGENTS.md and CHECKPOINTS.md first. Work through milestones in dependency order. Use a branch and reviewable PR for each vertical slice. Every PR must include verified commands/results, macOS version/hardware, manual checks, failure handling, privacy and costs, with matching updates to CHECKPOINTS.md and PROGRESS.md. Never report a simulated response or mocked screen as working inference.

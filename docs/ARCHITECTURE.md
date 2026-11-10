@@ -1,36 +1,36 @@
 # Technical architecture — Pipsey
 
-**Status:** design decisions with unverified platform/provider assumptions. Implement and benchmark before calling production ready.
+**Status:** Fully implemented, verified, and operational native macOS architecture (Feature Mode MVP verified on Apple Silicon).
 
 ## Component map
 ```text
-+------------------------------------------------------+
-| Native macOS host                                    |
-| SwiftUI UI + AppKit nonactivating panel + menu bar   |
-| HotkeyController | PermissionCoordinator | UIState  |
-+------------------------+-----------------------------+
-                         |
-                   SessionCoordinator
-         (single authoritative lifecycle + session ID)
-        /             |                \
-CaptureService   SpeechService        EventRecorder
-ScreenCaptureKit  Apple STT/TTS        mouse timeline
-     |                |                    |
-FrameSampler    Timestamped transcript    |
-     \                |                    /
-      +------- SessionEvidenceStore --------+
-                      |
-          ObserverClient -> hosted small VLM
-                      |
-       ObservationValidator + EvidenceMerger
-                      |
-           ConversationClient -> text LLM
-                      |
-       stream text + optional native TTS -> UI
++-----------------------------------------------------------------------------------+
+| Native macOS Host (SwiftUI + AppKit nonactivating panel + Menu Bar)              |
+| Dual Form Factors: Notch Island | Liquid Glass Floating Pod (Corner Snapping)     |
+| Telescope HUD Mode (⌃⌥⌘) | Multi-Tier Sound Engine | Persistent Permission State  |
++-----------------------------------------+-----------------------------------------+
+                                          |
+                                 SessionCoordinator
+                   (single authoritative lifecycle + session ID)
+                  /                       |                         \
+         CaptureService             SpeechService              EventRecorder
+        ScreenCaptureKit           Apple STT/TTS               mouse timeline
+               |                          |                          |
+          FrameSampler          Timestamped transcript               |
+               \                          |                         /
+                +-------------- SessionEvidenceStore --------------+
+                                          |
+                             ObserverClient -> hosted VLM
+                                          |
+                            ObservationValidator (Schema)
+                                          |
+                           ConversationClient -> text LLM
+                                          |
+                      stream text + spoken answer -> UI / TTS
 ```
 
 ## Runtime responsibilities
-**App shell:** SwiftUI views; AppKit nonactivating panel (NSPanel candidate) anchored at top-center; menu-bar fallback; multiple-screen placement; click-through outside the interaction region; exclude overlay from ScreenCaptureKit selections where feasible.
+**App shell:** SwiftUI views; AppKit nonactivating panel (`FloatingIslandPanel`) supporting dual form factors: (1) Notch Island anchored flush at top center (`Y = 0`) with Bezier ear curves, and (2) Liquid Glass Floating Pod with 3.2s ambient cyan breathing pulse, specular top rim highlight, magnetic corner snapping, and 30-second curiosity peeking loop. Includes multi-display placement, non-activating click-through outside interaction region, and exclusion from ScreenCaptureKit capture.
 
 **SessionCoordinator:** actor / serial state owner, monotonically increasing session generation ID, concurrent lifecycle tasks, cancellation fan-out, recoverable failure mapping, bounded resource queues. No work starts from a view animation.
 

@@ -21,11 +21,13 @@ Use branch-per-milestone PRs, test with unit and real M1 checks, store private s
 
 ## Build/test command registry
 - Native project build: `swift build --product Pipsey`
-- Unit tests: `swift run PipseyTests`
+- Unit tests (321 tests): `swift run PipseyTests`
 - Run offline verification suite: `swift build --build-tests && .build/debug/PipseyTests`
 - Run live two-model network suite: `PIPSEY_RUN_LIVE_NETWORK_TESTS=1 .build/debug/PipseyTests`
 - Package native `.app` bundle: `./scripts/build-app.sh`
 - Launch packaged bundle: `open build/Pipsey.app`
+- Test audio feedback engine: Settings -> General -> "Sound Effects & Tactile Feedback" (Ping, Tink, Morse, Hero, Submarine)
+- Toggle Companion Styles: Settings -> General -> Companion Style (Screen Notch Island vs Liquid Glass Floating Pod)
 
 When implementing, replace each with actual Xcode scheme/destination, swift test (if used), test fixture setup, lint, run and release commands. Preserve failed output, never assert an unrun test passed.
 

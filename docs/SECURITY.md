@@ -7,7 +7,7 @@ Accidental recording of passwords/financial/medical content; wrong display selec
 
 ## Mandatory controls
 1. No idle/background screen or microphone capture. Show recording state only after the OS pipeline really starts. Always show scope, elapsed time, Stop and Cancel.
-2. Permission requests only as needed (screen, mic; optional Accessibility later). Denial/revocation must stop safely and show actionable guidance.
+2. Permission requests only as needed (screen recording, microphone; zero mandatory Accessibility requirements). Persistent verification via live `SCShareableContent` and cached state prevents repeated, intrusive popups upon launch and dock reopening. Denial/revocation stops safely and provides actionable System Settings deep links.
 3. Informed per-session external upload consent, including which provider receives images/transcript and what data is sent. Do not silently replace the destination host.
 4. Store ephemeral data in app-private temporary locations, purge on stop/cancel by default; explicitly approved replay/export is optional. Verify provider retention commitments before claiming no remote retention.
 5. Use macOS Keychain for shipped API secrets; env templates contain placeholders only. Never log keys, tokens, screenshots or transcripts by default. .env must remain ignored.
