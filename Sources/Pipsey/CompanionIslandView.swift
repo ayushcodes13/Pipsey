@@ -144,10 +144,85 @@ extension View {
     }
 }
 
+/// Native Apple-grade Liquid Glass background with specular rim lighting and breathing depth
+public struct LiquidGlassBackgroundView: View {
+    public let cornerRadius: CGFloat
+    public var isTelescope: Bool = false
+    public var isCapturing: Bool = false
+    public var isIdleCircle: Bool = false
+    public var ambientPulse: Bool = false
+
+    public var body: some View {
+        ZStack {
+            // Ambient Cyan Breathing Glow (for idle circle pebble)
+            if isIdleCircle {
+                Circle()
+                    .fill(Color(hex: "40F0D7").opacity(ambientPulse ? 0.28 : 0.08))
+                    .blur(radius: ambientPulse ? 8 : 4)
+                    .scaleEffect(ambientPulse ? 1.08 : 0.98)
+            }
+
+            // 1. Deep Obsidian Liquid Glass Body
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "101622").opacity(0.88),
+                            Color(hex: "080B11").opacity(0.95)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            // 2. Subtle Radial Light Catch (Apple Glass Specular Glow)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    RadialGradient(
+                        gradient: Gradient(colors: [
+                            isTelescope
+                                ? Color.cyan.opacity(0.18)
+                                : (isCapturing
+                                    ? Color(hex: "FF453A").opacity(0.12)
+                                    : Color.white.opacity(0.08)),
+                            Color.clear
+                        ]),
+                        center: .top,
+                        startRadius: 0,
+                        endRadius: isIdleCircle ? 30 : 90
+                    )
+                )
+
+            // 3. Specular Rim / Bezel Highlight
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: isTelescope ? [
+                            Color(hex: "40F0D7").opacity(0.95),
+                            Color.teal.opacity(0.55),
+                            Color(hex: "40F0D7").opacity(0.95)
+                        ] : (isCapturing ? [
+                            Color(hex: "FF453A").opacity(0.85),
+                            Color(hex: "FF453A").opacity(0.35)
+                        ] : [
+                            Color.white.opacity(0.35),
+                            Color.white.opacity(0.12),
+                            Color(hex: "40F0D7").opacity(0.20)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: isTelescope ? 1.5 : (isCapturing ? 1.2 : 0.8)
+                )
+        }
+    }
+}
+
 public struct CompanionIslandView: View {
     @ObservedObject var viewModel: IslandViewModel
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @State private var hasCopiedCode: Bool = false
+    @State private var ambientBreathing: Bool = false
 
     public init(viewModel: IslandViewModel) {
         self.viewModel = viewModel
@@ -165,31 +240,13 @@ public struct CompanionIslandView: View {
             .background(
                 Group {
                     if viewModel.companionStyle == .floatingCircle {
-                        if viewModel.isTelescopeInspectionMode {
-                            // High-Tech Telescope HUD with Cyan / Teal Accent Outline
-                            RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                .fill(Color.black.opacity(0.95))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                        .stroke(
-                                            LinearGradient(
-                                                colors: [Color.cyan.opacity(0.85), Color.teal.opacity(0.5), Color.cyan.opacity(0.85)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            ),
-                                            lineWidth: 1.5
-                                        )
-                                )
-                        } else {
-                            // Silky smooth frosted glass capsule that fades in gracefully on hover
-                            RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                .fill(Color.black.opacity(0.88))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                        .stroke(Color.white.opacity(0.20), lineWidth: 0.8)
-                                )
-                                .opacity(viewModel.state == .idle && !viewModel.isHovering ? 0.0 : 1.0)
-                        }
+                        LiquidGlassBackgroundView(
+                            cornerRadius: viewModel.bottomCornerRadius,
+                            isTelescope: viewModel.isTelescopeInspectionMode,
+                            isCapturing: viewModel.state.isCapturing,
+                            isIdleCircle: viewModel.state == .idle && !viewModel.isHovering,
+                            ambientPulse: ambientBreathing
+                        )
                     } else if viewModel.hasPhysicalNotch {
                         Color.black
                             .clipShape(NotchShape(
@@ -203,42 +260,25 @@ public struct CompanionIslandView: View {
                                     .padding(.horizontal, viewModel.topCornerRadius)
                             }
                     } else {
-                        if viewModel.state == .idle && !viewModel.isHovering {
-                            // Minimal Sleek Line Pill with Crisp White Outline
-                            Capsule()
-                                .fill(Color.black.opacity(0.92))
-                                .overlay(
-                                    Capsule()
-                                        .stroke(Color.white.opacity(0.35), lineWidth: 1.0)
-                                )
-                        } else if viewModel.state.isCapturing {
-                            // Capturing Capsule with Elegant White Outline
-                            RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                .fill(Color.black.opacity(0.94))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                        .stroke(Color.white.opacity(0.75), lineWidth: 1.2)
-                                )
-                        } else {
-                            RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                .fill(Color.black.opacity(0.92))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: viewModel.bottomCornerRadius, style: .continuous)
-                                        .stroke(Color.white.opacity(0.35), lineWidth: 1.0)
-                                )
-                        }
+                        LiquidGlassBackgroundView(
+                            cornerRadius: viewModel.bottomCornerRadius,
+                            isTelescope: viewModel.isTelescopeInspectionMode,
+                            isCapturing: viewModel.state.isCapturing,
+                            isIdleCircle: false,
+                            ambientPulse: ambientBreathing
+                        )
                     }
                 }
             )
             .shadow(
                 color: viewModel.isTelescopeInspectionMode
-                    ? Color.cyan.opacity(0.35)
+                    ? Color(hex: "40F0D7").opacity(0.40)
                     : (viewModel.state.isCapturing
-                        ? Color.white.opacity(0.20)
+                        ? Color(hex: "FF453A").opacity(0.25)
                         : (viewModel.companionStyle == .floatingCircle && viewModel.state == .idle && !viewModel.isHovering
-                            ? Color.clear
+                            ? Color(hex: "40F0D7").opacity(ambientBreathing ? 0.35 : 0.12)
                             : Color.black.opacity(0.45))),
-                radius: viewModel.isTelescopeInspectionMode ? 12 : (viewModel.state.isCapturing ? 10 : (viewModel.companionStyle == .floatingCircle && viewModel.state == .idle && !viewModel.isHovering ? 0 : 8)),
+                radius: viewModel.isTelescopeInspectionMode ? 14 : (viewModel.state.isCapturing ? 12 : (viewModel.companionStyle == .floatingCircle && viewModel.state == .idle && !viewModel.isHovering ? (ambientBreathing ? 8 : 4) : 10)),
                 x: 0,
                 y: 2
             )
@@ -248,6 +288,11 @@ public struct CompanionIslandView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
+                ambientBreathing = true
+            }
+        }
         .sheet(item: $viewModel.activeSheet) { sheet in
             switch sheet {
             case .permissions:
@@ -296,51 +341,80 @@ public struct CompanionIslandView: View {
                 Button(action: {
                     Task { await viewModel.triggerSession() }
                 }) {
-                    PipseyMascotView(size: viewModel.isHovering ? 28 : 38, isAnimated: true)
+                    PipseyMascotView(size: viewModel.isHovering ? 28 : 34, isAnimated: true)
                         .rotationEffect(.degrees(viewModel.idlePeekingAngle))
                         .offset(y: viewModel.idlePeekingOffset)
                         .scaleEffect(viewModel.idlePeekingScale)
-                        .shadow(color: Color.black.opacity(viewModel.isHovering ? 0.15 : 0.35), radius: 4, x: 0, y: 2)
-                        .animation(.spring(response: 0.42, dampingFraction: 0.8), value: viewModel.isHovering)
+                        .shadow(color: Color.black.opacity(viewModel.isHovering ? 0.20 : 0.35), radius: 4, x: 0, y: 2)
+                        .animation(.spring(response: 0.38, dampingFraction: 0.82), value: viewModel.isHovering)
                 }
                 .buttonStyle(.plain)
                 .frame(width: 46, height: 46)
                 .accessibilityLabel("Pipsey Companion (Click to record, drag to move, ⌃⌥⌘ for telescope)")
 
                 if viewModel.isHovering {
-                    HStack(spacing: 0) {
-                        Spacer()
+                    HStack(spacing: 6) {
+                        Spacer(minLength: 2)
 
-                        // Center / Middle: Shortcut Badges
+                        // Center: Refined Ask Pipsey Action Pill
                         Button(action: {
                             Task { await viewModel.triggerSession() }
                         }) {
-                            HStack(spacing: 3) {
-                                KeyBadge("⌃", isAccent: false)
-                                KeyBadge("⌥", isAccent: true)
-                                KeyBadge("⌘", isAccent: true)
+                            HStack(spacing: 5) {
+                                HStack(spacing: 2) {
+                                    Text("⌥")
+                                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    Text("⌘")
+                                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                                }
+                                .foregroundColor(Color(hex: "40F0D7"))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2.5)
+                                .background(Color(hex: "40F0D7").opacity(0.15))
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color(hex: "40F0D7").opacity(0.35), lineWidth: 0.5)
+                                )
+
+                                Text("Ask")
+                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.92))
                             }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
+                            )
                         }
                         .buttonStyle(.plain)
-                        .help("Hold Control+Option+Command for Telescope Inspection, or Option+Command for Quick Voice")
+                        .help("Hold Option+Command to record interaction, or Control+Option+Command for Telescope")
 
-                        Spacer()
+                        // Subtle Glass Divider
+                        Rectangle()
+                            .fill(Color.white.opacity(0.15))
+                            .frame(width: 1, height: 16)
 
-                        // Rightmost: Clean settings control
+                        // Rightmost: Clean circular settings trigger
                         Button(action: {
                             SettingsWindowController.show()
                         }) {
-                            Image(systemName: "gearshape")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.75))
-                                .frame(width: 22, height: 22)
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 11.5, weight: .medium))
+                                .foregroundColor(.white.opacity(0.70))
+                                .frame(width: 24, height: 24)
+                                .background(Color.white.opacity(0.06))
+                                .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
                         .help("Preferences (⌘,)")
                     }
-                    .padding(.trailing, 10)
+                    .padding(.trailing, 8)
                     .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .leading)),
+                        insertion: .opacity.combined(with: .scale(scale: 0.92, anchor: .leading)),
                         removal: .opacity
                     ))
                 }
@@ -355,15 +429,16 @@ public struct CompanionIslandView: View {
                         .fill(
                             LinearGradient(
                                 colors: [
+                                    Color(hex: "40F0D7"),
                                     Color(hex: "0A84FF"),
-                                    Color(hex: "0071E3"),
-                                    Color(hex: "0A84FF")
+                                    Color(hex: "40F0D7")
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
-                        .frame(width: 54, height: 3)
+                        .frame(width: 58, height: 3.5)
+                        .shadow(color: Color(hex: "40F0D7").opacity(0.55), radius: 3, y: 1)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
@@ -384,13 +459,25 @@ public struct CompanionIslandView: View {
 
                     Spacer()
 
-                    // Center / Middle: Shortcut badges
+                    // Center: Refined Ask Pill
                     Button(action: {
                         Task { await viewModel.triggerSession() }
                     }) {
-                        HStack(spacing: 3) {
-                            KeyBadge("⌥", isAccent: true)
-                            KeyBadge("⌘", isAccent: true)
+                        HStack(spacing: 4) {
+                            HStack(spacing: 2) {
+                                Text("⌥").font(.system(size: 11, weight: .bold, design: .rounded))
+                                Text("⌘").font(.system(size: 11, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(Color(hex: "40F0D7"))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color(hex: "40F0D7").opacity(0.15))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color(hex: "40F0D7").opacity(0.35), lineWidth: 0.5))
+
+                            Text("Ask")
+                                .font(.system(size: 11, weight: .medium, design: .rounded))
+                                .foregroundColor(.white.opacity(0.9))
                         }
                     }
                     .buttonStyle(.plain)
@@ -402,10 +489,12 @@ public struct CompanionIslandView: View {
                     Button(action: {
                         SettingsWindowController.show()
                     }) {
-                        Image(systemName: "gearshape")
+                        Image(systemName: "gearshape.fill")
                             .font(.system(size: 11.5, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
-                            .frame(width: 20, height: 20)
+                            .foregroundColor(.white.opacity(0.7))
+                            .frame(width: 22, height: 22)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
                     .help("Preferences (⌘,)")
@@ -434,7 +523,7 @@ public struct CompanionIslandView: View {
             Button(action: {
                 Task { await viewModel.triggerSession() }
             }) {
-                PipseyMascotView(size: 20)
+                PipseyMascotView(size: 22)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Pipsey Mascot")
@@ -442,58 +531,61 @@ public struct CompanionIslandView: View {
             Spacer()
 
             // Center / Middle: Unmistakable sound recording indicator
-            HStack(spacing: 6) {
-                // Pulsing red recording dot
-                Circle()
-                    .fill(Color(hex: "FF453A"))
-                    .frame(width: 6, height: 6)
-                    .scaleEffect(!reduceMotion ? 1.2 : 1.0)
-                    .animation(reduceMotion ? .none : .easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: viewModel.elapsedSeconds)
+            HStack(spacing: 7) {
+                // Pulsing red recording jewel with soft glow
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "FF453A").opacity(0.35))
+                        .frame(width: 12, height: 12)
+                        .blur(radius: 2)
+                        .scaleEffect(!reduceMotion ? 1.25 : 1.0)
+                        .animation(reduceMotion ? .none : .easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: viewModel.elapsedSeconds)
 
-                // Microphone icon
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 9.5, weight: .bold))
-                    .foregroundColor(Color(hex: "FF453A"))
+                    Circle()
+                        .fill(Color(hex: "FF453A"))
+                        .frame(width: 7, height: 7)
+                }
 
                 // Live 5-bar reactive audio waveform
                 LiveWaveformView(audioPowerLevel: viewModel.audioPowerLevel)
 
-                // "Recording..." text & live timer
-                Text("Recording...")
-                    .font(.system(size: 10.5, weight: .semibold))
+                // "Listening..." text & live timer
+                Text("Listening")
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
 
                 Text(viewModel.formattedDuration)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.85))
+                    .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(Color(hex: "40F0D7"))
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3.5)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
             .background(Color.white.opacity(0.06))
-            .cornerRadius(6)
+            .clipShape(Capsule())
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
+                Capsule()
                     .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
             )
 
             Spacer()
 
             // Rightmost: Done & Cancel buttons
-            HStack(spacing: 5) {
+            HStack(spacing: 6) {
                 Button(action: {
                     Task { await viewModel.stopCapture() }
                 }) {
-                    HStack(spacing: 2) {
+                    HStack(spacing: 3) {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 8, weight: .bold))
+                            .font(.system(size: 8.5, weight: .bold))
                         Text("Done")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: 9.5, weight: .bold, design: .rounded))
                     }
                     .foregroundColor(.black)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
                     .background(Color.white)
-                    .cornerRadius(6)
+                    .clipShape(Capsule())
+                    .shadow(color: Color.white.opacity(0.25), radius: 3, y: 1)
                 }
                 .buttonStyle(.plain)
 
@@ -501,9 +593,11 @@ public struct CompanionIslandView: View {
                     Task { await viewModel.cancel() }
                 }) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 8.5, weight: .bold))
-                        .foregroundColor(.white.opacity(0.5))
-                        .frame(width: 14, height: 14)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white.opacity(0.65))
+                        .frame(width: 20, height: 20)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
             }
@@ -521,10 +615,10 @@ public struct CompanionIslandView: View {
                     .stroke(
                         AngularGradient(
                             gradient: Gradient(colors: [
-                                Color.cyan.opacity(0.85),
+                                Color(hex: "40F0D7").opacity(0.95),
                                 Color.teal.opacity(0.4),
                                 Color.clear,
-                                Color.cyan.opacity(0.85)
+                                Color(hex: "40F0D7").opacity(0.95)
                             ]),
                             center: .center
                         ),
@@ -542,18 +636,18 @@ public struct CompanionIslandView: View {
             // Center / Middle: Optical Telescope Crosshair HUD
             HStack(spacing: 6) {
                 // Scope icon with cyan accent
-                Image(systemName: "scope")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color.cyan)
+                Image(systemName: "camera.aperture")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(Color(hex: "40F0D7"))
 
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 4) {
-                        Text("TELESCOPE INSPECTION")
-                            .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
-                            .foregroundColor(Color.cyan)
+                        Text("TELESCOPE")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .foregroundColor(Color(hex: "40F0D7"))
 
                         Circle()
-                            .fill(Color.cyan)
+                            .fill(Color(hex: "40F0D7"))
                             .frame(width: 4, height: 4)
 
                         Text(viewModel.formattedDuration)
@@ -566,8 +660,8 @@ public struct CompanionIslandView: View {
                             .font(.system(size: 8))
                             .foregroundColor(.white.opacity(0.6))
                         Text("Scanning UI elements & screen context")
-                            .font(.system(size: 9, weight: .regular))
-                            .foregroundColor(.white.opacity(0.75))
+                            .font(.system(size: 9, weight: .regular, design: .rounded))
+                            .foregroundColor(.white.opacity(0.80))
                             .lineLimit(1)
                     }
                 }
@@ -576,33 +670,34 @@ public struct CompanionIslandView: View {
                 LiveWaveformView(audioPowerLevel: viewModel.audioPowerLevel)
                     .padding(.leading, 4)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3.5)
-            .background(Color.white.opacity(0.08))
-            .cornerRadius(8)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Color.white.opacity(0.06))
+            .clipShape(Capsule())
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.cyan.opacity(0.35), lineWidth: 0.8)
+                Capsule()
+                    .stroke(Color(hex: "40F0D7").opacity(0.35), lineWidth: 0.8)
             )
 
             Spacer()
 
             // Rightmost: Done & Cancel buttons
-            HStack(spacing: 5) {
+            HStack(spacing: 6) {
                 Button(action: {
                     Task { await viewModel.stopCapture() }
                 }) {
-                    HStack(spacing: 2) {
-                        Image(systemName: "checkmark")
+                    HStack(spacing: 3) {
+                        Image(systemName: "sparkles")
                             .font(.system(size: 8.5, weight: .bold))
                         Text("Analyze")
-                            .font(.system(size: 9.5, weight: .bold))
+                            .font(.system(size: 9.5, weight: .bold, design: .rounded))
                     }
                     .foregroundColor(.black)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color.cyan)
-                    .cornerRadius(6)
+                    .background(Color(hex: "40F0D7"))
+                    .clipShape(Capsule())
+                    .shadow(color: Color(hex: "40F0D7").opacity(0.35), radius: 4, y: 1)
                 }
                 .buttonStyle(.plain)
 
@@ -610,9 +705,11 @@ public struct CompanionIslandView: View {
                     Task { await viewModel.cancel() }
                 }) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 8.5, weight: .bold))
-                        .foregroundColor(.white.opacity(0.6))
-                        .frame(width: 16, height: 16)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white.opacity(0.65))
+                        .frame(width: 20, height: 20)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
             }
@@ -755,7 +852,14 @@ public struct LiveWaveformView: View {
             HStack(alignment: .center, spacing: 2.2) {
                 ForEach(0..<barCount, id: \.self) { i in
                     RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                        .fill(Color.white.opacity(0.85))
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "40F0D7"), Color(hex: "20B0A0")],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .shadow(color: Color(hex: "40F0D7").opacity(0.35), radius: 1.5, y: 0)
                         .frame(
                             width: 2.2,
                             height: barHeight(for: i, date: context.date)
@@ -1501,7 +1605,7 @@ public final class IslandViewModel: ObservableObject {
             switch state {
             case .idle:
                 if isHovering {
-                    w = 175
+                    w = 196
                     h = 46
                     topR = 23
                     botR = 23

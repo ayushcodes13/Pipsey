@@ -25,6 +25,28 @@
 
 ## Engineering log
 
+### 2026-11-10 — Companion Aesthetic Redesign: The Liquid Glass Pod
+- **Problem Statement:**
+  - The companion interface felt unfinished: flat dark rectangles with 1px borders, abrupt pop-in hover transitions, chunky keyboard badges, and lack of visual soul matching the new robot aperture mascot.
+- **Root Cause & Deliverables:**
+  1. **Liquid Glass Pod Architecture (`LiquidGlassBackgroundView`):**
+     - Replaced flat black box layers with deep obsidian translucent glass (`Color(hex: "101622").opacity(0.88)` to `Color(hex: "080B11").opacity(0.95)`).
+     - Added an Apple-style specular top highlight rim (`LinearGradient` from `Color.white.opacity(0.35)` down to `Color(hex: "40F0D7").opacity(0.20)`).
+     - Eliminated abrupt background pop-in: the companion now permanently floats as an exquisite 46×46 circular glass pebble that fluidly morphs into a 196×46 glass pill on hover with native spring physics (`.spring(response: 0.38, dampingFraction: 0.82)`).
+  2. **Living Ambient Cyan Breathing Aura:**
+     - Implemented an organic 3.2-second sinusoidal ambient breathing pulse around the mascot pebble in idle mode (`Color(hex: "40F0D7")` with dynamic soft blur and scale interpolation), signaling that Pipsey is active, conscious, and listening.
+  3. **Streamlined Typography & Action Pills:**
+     - Replaced bulky grey keycap badges with refined translucent glass badges featuring SF Pro Rounded font and glowing cyan modifier symbols (`⌥⌘`).
+     - Added a clean `Ask` action pill, subtle glass divider, and circular settings gear trigger with smooth hover feedback.
+  4. **High-Tech Waveform Visualizer & Jewel Indicators:**
+     - Elevated recording state with a pulsing ruby recording jewel (`#FF453A`) with radial glow bloom.
+     - Upgraded the 5-bar reactive audio equalizer to vibrant cyan-to-teal gradient bars with drop shadow (`#40F0D7` to `#20B0A0`).
+     - Enhanced Telescope Inspection Mode with an optical aperture reticle glyph, cyan border glow, and monospace status badge.
+- **Verification:**
+  - 321/321 automated unit tests passed (`swift run PipseyTests`).
+  - Compiled and signed via `./scripts/build-app.sh`.
+  - Application running under PID 39659 with live interactive Liquid Glass UI.
+
 ### 2026-11-10 — Circular Mascot Dock Icon with Glowing Camera Aperture
 - **Problem Statement:**
   - The user requested updating the macOS Dock icon to the new mascot with the glowing camera aperture on its forehead, specifically requesting "only the circular part" rather than the dark squircle box/card with square corners.
