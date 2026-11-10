@@ -4,6 +4,7 @@ import AppKit
 
 /// Available appearance styles for the resting on-screen companion indicator
 public enum CompanionAppearance: String, CaseIterable, Sendable {
+    case apertureJewel = "apertureJewel"
     case wisprCapsule = "wisprCapsule"
     case precisionLens = "precisionLens"
     case cyberVisor = "cyberVisor"
@@ -11,11 +12,138 @@ public enum CompanionAppearance: String, CaseIterable, Sendable {
 
     public static func from(raw: String?) -> CompanionAppearance {
         switch raw {
+        case "apertureJewel": return .apertureJewel
         case "wisprCapsule": return .wisprCapsule
         case "precisionLens", "neonOrb": return .precisionLens
         case "cyberVisor", "minimalEyes": return .cyberVisor
         case "fullMascot": return .fullMascot
-        default: return .wisprCapsule
+        default: return .apertureJewel
+        }
+    }
+}
+
+/// Six-blade precision camera iris shape with configurable chord angle
+public struct ApertureIrisShape: Shape {
+    public var rotationOffset: Double = 0
+    public var chordAngle: Double = 142.0
+
+    public func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let radius = min(rect.width, rect.height) / 2.0
+        let chordRad = chordAngle * .pi / 180.0
+        let rotRad = rotationOffset * .pi / 180.0
+
+        for i in 0..<6 {
+            let theta = (Double(i) * .pi / 3.0) + rotRad
+            let p1 = CGPoint(
+                x: center.x + radius * CGFloat(cos(theta)),
+                y: center.y + radius * CGFloat(sin(theta))
+            )
+            let p2 = CGPoint(
+                x: center.x + radius * CGFloat(cos(theta + chordRad)),
+                y: center.y + radius * CGFloat(sin(theta + chordRad))
+            )
+            path.move(to: p1)
+            path.addLine(to: p2)
+        }
+        return path
+    }
+}
+
+/// Concept 1: The Aperture Jewel — A camera lens / watch crown element set in Apple Liquid Glass
+public struct PipseyApertureJewelView: View {
+    public var size: CGFloat = 30
+    public var isHovered: Bool = false
+    public var isCapturing: Bool = false
+    @State private var pinholeBreath: Bool = false
+
+    public init(size: CGFloat = 30, isHovered: Bool = false, isCapturing: Bool = false) {
+        self.size = size
+        self.isHovered = isHovered
+        self.isCapturing = isCapturing
+    }
+
+    public var body: some View {
+        ZStack {
+            // 1. Deep Obsidian Material Base (#0B0D0F with Liquid Glass)
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "12151B").opacity(0.92),
+                            Color(hex: "080A0D").opacity(0.98)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: size, height: size)
+
+            // 2. Inset 1pt highlight stroke (white 0.06)
+            Circle()
+                .stroke(Color.white.opacity(0.06), lineWidth: 1.0)
+                .frame(width: size - 2, height: size - 2)
+
+            // 3. Six-Blade Hairline Iris (nearly closed at rest, rotates 30° open when recording)
+            ApertureIrisShape(
+                rotationOffset: isCapturing ? 30.0 : 0.0,
+                chordAngle: isCapturing ? 112.0 : 142.0
+            )
+            .stroke(Color.white.opacity(0.16), lineWidth: 0.75)
+            .frame(width: size * 0.72, height: size * 0.72)
+            .animation(.spring(response: 0.42, dampingFraction: 0.88), value: isCapturing)
+
+            // 4. Central 3pt Mint Pinhole with 5.2s Sine Breathing Halo
+            Circle()
+                .fill(Color(hex: "2DD4BF").opacity(pinholeBreath ? 0.45 : 0.25))
+                .frame(width: 8, height: 8)
+                .blur(radius: pinholeBreath ? 3.0 : 1.5)
+
+            Circle()
+                .fill(
+                    RadialGradient(
+                        gradient: Gradient(colors: [
+                            Color(hex: "E6FFFA"),
+                            Color(hex: "2DD4BF")
+                        ]),
+                        center: .center,
+                        startRadius: 0.5,
+                        endRadius: 2.0
+                    )
+                )
+                .frame(width: 3.2, height: 3.2)
+                .opacity(0.90)
+                .shadow(color: Color(hex: "2DD4BF").opacity(0.8), radius: 2)
+        }
+        // 5. Bevel Rim: Angular gradient highlight with ±10° cursor tracking sheen on hover
+        .overlay(
+            Circle()
+                .stroke(
+                    AngularGradient(
+                        gradient: Gradient(colors: [
+                            Color.white.opacity(isHovered ? 0.38 : 0.22),
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.04),
+                            Color.white.opacity(isHovered ? 0.32 : 0.12),
+                            Color.white.opacity(isHovered ? 0.38 : 0.22)
+                        ]),
+                        center: .center,
+                        startAngle: .degrees(isHovered ? -35 : -45)
+                    ),
+                    lineWidth: 0.5
+                )
+        )
+        // 6. Layered shadows: Contact shadow + Soft ambient drop
+        .shadow(color: Color.black.opacity(0.50), radius: 0.5, x: 0, y: 0.5)
+        .shadow(color: Color.black.opacity(0.28), radius: 12, x: 0, y: 4)
+        // Hit target: 40x40pt with invisible margin for effortless clicks
+        .frame(width: 40, height: 40)
+        .contentShape(Rectangle())
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) {
+                pinholeBreath = true
+            }
         }
     }
 }
@@ -600,6 +728,17 @@ public struct CompanionIslandView: View {
 
                 Menu {
                     Button {
+                        viewModel.setAppearance(.apertureJewel)
+                    } label: {
+                        HStack {
+                            Text("The Aperture Jewel (Machined Optics)")
+                            if viewModel.companionAppearance == .apertureJewel {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+
+                    Button {
                         viewModel.setAppearance(.wisprCapsule)
                     } label: {
                         HStack {
@@ -758,6 +897,8 @@ public struct CompanionIslandView: View {
     @ViewBuilder
     private var indicatorView: some View {
         switch viewModel.companionAppearance {
+        case .apertureJewel:
+            PipseyApertureJewelView(size: 30, isHovered: viewModel.isHovering, isCapturing: viewModel.state.isCapturing)
         case .wisprCapsule:
             PipseyWisprCapsuleView(isHovered: viewModel.isHovering)
         case .precisionLens:
@@ -786,14 +927,23 @@ public struct CompanionIslandView: View {
     // Standard Capturing State (Shortcut Hit -> Sound Recording Visualizer)
     private var standardCapturingContent: some View {
         HStack(spacing: 0) {
-            // Leftmost: Mascot Avatar remains anchored on the leftmost side
+            // Leftmost: Jewel / Mascot Avatar remains anchored on the leftmost side
             Button(action: {
                 Task { await viewModel.triggerSession() }
             }) {
-                PipseyMascotView(size: 22)
+                if viewModel.companionAppearance == .apertureJewel {
+                    PipseyApertureJewelView(size: 26, isHovered: false, isCapturing: true)
+                } else if viewModel.companionAppearance == .wisprCapsule {
+                    Image(systemName: "camera.aperture")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: "2DD4BF"))
+                        .frame(width: 24, height: 24)
+                } else {
+                    PipseyMascotView(size: 22)
+                }
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Pipsey Mascot")
+            .accessibilityLabel("Pipsey Aperture Indicator")
 
             Spacer()
 
@@ -1850,6 +2000,11 @@ public final class IslandViewModel: ObservableObject {
 
         if self.companionStyle == .floatingCircle {
             switch self.companionAppearance {
+            case .apertureJewel:
+                self.currentWidth = 40
+                self.currentHeight = 40
+                self.topCornerRadius = 20
+                self.bottomCornerRadius = 20
             case .wisprCapsule:
                 self.currentWidth = 56
                 self.currentHeight = 24
@@ -1935,6 +2090,11 @@ public final class IslandViewModel: ObservableObject {
             switch state {
             case .idle:
                 switch companionAppearance {
+                case .apertureJewel:
+                    w = 40
+                    h = 40
+                    topR = 20
+                    botR = 20
                 case .wisprCapsule:
                     w = 56
                     h = 24

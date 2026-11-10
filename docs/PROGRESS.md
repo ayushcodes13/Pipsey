@@ -25,6 +25,25 @@
 
 ## Engineering log
 
+### 2026-11-10 — Implementation of The Aperture Jewel (Machined Optics in Liquid Glass)
+- **Problem Statement:**
+  - Rather than copying Wispr Flow's single line or using generic floating pills, Pipsey required an original, brand-authentic, minimalist resting presence that provides zero distraction during deep work.
+- **Deliverables & Implementation:**
+  1. **Concept 1: The Aperture Jewel (`PipseyApertureJewelView`):**
+     - **Chassis:** 30×30pt visible circle (40×40pt hit target with transparent margin for effortless clicks and drags).
+     - **Materials:** Apple `.ultraThinMaterial` / obsidian `#0B0D0F` wash with a $1.0\text{pt}$ inset stroke (`white.opacity(0.06)`).
+     - **Six-Blade Optical Iris (`ApertureIrisShape`):** 6 precision tangent chord blades ($0.75\text{pt}$ hairline, `white.opacity(0.16)`) arranged symmetrically at $60^\circ$ increments with $142^\circ$ chord angle forming a geometric hexagonal aperture.
+     - **Optical Pinhole & Calm Breath:** $3.2\text{pt}$ central mint pinhole (`#2DD4BF`) with a $5.2\text{s}$ sine luminescent breathing halo ($0.25 \rightarrow 0.45$ opacity).
+     - **Bevel Lighting:** $0.5\text{pt}$ angular specular rim that shifts highlight angle by $\pm 10^\circ$ on cursor hover without changing the physical footprint.
+     - **Choreographed Summon:** In `.listeningAndCapturing`, the jewel anchors as the recording pill's left cap while the iris blades rotate $30^\circ$ open into the active recording viewfinder.
+  2. **Interactions:**
+     - Left-click or `⌥⌘`: Triggers recording.
+     - Right-click: Surfaces native macOS context menu with SF Symbols (Ask, Telescope, Appearance, Snap to Corner, Settings, Quit).
+     - Tooltip: "Hold ⌥⌘ to ask" (700ms delay).
+  3. **Verification:**
+     - 321/321 automated unit tests passed (`swift run PipseyTests`).
+     - Codesigned and running live (`build/Pipsey.app`, PID 60210).
+
 ### 2026-11-10 — Big-Startup Craft Redesign: The Wispr Capsule, Precision Lens & Cyber-Visor
 - **Problem Statement & Slop Audit:**
   - The previous minimal indicator draft used amateur vibecoded conventions: an electric cyan gradient sphere with an orbiting particle glint, jumpy layout expansion (26px to 196px) on hover, emoji toggle buttons (`🔵` / `👀`), and erratic motion that distracted from deep work.

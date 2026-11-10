@@ -150,6 +150,7 @@ struct GeneralSettingsPane: View {
         Form {
             Section("Companion Style & Placement") {
                 Picker("Indicator Appearance", selection: $companionAppearance) {
+                    Text("Aperture Jewel (Machined Optics)").tag("apertureJewel")
                     Text("Wispr Capsule (Aperture Pill)").tag("wisprCapsule")
                     Text("Precision Glass Lens").tag("precisionLens")
                     Text("Minimalist Cyber-Visor").tag("cyberVisor")
