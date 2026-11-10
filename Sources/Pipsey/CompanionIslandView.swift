@@ -1249,11 +1249,16 @@ public struct PermissionsOnboardingSheet: View {
                     .buttonStyle(.bordered)
                 } else {
                     Button("Allow / Open Settings") {
-                        let granted = PermissionCoordinator.shared.requestScreenRecordingAccess()
-                        if !granted {
-                            PermissionCoordinator.shared.openScreenRecordingSettings()
+                        Task {
+                            let verified = await PermissionCoordinator.shared.verifyScreenRecordingAccess()
+                            if !verified {
+                                let requested = PermissionCoordinator.shared.requestScreenRecordingAccess()
+                                if !requested {
+                                    PermissionCoordinator.shared.openScreenRecordingSettings()
+                                }
+                            }
+                            snapshot = PermissionCoordinator.shared.currentSnapshot()
                         }
-                        snapshot = PermissionCoordinator.shared.currentSnapshot()
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -1271,11 +1276,12 @@ public struct PermissionsOnboardingSheet: View {
                 statusBadge(for: snapshot.microphone == .authorized)
                 Button("Request Access") {
                     Task {
-                        _ = await PermissionCoordinator.shared.requestMicrophoneAccess()
-                        if snapshot.microphone != .authorized {
+                        let granted = await PermissionCoordinator.shared.requestMicrophoneAccess()
+                        let updated = PermissionCoordinator.shared.currentSnapshot()
+                        snapshot = updated
+                        if !granted && updated.microphone != .authorized {
                             PermissionCoordinator.shared.openMicrophoneSettings()
                         }
-                        snapshot = PermissionCoordinator.shared.currentSnapshot()
                     }
                 }
                 .buttonStyle(.bordered)
@@ -1293,11 +1299,12 @@ public struct PermissionsOnboardingSheet: View {
                 statusBadge(for: snapshot.speechRecognition == .authorized)
                 Button("Request Access") {
                     Task {
-                        _ = await PermissionCoordinator.shared.requestSpeechAccess()
-                        if snapshot.speechRecognition != .authorized {
+                        let granted = await PermissionCoordinator.shared.requestSpeechAccess()
+                        let updated = PermissionCoordinator.shared.currentSnapshot()
+                        snapshot = updated
+                        if !granted && updated.speechRecognition != .authorized {
                             PermissionCoordinator.shared.openSpeechRecognitionSettings()
                         }
-                        snapshot = PermissionCoordinator.shared.currentSnapshot()
                     }
                 }
                 .buttonStyle(.bordered)
@@ -1739,9 +1746,6 @@ public final class IslandViewModel: ObservableObject {
             // Tactile audio chime on start
             PipseySoundEffects.playCaptureStarted()
         } catch {
-            if case CaptureError.permissionDenied = error {
-                self.showPermissionsSheet = true
-            }
             await coordinator.fail(error: error.localizedDescription, generation: gen)
         }
     }

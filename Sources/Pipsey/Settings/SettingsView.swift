@@ -545,11 +545,16 @@ struct PrivacySettingsPane: View {
                         .buttonStyle(.bordered)
                     } else {
                         Button("Allow / Open Settings") {
-                            let granted = PermissionCoordinator.shared.requestScreenRecordingAccess()
-                            if !granted {
-                                PermissionCoordinator.shared.openScreenRecordingSettings()
+                            Task {
+                                let verified = await PermissionCoordinator.shared.verifyScreenRecordingAccess()
+                                if !verified {
+                                    let requested = PermissionCoordinator.shared.requestScreenRecordingAccess()
+                                    if !requested {
+                                        PermissionCoordinator.shared.openScreenRecordingSettings()
+                                    }
+                                }
+                                snapshot = PermissionCoordinator.shared.currentSnapshot()
                             }
-                            snapshot = PermissionCoordinator.shared.currentSnapshot()
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -586,8 +591,12 @@ struct PrivacySettingsPane: View {
                     statusBadge(granted: snapshot.microphone == .authorized)
                     Button("Request Access") {
                         Task {
-                            _ = await PermissionCoordinator.shared.requestMicrophoneAccess()
-                            snapshot = PermissionCoordinator.shared.currentSnapshot()
+                            let granted = await PermissionCoordinator.shared.requestMicrophoneAccess()
+                            let updated = PermissionCoordinator.shared.currentSnapshot()
+                            snapshot = updated
+                            if !granted && updated.microphone != .authorized {
+                                PermissionCoordinator.shared.openMicrophoneSettings()
+                            }
                         }
                     }
                     .buttonStyle(.bordered)
@@ -606,8 +615,12 @@ struct PrivacySettingsPane: View {
                     statusBadge(granted: snapshot.speechRecognition == .authorized)
                     Button("Request Access") {
                         Task {
-                            _ = await PermissionCoordinator.shared.requestSpeechAccess()
-                            snapshot = PermissionCoordinator.shared.currentSnapshot()
+                            let granted = await PermissionCoordinator.shared.requestSpeechAccess()
+                            let updated = PermissionCoordinator.shared.currentSnapshot()
+                            snapshot = updated
+                            if !granted && updated.speechRecognition != .authorized {
+                                PermissionCoordinator.shared.openSpeechRecognitionSettings()
+                            }
                         }
                     }
                     .buttonStyle(.bordered)

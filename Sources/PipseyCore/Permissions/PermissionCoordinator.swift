@@ -62,12 +62,14 @@ public final class PermissionCoordinator: @unchecked Sendable {
         os_unfair_lock_lock(lock)
         _cachedScreenGranted = true
         os_unfair_lock_unlock(lock)
+        UserDefaults.standard.set(true, forKey: "pipsey_screen_recording_granted")
     }
 
     public func resetScreenRecordingCache() {
         os_unfair_lock_lock(lock)
         _cachedScreenGranted = false
         os_unfair_lock_unlock(lock)
+        UserDefaults.standard.removeObject(forKey: "pipsey_screen_recording_granted")
     }
 
     public func checkScreenRecordingStatus() -> ScreenRecordingStatus {
@@ -75,6 +77,11 @@ public final class PermissionCoordinator: @unchecked Sendable {
         let isCached = _cachedScreenGranted
         os_unfair_lock_unlock(lock)
         if isCached { return .granted }
+
+        if UserDefaults.standard.bool(forKey: "pipsey_screen_recording_granted") {
+            markScreenRecordingGranted()
+            return .granted
+        }
 
         if #available(macOS 12.0, *) {
             if CGPreflightScreenCaptureAccess() {
@@ -85,6 +92,17 @@ public final class PermissionCoordinator: @unchecked Sendable {
             }
         }
         return .unknown
+    }
+
+    public func verifyScreenRecordingAccess() async -> Bool {
+        if checkScreenRecordingStatus() == .granted { return true }
+        do {
+            _ = try await SCShareableContent.current
+            markScreenRecordingGranted()
+            return true
+        } catch {
+            return false
+        }
     }
 
     @discardableResult

@@ -25,6 +25,27 @@
 
 ## Engineering log
 
+### 2026-11-10 — Permanently Blocked Auto-Onboarding & Fixed Permission Discrepancy
+- **Problem Statement:**
+  - Launching or clicking Pipsey from the Dock caused the onboarding wizard to repeatedly pop up asking for permissions.
+  - Furthermore, clicking "Allow" on permissions immediately opened System Settings even after permissions were granted, due to a state-evaluation discrepancy.
+- **Root Cause & Fixes Delivered:**
+  1. **Blocked Auto-Onboarding on Launch & Dock Activation:**
+     - Removed automatic call to `OnboardingWindowController.shared.showOnboarding()` from `applicationDidFinishLaunching` in [`Sources/Pipsey/main.swift`](file:///Users/devayushrout/Desktop/Pipsey/Sources/Pipsey/main.swift).
+     - Guarded `showOnboarding(force:)` in [`OnboardingWindow.swift`](file:///Users/devayushrout/Desktop/Pipsey/Sources/Pipsey/Onboarding/OnboardingWindow.swift) with `guard force else { return }`, ensuring the wizard is ONLY opened if the user explicitly clicks "Replay Onboarding..." from the Menu Bar.
+     - Opening Pipsey from the Dock now purely brings the companion island into focus with zero intrusive popups.
+  2. **Removed Modal Permission Sheet in Capture Flow:**
+     - In [`CompanionIslandView.swift:triggerSession()`](file:///Users/devayushrout/Desktop/Pipsey/Sources/Pipsey/CompanionIslandView.swift), removed `self.showPermissionsSheet = true`. Capture errors are surfaced cleanly through the island's status bar without popping up full-screen modal sheets.
+  3. **Fixed Stale-State Discrepancy on Permission Actions:**
+     - In [`CompanionIslandView.swift`](file:///Users/devayushrout/Desktop/Pipsey/Sources/Pipsey/CompanionIslandView.swift) and [`SettingsView.swift`](file:///Users/devayushrout/Desktop/Pipsey/Sources/Pipsey/Settings/SettingsView.swift), permission action buttons were evaluating `snapshot.microphone != .authorized` before the local `@State var snapshot` was refreshed, erroneously opening System Settings even when access was successfully authorized. Fixed by capturing the new snapshot before evaluating fallback logic.
+  4. **Multi-Method Screen Recording Verification:**
+     - Added `verifyScreenRecordingAccess()` in [`PermissionCoordinator.swift`](file:///Users/devayushrout/Desktop/Pipsey/Sources/PipseyCore/Permissions/PermissionCoordinator.swift) using live `SCShareableContent.current` checking.
+     - Persisted `pipsey_screen_recording_granted = true` in `UserDefaults` so once granted, it is permanently remembered across app launches.
+- **Verification:**
+  - 321/321 automated unit tests passed (`swift run PipseyTests`).
+  - Compiled and signed via `./scripts/build-app.sh`.
+  - Window server verification confirmed: only the companion island (46×46pt) is onscreen. Zero permission windows or sheets appear when launching or opening from the Dock.
+
 ### 2026-11-10 — Resilient Multi-Tier Sound Effects Engine & Live Audio Preview
 - **Problem Statement:**
   - `NSSound(named:)` caches singletons on macOS. Calling `.play()` on an overlapping sound while a previous sound was still playing caused the second call to return `false` and fail silently (e.g. `Pop` has a 1.62s duration, causing rapid actions to drop audio feedback).

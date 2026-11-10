@@ -39,16 +39,9 @@ public final class OnboardingWindowController: NSWindowController, NSWindowDeleg
     }
 
     public func showOnboarding(force: Bool = false) {
-        let completed = UserDefaults.standard.bool(forKey: "pipsey_has_completed_onboarding")
-        let snapshot = PermissionCoordinator.shared.currentSnapshot()
-
-        // If the user already granted Screen Recording or finished onboarding, do not popup again unless forced
-        if (completed || snapshot.screenRecording == .granted) && !force {
-            if !completed && snapshot.screenRecording == .granted {
-                UserDefaults.standard.set(true, forKey: "pipsey_has_completed_onboarding")
-            }
-            return
-        }
+        // Block off automatic onboarding popup.
+        // Only ever display the onboarding wizard when explicitly requested by the user (e.g. from the Menu Bar).
+        guard force else { return }
 
         self.window?.center()
         self.window?.makeKeyAndOrderFront(nil)

@@ -167,9 +167,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 await self?.viewModel.runDemoSimulation()
             }
         }
-
-        // First-Run Onboarding Wizard: guides new users through permissions & interactive gesture
-        OnboardingWindowController.shared.showOnboarding()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
