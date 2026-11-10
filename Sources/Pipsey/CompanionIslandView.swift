@@ -810,87 +810,58 @@ public struct CompanionIslandView: View {
                 }
             }
         } else {
-            // Notch Island Mode
-            if !viewModel.isHovering {
-                ZStack {
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(hex: "40F0D7"),
-                                    Color(hex: "0A84FF"),
-                                    Color(hex: "40F0D7")
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
+            // Notch Island Mode: The Single-Line Notch (Always on the top of the notch bar, nothing else)
+            ZStack {
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: "40F0D7"),
+                                Color(hex: "0A84FF"),
+                                Color(hex: "40F0D7")
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
-                        .frame(width: 58, height: 3.5)
-                        .shadow(color: Color(hex: "40F0D7").opacity(0.55), radius: 3, y: 1)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    Task { await viewModel.triggerSession() }
-                }
-                .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record, or drag to move)")
-            } else {
-                HStack(spacing: 0) {
-                    // Leftmost: Mascot / Indicator View
-                    Button(action: {
-                        Task { await viewModel.triggerSession() }
-                    }) {
-                        indicatorView
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Pipsey Indicator (Click to record)")
-
-                    Spacer()
-
-                    // Center: Refined Ask Pill
-                    Button(action: {
-                        Task { await viewModel.triggerSession() }
-                    }) {
-                        HStack(spacing: 4) {
-                            HStack(spacing: 2) {
-                                Text("⌥").font(.system(size: 11, weight: .bold, design: .rounded))
-                                Text("⌘").font(.system(size: 11, weight: .bold, design: .rounded))
-                            }
-                            .foregroundColor(Color(hex: "40F0D7"))
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(Color(hex: "40F0D7").opacity(0.15))
-                            .clipShape(Capsule())
-                            .overlay(Capsule().stroke(Color(hex: "40F0D7").opacity(0.35), lineWidth: 0.5))
-
-                            Text("Ask")
-                                .font(.system(size: 11, weight: .medium, design: .rounded))
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .help("Hold Option+Command to record interaction; tap to toggle")
-
-                    Spacer()
-
-                    // Rightmost: Clean settings control
-                    Button(action: {
-                        SettingsWindowController.show()
-                    }) {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 11.5, weight: .medium))
-                            .foregroundColor(.white.opacity(0.7))
-                            .frame(width: 22, height: 22)
-                            .background(Color.white.opacity(0.06))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Preferences (⌘,)")
-                }
-                .padding(.horizontal, 10)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
+                    )
+                    .frame(width: 58, height: 3.5)
+                    .shadow(color: Color(hex: "40F0D7").opacity(0.55), radius: 3, y: 1)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                Task { await viewModel.triggerSession() }
+            }
+            .contextMenu {
+                Button {
+                    Task { await viewModel.triggerSession() }
+                } label: {
+                    Label("Ask Pipsey (⌥⌘)", systemImage: "sparkles")
+                }
+
+                Button {
+                    Task { await viewModel.triggerTelescopeInspection() }
+                } label: {
+                    Label("Telescope Inspection (⌃⌥⌘)", systemImage: "scope")
+                }
+
+                Divider()
+
+                Button {
+                    SettingsWindowController.show()
+                } label: {
+                    Label("Settings… (⌘,)", systemImage: "gearshape")
+                }
+
+                Divider()
+
+                Button {
+                    NSApp.terminate(nil)
+                } label: {
+                    Label("Quit Pipsey (⌘Q)", systemImage: "power")
+                }
+            }
+            .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record, tap to start)")
         }
     }
 
@@ -1989,8 +1960,8 @@ public final class IslandViewModel: ObservableObject {
         let metrics = NotchMetrics.current()
         self.hasPhysicalNotch = metrics.hasPhysicalNotch
 
-        let savedStyleRaw = UserDefaults.standard.string(forKey: "companionStyle") ?? CompanionStyle.floatingCircle.rawValue
-        self.companionStyle = CompanionStyle(rawValue: savedStyleRaw) ?? .floatingCircle
+        let savedStyleRaw = UserDefaults.standard.string(forKey: "companionStyle") ?? CompanionStyle.notchIsland.rawValue
+        self.companionStyle = CompanionStyle(rawValue: savedStyleRaw) ?? .notchIsland
 
         let savedCornerRaw = UserDefaults.standard.string(forKey: "companionCorner") ?? CompanionCorner.topRight.rawValue
         self.anchorCorner = CompanionCorner(rawValue: savedCornerRaw) ?? .topRight
@@ -2143,17 +2114,10 @@ public final class IslandViewModel: ObservableObject {
         } else {
             switch state {
             case .idle:
-                if isHovering {
-                    w = 175
-                    h = 32
-                    topR = hasPhysicalNotch ? 8 : 16
-                    botR = 16
-                } else {
-                    w = hasPhysicalNotch ? 185 : 130
-                    h = hasPhysicalNotch ? 32 : 14
-                    topR = hasPhysicalNotch ? 6 : 7
-                    botR = hasPhysicalNotch ? 14 : 7
-                }
+                w = hasPhysicalNotch ? 185 : 130
+                h = hasPhysicalNotch ? 32 : 14
+                topR = hasPhysicalNotch ? 6 : 7
+                botR = hasPhysicalNotch ? 14 : 7
             case .listeningAndCapturing:
                 w = isTelescopeInspectionMode ? 380 : 340
                 h = isTelescopeInspectionMode ? 50 : 42

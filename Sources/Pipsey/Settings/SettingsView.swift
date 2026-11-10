@@ -139,7 +139,7 @@ public struct SettingsView: View {
 struct GeneralSettingsPane: View {
     @State private var launchAtLogin: Bool = LaunchAtLogin.isEnabled
     @State private var showInDock: Bool = !UserDefaults.standard.bool(forKey: "pipsey_hide_dock_icon")
-    @State private var companionStyle: String = UserDefaults.standard.string(forKey: "companionStyle") ?? CompanionStyle.floatingCircle.rawValue
+    @State private var companionStyle: String = UserDefaults.standard.string(forKey: "companionStyle") ?? CompanionStyle.notchIsland.rawValue
     @State private var companionAppearance: String = UserDefaults.standard.string(forKey: "companionAppearance") ?? "wisprCapsule"
     @State private var hideIdleCompanion: Bool = UserDefaults.standard.bool(forKey: "pipsey_hide_idle_companion")
     @State private var anchorCorner: String = UserDefaults.standard.string(forKey: "companionCorner") ?? CompanionCorner.topRight.rawValue

@@ -19,7 +19,7 @@ public final class FloatingIslandPanel: NSPanel {
     public private(set) var currentHeight: CGFloat = 64
     public var allowsKeyWindow: Bool = false
     public var customOrigin: NSPoint? = nil
-    public var companionStyle: CompanionStyle = .floatingCircle
+    public var companionStyle: CompanionStyle = .notchIsland
     public var anchorCorner: CompanionCorner = .topRight
     private var isProgrammaticReposition: Bool = false
 
