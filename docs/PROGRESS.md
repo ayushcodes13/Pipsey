@@ -25,6 +25,32 @@
 
 ## Engineering log
 
+### 2026-11-10 — Big-Startup Craft Redesign: The Wispr Capsule, Precision Lens & Cyber-Visor
+- **Problem Statement & Slop Audit:**
+  - The previous minimal indicator draft used amateur vibecoded conventions: an electric cyan gradient sphere with an orbiting particle glint, jumpy layout expansion (26px to 196px) on hover, emoji toggle buttons (`🔵` / `👀`), and erratic motion that distracted from deep work.
+  - The user demanded top-tier startup-grade UI/UX craftsmanship (Linear, Wispr Flow, Apple Intelligence, Teenage Engineering).
+- **Research & Craft Solutions:**
+  1. **Option 1: The Wispr Capsule (`PipseyWisprCapsuleView` — Default):**
+     - Ultra-low-profile 56×24pt liquid glass pill ($r=12$).
+     - Deep obsidian translucent glass (`#121622` to `#0A0D14`) with a 0.5pt specular top edge highlight.
+     - Pipsey aperture mark (`camera.aperture`, 11pt, `#2DD4BF`) and an authentic `⌥⌘` keycap in SF Mono.
+     - **Zero layout jumping on hover**: Footprint remains perfectly stable; subtle border specular luminescence on hover.
+  2. **Option 2: Precision Glass Lens (`PipseyPrecisionLensView`):**
+     - 28×28pt circular smoked obsidian lens with concentric machined ring.
+     - Central 5.5pt optical jewel with calm, slow 3.6s luminescent breathing (no particle orbits or jumping).
+  3. **Option 3: Minimalist Cyber-Visor (`PipseyCyberVisorView`):**
+     - 36×20pt titanium obsidian visor with two horizontal micro-LED slit eyes (5.5×2.8pt) in mint cyan (`#2DD4BF`).
+     - Calm resting state: Stationary. Every 9 seconds, a single swift 80ms optical blink.
+  4. **Power-User Mode: Hide Floating Indicator when Idle (Menu Bar Only):**
+     - Added `pipsey_hide_idle_companion` toggle in Settings.
+     - When enabled, the floating indicator completely vanishes from the desktop while idle, living only in the Menu Bar, and drops down on demand when `⌥⌘` is pressed.
+  5. **Native macOS Context Menu (`.contextMenu`):**
+     - Right-clicking the indicator instantly surfaces a native macOS menu with SF Symbols: Ask Pipsey (`⌥⌘`), Telescope Mode (`⌃⌥⌘`), Appearance Submenu (with checkmarks), Snap to Corner, Settings (`⌘,`), and Quit.
+- **Verification:**
+  - 321/321 automated unit tests passed (`swift run PipseyTests`).
+  - App compiled, signed, and running (`build/Pipsey.app`, PID 57247).
+  - Design system artifact and preview generated at `big_startup_minimal_companion.html`.
+
 ### 2026-11-10 — Minimalist Micro-Indicators: Moving Neon Blue Orb & Peeking Eyes
 - **Problem Statement:**
   - The resting 46×46 robot companion on the screen was felt to be distracting during deep-focus work. The user requested replacing it with an ultra-compact, aesthetic, non-distracting alternative: either a subtle circular moving neon blue orb or just the glowing peeking eyes, with the ability to test both live.

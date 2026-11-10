@@ -140,7 +140,8 @@ struct GeneralSettingsPane: View {
     @State private var launchAtLogin: Bool = LaunchAtLogin.isEnabled
     @State private var showInDock: Bool = !UserDefaults.standard.bool(forKey: "pipsey_hide_dock_icon")
     @State private var companionStyle: String = UserDefaults.standard.string(forKey: "companionStyle") ?? CompanionStyle.floatingCircle.rawValue
-    @State private var companionAppearance: String = UserDefaults.standard.string(forKey: "companionAppearance") ?? "neonOrb"
+    @State private var companionAppearance: String = UserDefaults.standard.string(forKey: "companionAppearance") ?? "wisprCapsule"
+    @State private var hideIdleCompanion: Bool = UserDefaults.standard.bool(forKey: "pipsey_hide_idle_companion")
     @State private var anchorCorner: String = UserDefaults.standard.string(forKey: "companionCorner") ?? CompanionCorner.topRight.rawValue
     @State private var idlePeekingEnabled: Bool = UserDefaults.standard.object(forKey: "pipsey_idle_peeking") as? Bool ?? true
     @State private var soundEffectsEnabled: Bool = UserDefaults.standard.object(forKey: "pipsey_sound_effects_enabled") as? Bool ?? true
@@ -149,8 +150,9 @@ struct GeneralSettingsPane: View {
         Form {
             Section("Companion Style & Placement") {
                 Picker("Indicator Appearance", selection: $companionAppearance) {
-                    Text("Neon Blue Orb (Moving)").tag("neonOrb")
-                    Text("Just the Eyes (Peeking)").tag("minimalEyes")
+                    Text("Wispr Capsule (Aperture Pill)").tag("wisprCapsule")
+                    Text("Precision Glass Lens").tag("precisionLens")
+                    Text("Minimalist Cyber-Visor").tag("cyberVisor")
                     Text("Full Mascot Robot").tag("fullMascot")
                 }
                 .pickerStyle(.segmented)
@@ -158,6 +160,12 @@ struct GeneralSettingsPane: View {
                     UserDefaults.standard.set(newAppearance, forKey: "companionAppearance")
                     NotificationCenter.default.post(name: Notification.Name("pipsey_appearance_changed"), object: nil)
                 }
+
+                Toggle("Hide Floating Indicator when Idle (Menu Bar Only)", isOn: $hideIdleCompanion)
+                    .onChange(of: hideIdleCompanion) { newValue in
+                        UserDefaults.standard.set(newValue, forKey: "pipsey_hide_idle_companion")
+                        NotificationCenter.default.post(name: Notification.Name("pipsey_hide_idle_changed"), object: nil)
+                    }
 
                 Picker("Companion Form Factor", selection: $companionStyle) {
                     Text("Floating Corner Circle (Desktop Robot)").tag(CompanionStyle.floatingCircle.rawValue)

@@ -46,6 +46,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panel?.updateGeometry(width: width, height: height)
         }
 
+        // Visibility control (e.g. Menu Bar Only when idle)
+        viewModel.onVisibilityChange = { [weak panel] isVisible in
+            if isVisible {
+                panel?.alphaValue = 1.0
+                panel?.orderFrontRegardless()
+            } else {
+                panel?.alphaValue = 0.0
+            }
+        }
+
         // Draggable floating companion support (like Wispr Flow)
         var dragStartOrigin: NSPoint? = nil
         viewModel.onDragStart = { [weak panel] in
