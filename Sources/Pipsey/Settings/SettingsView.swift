@@ -140,6 +140,7 @@ struct GeneralSettingsPane: View {
     @State private var launchAtLogin: Bool = LaunchAtLogin.isEnabled
     @State private var showInDock: Bool = !UserDefaults.standard.bool(forKey: "pipsey_hide_dock_icon")
     @State private var companionStyle: String = UserDefaults.standard.string(forKey: "companionStyle") ?? CompanionStyle.floatingCircle.rawValue
+    @State private var companionAppearance: String = UserDefaults.standard.string(forKey: "companionAppearance") ?? "neonOrb"
     @State private var anchorCorner: String = UserDefaults.standard.string(forKey: "companionCorner") ?? CompanionCorner.topRight.rawValue
     @State private var idlePeekingEnabled: Bool = UserDefaults.standard.object(forKey: "pipsey_idle_peeking") as? Bool ?? true
     @State private var soundEffectsEnabled: Bool = UserDefaults.standard.object(forKey: "pipsey_sound_effects_enabled") as? Bool ?? true
@@ -147,6 +148,17 @@ struct GeneralSettingsPane: View {
     var body: some View {
         Form {
             Section("Companion Style & Placement") {
+                Picker("Indicator Appearance", selection: $companionAppearance) {
+                    Text("Neon Blue Orb (Moving)").tag("neonOrb")
+                    Text("Just the Eyes (Peeking)").tag("minimalEyes")
+                    Text("Full Mascot Robot").tag("fullMascot")
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: companionAppearance) { newAppearance in
+                    UserDefaults.standard.set(newAppearance, forKey: "companionAppearance")
+                    NotificationCenter.default.post(name: Notification.Name("pipsey_appearance_changed"), object: nil)
+                }
+
                 Picker("Companion Form Factor", selection: $companionStyle) {
                     Text("Floating Corner Circle (Desktop Robot)").tag(CompanionStyle.floatingCircle.rawValue)
                     Text("Screen Notch Island (Top Center)").tag(CompanionStyle.notchIsland.rawValue)
@@ -154,6 +166,7 @@ struct GeneralSettingsPane: View {
                 .pickerStyle(.segmented)
                 .onChange(of: companionStyle) { newStyle in
                     UserDefaults.standard.set(newStyle, forKey: "companionStyle")
+                    NotificationCenter.default.post(name: Notification.Name("pipsey_style_changed"), object: nil)
                     if let panel = NSApp.windows.first(where: { $0 is FloatingIslandPanel }) as? FloatingIslandPanel {
                         panel.companionStyle = CompanionStyle(rawValue: newStyle) ?? .floatingCircle
                         panel.resetToDefaultPosition()

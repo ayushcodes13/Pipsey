@@ -2,6 +2,154 @@ import SwiftUI
 import PipseyCore
 import AppKit
 
+/// Available appearance styles for the resting on-screen companion indicator
+public enum CompanionAppearance: String, CaseIterable, Sendable {
+    case neonOrb = "neonOrb"
+    case minimalEyes = "minimalEyes"
+    case fullMascot = "fullMascot"
+}
+
+/// A moving circular neon blue/cyan orb with gentle floating motion, breathing halo, and revolving glint
+public struct PipseyNeonOrbView: View {
+    public var size: CGFloat
+    @State private var pulse: Bool = false
+    @State private var orbitAngle: Double = 0
+
+    public init(size: CGFloat = 14) {
+        self.size = size
+    }
+
+    public var body: some View {
+        ZStack {
+            // Ambient outer breathing glow
+            Circle()
+                .fill(
+                    RadialGradient(
+                        gradient: Gradient(colors: [
+                            Color(hex: "00F0FF").opacity(pulse ? 0.50 : 0.20),
+                            Color(hex: "0A84FF").opacity(pulse ? 0.25 : 0.05),
+                            Color.clear
+                        ]),
+                        center: .center,
+                        startRadius: size * 0.2,
+                        endRadius: size * 1.6
+                    )
+                )
+                .frame(width: size * 2.8, height: size * 2.8)
+                .scaleEffect(pulse ? 1.15 : 0.88)
+
+            // Core glowing neon orb with fluid gradient
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "E0FFFF"),
+                            Color(hex: "00E5FF"),
+                            Color(hex: "0077FF")
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: size, height: size)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.85), lineWidth: 0.8)
+                )
+                .shadow(color: Color(hex: "00F0FF").opacity(0.9), radius: 5, x: 0, y: 0)
+
+            // Orbiting specular light glint that moves around the perimeter
+            Circle()
+                .fill(Color.white)
+                .frame(width: max(2.5, size * 0.24), height: max(2.5, size * 0.24))
+                .shadow(color: Color.white, radius: 2)
+                .offset(x: (size * 0.32) * cos(orbitAngle * .pi / 180),
+                        y: (size * 0.32) * sin(orbitAngle * .pi / 180))
+        }
+        .offset(y: pulse ? -1.5 : 1.5) // Gentle floating movement
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
+                pulse = true
+            }
+            withAnimation(.linear(duration: 4.5).repeatForever(autoreverses: false)) {
+                orbitAngle = 360
+            }
+        }
+    }
+}
+
+/// Minimal peeking eyes view: just Pipsey's glowing cyan oval eyes with natural blinking and subtle look-around gaze
+public struct PipseyMinimalEyesView: View {
+    public var size: CGFloat
+    @State private var isBlinking: Bool = false
+    @State private var gazeX: CGFloat = 0
+
+    public init(size: CGFloat = 16) {
+        self.size = size
+    }
+
+    public var body: some View {
+        HStack(spacing: size * 0.32) {
+            // Left Eye
+            Capsule(style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(hex: "D0FFFA"), Color(hex: "40F0D7")],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: size * 0.38, height: isBlinking ? 1.5 : size * 0.65)
+                .shadow(color: Color(hex: "40F0D7").opacity(0.9), radius: 4, x: 0, y: 0)
+
+            // Right Eye
+            Capsule(style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(hex: "D0FFFA"), Color(hex: "40F0D7")],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: size * 0.38, height: isBlinking ? 1.5 : size * 0.65)
+                .shadow(color: Color(hex: "40F0D7").opacity(0.9), radius: 4, x: 0, y: 0)
+        }
+        .offset(x: gazeX)
+        .onAppear {
+            startBlinkLoop()
+            startGazeLoop()
+        }
+    }
+
+    private func startBlinkLoop() {
+        Timer.scheduledTimer(withTimeInterval: 5.5, repeats: true) { _ in
+            DispatchQueue.main.async {
+                withAnimation(.easeInOut(duration: 0.10)) {
+                    isBlinking = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                    withAnimation(.easeInOut(duration: 0.10)) {
+                        isBlinking = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func startGazeLoop() {
+        Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { _ in
+            let targets: [CGFloat] = [-2.5, 2.5, 0.0]
+            if let target = targets.randomElement() {
+                DispatchQueue.main.async {
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        gazeX = target
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// Pristine animated or static icon-only mascot view (without wordmark)
 public struct PipseyMascotView: View {
     public var size: CGFloat
@@ -337,23 +485,19 @@ public struct CompanionIslandView: View {
     private var idleContent: some View {
         if viewModel.companionStyle == .floatingCircle {
             HStack(spacing: 0) {
-                // Leftmost: Mascot Avatar remains constantly anchored at (x: 0, y: 0)
+                // Leftmost: Indicator View (Neon Orb / Eyes / Mascot)
                 Button(action: {
                     Task { await viewModel.triggerSession() }
                 }) {
-                    PipseyMascotView(size: viewModel.isHovering ? 28 : 34, isAnimated: true)
-                        .rotationEffect(.degrees(viewModel.idlePeekingAngle))
-                        .offset(y: viewModel.idlePeekingOffset)
-                        .scaleEffect(viewModel.idlePeekingScale)
-                        .shadow(color: Color.black.opacity(viewModel.isHovering ? 0.20 : 0.35), radius: 4, x: 0, y: 2)
-                        .animation(.spring(response: 0.38, dampingFraction: 0.82), value: viewModel.isHovering)
+                    indicatorView
                 }
                 .buttonStyle(.plain)
-                .frame(width: 46, height: 46)
+                .frame(width: viewModel.isHovering ? 46 : viewModel.currentWidth,
+                       height: viewModel.isHovering ? 46 : viewModel.currentHeight)
                 .accessibilityLabel("Pipsey Companion (Click to record, drag to move, ⌃⌥⌘ for telescope)")
 
                 if viewModel.isHovering {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
                         Spacer(minLength: 2)
 
                         // Center: Refined Ask Pipsey Action Pill
@@ -393,6 +537,27 @@ public struct CompanionIslandView: View {
                         .buttonStyle(.plain)
                         .help("Hold Option+Command to record interaction, or Control+Option+Command for Telescope")
 
+                        // Quick Toggle between Neon Orb and Just Eyes
+                        Button(action: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                if viewModel.companionAppearance == .neonOrb {
+                                    viewModel.companionAppearance = .minimalEyes
+                                } else if viewModel.companionAppearance == .minimalEyes {
+                                    viewModel.companionAppearance = .neonOrb
+                                } else {
+                                    viewModel.companionAppearance = .neonOrb
+                                }
+                            }
+                        }) {
+                            Text(viewModel.companionAppearance == .neonOrb ? "👀" : "🔵")
+                                .font(.system(size: 11))
+                                .frame(width: 22, height: 22)
+                                .background(Color.white.opacity(0.08))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Quick Switch Indicator: " + (viewModel.companionAppearance == .neonOrb ? "Switch to Eyes" : "Switch to Neon Orb"))
+
                         // Subtle Glass Divider
                         Rectangle()
                             .fill(Color.white.opacity(0.15))
@@ -405,7 +570,7 @@ public struct CompanionIslandView: View {
                             Image(systemName: "gearshape.fill")
                                 .font(.system(size: 11.5, weight: .medium))
                                 .foregroundColor(.white.opacity(0.70))
-                                .frame(width: 24, height: 24)
+                                .frame(width: 22, height: 22)
                                 .background(Color.white.opacity(0.06))
                                 .clipShape(Circle())
                         }
@@ -448,14 +613,14 @@ public struct CompanionIslandView: View {
                 .accessibilityLabel("Pipsey Companion (Hold ⌥⌘ to record, or drag to move)")
             } else {
                 HStack(spacing: 0) {
-                    // Leftmost: Mascot Avatar
+                    // Leftmost: Mascot / Indicator View
                     Button(action: {
                         Task { await viewModel.triggerSession() }
                     }) {
-                        PipseyMascotView(size: 20)
+                        indicatorView
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Pipsey Mascot (Click to record)")
+                    .accessibilityLabel("Pipsey Indicator (Click to record)")
 
                     Spacer()
 
@@ -503,6 +668,23 @@ public struct CompanionIslandView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
             }
+        }
+    }
+
+    @ViewBuilder
+    private var indicatorView: some View {
+        switch viewModel.companionAppearance {
+        case .neonOrb:
+            PipseyNeonOrbView(size: viewModel.isHovering ? 16 : 14)
+        case .minimalEyes:
+            PipseyMinimalEyesView(size: viewModel.isHovering ? 18 : 16)
+        case .fullMascot:
+            PipseyMascotView(size: viewModel.isHovering ? 28 : 34, isAnimated: true)
+                .rotationEffect(.degrees(viewModel.idlePeekingAngle))
+                .offset(y: viewModel.idlePeekingOffset)
+                .scaleEffect(viewModel.idlePeekingScale)
+                .shadow(color: Color.black.opacity(viewModel.isHovering ? 0.20 : 0.35), radius: 4, x: 0, y: 2)
+                .animation(.spring(response: 0.38, dampingFraction: 0.82), value: viewModel.isHovering)
         }
     }
 
@@ -1497,6 +1679,12 @@ public final class IslandViewModel: ObservableObject {
             updateDimensions()
         }
     }
+    @Published public var companionAppearance: CompanionAppearance {
+        didSet {
+            UserDefaults.standard.set(companionAppearance.rawValue, forKey: "companionAppearance")
+            updateDimensions()
+        }
+    }
     @Published public var anchorCorner: CompanionCorner {
         didSet {
             UserDefaults.standard.set(anchorCorner.rawValue, forKey: "companionCorner")
@@ -1571,11 +1759,27 @@ public final class IslandViewModel: ObservableObject {
         let savedCornerRaw = UserDefaults.standard.string(forKey: "companionCorner") ?? CompanionCorner.topRight.rawValue
         self.anchorCorner = CompanionCorner(rawValue: savedCornerRaw) ?? .topRight
 
+        let savedAppearanceRaw = UserDefaults.standard.string(forKey: "companionAppearance") ?? CompanionAppearance.neonOrb.rawValue
+        self.companionAppearance = CompanionAppearance(rawValue: savedAppearanceRaw) ?? .neonOrb
+
         if self.companionStyle == .floatingCircle {
-            self.currentWidth = 46
-            self.currentHeight = 46
-            self.topCornerRadius = 23
-            self.bottomCornerRadius = 23
+            switch self.companionAppearance {
+            case .neonOrb:
+                self.currentWidth = 26
+                self.currentHeight = 26
+                self.topCornerRadius = 13
+                self.bottomCornerRadius = 13
+            case .minimalEyes:
+                self.currentWidth = 34
+                self.currentHeight = 24
+                self.topCornerRadius = 12
+                self.bottomCornerRadius = 12
+            case .fullMascot:
+                self.currentWidth = 46
+                self.currentHeight = 46
+                self.topCornerRadius = 23
+                self.bottomCornerRadius = 23
+            }
         } else {
             self.currentWidth = metrics.closedWidth
             self.currentHeight = metrics.closedHeight
@@ -1588,6 +1792,20 @@ public final class IslandViewModel: ObservableObject {
                 Task { @MainActor [weak self] in
                     self?.handleStateChange(newState)
                 }
+            }
+        }
+
+        // Listen for appearance and style changes from Settings or notifications
+        NotificationCenter.default.addObserver(forName: Notification.Name("pipsey_appearance_changed"), object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                let raw = UserDefaults.standard.string(forKey: "companionAppearance") ?? CompanionAppearance.neonOrb.rawValue
+                self?.companionAppearance = CompanionAppearance(rawValue: raw) ?? .neonOrb
+            }
+        }
+        NotificationCenter.default.addObserver(forName: Notification.Name("pipsey_style_changed"), object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                let raw = UserDefaults.standard.string(forKey: "companionStyle") ?? CompanionStyle.floatingCircle.rawValue
+                self?.companionStyle = CompanionStyle(rawValue: raw) ?? .floatingCircle
             }
         }
 
@@ -1610,10 +1828,23 @@ public final class IslandViewModel: ObservableObject {
                     topR = 23
                     botR = 23
                 } else {
-                    w = 46
-                    h = 46
-                    topR = 23
-                    botR = 23
+                    switch companionAppearance {
+                    case .neonOrb:
+                        w = 26
+                        h = 26
+                        topR = 13
+                        botR = 13
+                    case .minimalEyes:
+                        w = 34
+                        h = 24
+                        topR = 12
+                        botR = 12
+                    case .fullMascot:
+                        w = 46
+                        h = 46
+                        topR = 23
+                        botR = 23
+                    }
                 }
             case .listeningAndCapturing:
                 w = isTelescopeInspectionMode ? 380 : 340

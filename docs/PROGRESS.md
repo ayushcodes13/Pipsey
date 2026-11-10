@@ -25,6 +25,26 @@
 
 ## Engineering log
 
+### 2026-11-10 — Minimalist Micro-Indicators: Moving Neon Blue Orb & Peeking Eyes
+- **Problem Statement:**
+  - The resting 46×46 robot companion on the screen was felt to be distracting during deep-focus work. The user requested replacing it with an ultra-compact, aesthetic, non-distracting alternative: either a subtle circular moving neon blue orb or just the glowing peeking eyes, with the ability to test both live.
+- **Deliverables & Implementation:**
+  1. **Option 1: Circular Neon Blue Orb (`PipseyNeonOrbView`):**
+     - Ultra-compact 26×26pt resting footprint ($r=13$).
+     - Liquid cyan-to-sapphire gradient core with ambient breathing radial halo (`startRadius: 2.8pt`, `endRadius: 22.4pt`).
+     - Sub-pixel floating movement ($\pm 1.5\text{pt}$ vertical ease-in-out over 2.4s) and an orbiting specular light glint revolving around the perimeter every 4.5s.
+  2. **Option 2: Just the Eyes (`PipseyMinimalEyesView`):**
+     - Whisper-thin 34×24pt resting footprint ($r=12$).
+     - Dual glowing cyan/mint capsules with natural scheduled eyelid blinks (every 5.5s) and subtle look-around gaze shifts (every 8.0s).
+  3. **Instant Live Testing & Settings Controls:**
+     - 1-click quick-toggle button (`🔵` / `👀`) inside the companion's hover expansion pill, allowing instant switching directly on the desktop.
+     - New segmented "Indicator Appearance" picker in Settings -> General -> Companion Style & Placement (`neonOrb`, `minimalEyes`, `fullMascot`).
+     - Safe concurrency model with Swift 6 `@MainActor` dispatching for all timer loops and notification observers.
+  4. **Verification & Testing:**
+     - 321/321 automated unit tests passed (`swift run PipseyTests`).
+     - Recompiled, signed with designated requirement, and launched `build/Pipsey.app` (PID 54994).
+     - Live on-screen verification: micro-indicator stays quietly in the corner, gently pulses, expands on hover with quick-toggle button, and expands to full recording pill upon `⌥⌘` invocation.
+
 ### 2026-11-10 — Native macOS Squircle Badge App Icon with Transparent Vertices
 - **Problem Statement:**
   - The user clarified that the dock icon should NOT be a circle, but rather the exact Apple squircle card with rounded rectangle vertices and transparent background corners outside the vertices (`media_1794293218748_fecc7ddf.png`).
