@@ -5,6 +5,7 @@ import PipseyCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var islandPanel: FloatingIslandPanel?
+    private var notchPresenter: PipseyNotchPresenter?
     private var menuBarController: MenuBarController?
     private let hotKeyController = HotKeyController()
     private let sessionCoordinator = SessionCoordinator()
@@ -38,8 +39,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hostingView = DraggableIslandHostingView(rootView: CompanionIslandView(viewModel: viewModel))
         panel.contentView = hostingView
         panel.reposition(width: viewModel.currentWidth, height: viewModel.currentHeight)
-        panel.orderFrontRegardless()
         self.islandPanel = panel
+
+        // Initialize NotchKit Presenter when notch style is selected
+        if viewModel.companionStyle == .notchIsland {
+            self.notchPresenter = PipseyNotchPresenter(viewModel: viewModel)
+            panel.orderOut(nil)
+        } else {
+            panel.orderFrontRegardless()
+        }
+
+        NotificationCenter.default.addObserver(forName: Notification.Name("pipsey_style_changed"), object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.refreshCompanionStyle()
+            }
+        }
 
         // Dynamic geometry update when companion morphs, peeks, or expands
         viewModel.onGeometryChange = { [weak panel] width, height in
@@ -149,7 +163,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Task { @MainActor in
                     guard let self = self else { return }
                     if self.viewModel.state == .idle {
-                        if self.islandPanel?.customOrigin == nil {
+                        if self.viewModel.companionStyle == .notchIsland {
+                            self.notchPresenter?.expand()
+                        } else if self.islandPanel?.customOrigin == nil {
                             self.islandPanel?.repositionTopCenter()
                         }
                         await self.viewModel.triggerSession()
@@ -168,8 +184,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         print("Pipsey started successfully!")
         print("  HotKey (⌥⌘P) registered: \(hotKeyRegistered)")
-        print("  Companion Panel presented: \(panel.isVisible)")
-        print("  Footprint: \(panel.currentWidth)x\(panel.currentHeight) (Style: \(panel.companionStyle.rawValue))")
+        print("  NotchKit Island active: \(notchPresenter != nil)")
+        print("  Companion Style: \(viewModel.companionStyle.rawValue)")
 
         // Observe Demo Simulation requests from Settings or Onboarding
         NotificationCenter.default.addObserver(forName: NSNotification.Name("PipseyTriggerDemoSimulation"), object: nil, queue: .main) { [weak self] _ in
@@ -179,15 +195,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func refreshCompanionStyle() {
+        if viewModel.companionStyle == .notchIsland {
+            islandPanel?.orderOut(nil)
+            if notchPresenter == nil {
+                notchPresenter = PipseyNotchPresenter(viewModel: viewModel)
+            }
+        } else {
+            notchPresenter?.uninstall()
+            notchPresenter = nil
+            islandPanel?.orderFrontRegardless()
+        }
+    }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         // When clicking Pipsey in the macOS Dock or Launchpad:
-        islandPanel?.orderFrontRegardless()
-        withAnimation {
-            viewModel.isHovering = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+        if viewModel.companionStyle == .notchIsland {
+            notchPresenter?.peek()
+        } else {
+            islandPanel?.orderFrontRegardless()
             withAnimation {
-                self?.viewModel.isHovering = false
+                viewModel.isHovering = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+                withAnimation {
+                    self?.viewModel.isHovering = false
+                }
             }
         }
         return true

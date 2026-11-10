@@ -2649,4 +2649,19 @@ public final class IslandViewModel: ObservableObject {
             await coordinator.resetToIdle()
         }
     }
+
+    public func readAloud() {
+        guard let summary = currentExplanation?.spokenSummary else { return }
+        if isSpeaking {
+            SpokenVoiceSynthesizer.shared.stop()
+            self.isSpeaking = false
+        } else {
+            self.isSpeaking = true
+            SpokenVoiceSynthesizer.shared.speak(summary) { [weak self] in
+                Task { @MainActor [weak self] in
+                    self?.isSpeaking = false
+                }
+            }
+        }
+    }
 }

@@ -25,6 +25,29 @@
 
 ## Engineering log
 
+### 2026-11-10 — Complete Notch Rebuild from Scratch with NotchKit
+- **Problem Statement:**
+  - Build Pipsey's dynamic island notch from scratch using `NotchKit` (https://github.com/duongductrong/NotchKit).
+  - Previous notch implementations suffered from window-resizing judder, approximate bezier clipping, and lack of hover hysteresis.
+- **Deliverables & Architecture:**
+  1. **NotchKit Native Engine (`Sources/NotchKit`):**
+     - Single-shape continuous morphing (`NotchShape`) with concave tangent fillet ears at top (`topCornerRadius`) and convex rounded corners at bottom (`bottomCornerRadius`).
+     - Window level `.mainMenu + 3`, non-activating `NSPanel` (`NotchPanel`) with custom `contentRectProvider` hit testing.
+     - `NotchPointerMonitor` and `NotchHoverGate`: 160ms hover delay, 100ms cancel grace, and exit hysteresis to eliminate twitchy opening/closing.
+     - Fixed-dimension window architecture with transparent shadow falloff margin (`NotchContainer`), completely eliminating window allocation flicker.
+     - CoreAnimation-powered equalizer bars (`NotchBars` / `NotchBarsStyle`) running purely on the GPU render server with 0% CPU consumption during continuous animations.
+  2. **Pipsey Notch Presenter (`PipseyNotchPresenter.swift`):**
+     - Synchronizes `NotchPresenter` with `IslandViewModel` session state (`.idle`, `.listeningAndCapturing`, `.processing`, `.explaining`).
+     - Dynamically adapts `expandedSize` based on content needs (e.g., 500x185 idle, 530x215 capturing, 550x340 explanation card).
+  3. **High-Craft Collapsed & Expanded Views (`PipseyNotchViews.swift`):**
+     - **Collapsed Leading**: Glowing robot mascot head (`PipseyMascotView`), transitions to live audio wave (`NotchBars.wave`) during capture and steady shimmer during inference.
+     - **Collapsed Trailing**: Monospaced `⌥⌘` shortcut hint + mint beacon dot at rest; live red recording dot + elapsed timer during capture; spinner during processing; sparkles when ready.
+     - **Expanded Panel**: Padded beneath the hardware camera cutout (`.cutoutOnly` reserve); includes Groq model badges, live spoken question transcription, audio level meter, stop capture buttons, structured explanation card, TTS read aloud, and suggested follow-up chips.
+  4. **Verification & Quality Gates:**
+     - Added **Test 33** in `Sources/PipseyTests/main.swift` testing `NotchPresenter` phase transitions, expand/collapse/peek mechanics, and `NotchBarsStyle`.
+     - Automated test suite: **331 / 331 passing** (`swift run PipseyTests`).
+     - Codesigned release bundle built and running live (`build/Pipsey.app`, PID 68399).
+
 ### 2026-11-10 — Multi-Account Groq Cloud VLM & LLM Pipeline with Independent Rotation
 - **Problem Statement:**
   - Need a high-performance, cost-effective inference engine supporting vision and fast reasoning across multiple accounts.

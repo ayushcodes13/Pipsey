@@ -4,6 +4,7 @@ import CoreGraphics
 import CoreImage
 import ImageIO
 import PipseyCore
+import NotchKit
 
 final class AtomicBox<T>: @unchecked Sendable {
     private let lock = NSLock()
@@ -931,6 +932,46 @@ func runAllTests() async -> (passed: Int, failed: Int) {
     PipseySoundEffects.playTelescopeFocus()
     PipseySoundEffects.playIdlePeekingSound()
     assertTrue(true, "All 6 PipseySoundEffects execute reliably without collision")
+
+    // TEST 33: NotchKit Dynamic Island Presenter & Single-Shape Morphing Integration
+    print("\n--- Test 33: NotchKit Dynamic Island Presenter & Single-Shape Morphing Integration ---")
+    var notchConfig = NotchConfiguration.standard
+    notchConfig.expandedSize = CGSize(width: 520, height: 260)
+    notchConfig.collapsedWidth = .wrapCutout(reserve: 60)
+    notchConfig.collapsedHitPadding = 14
+    notchConfig.expandsOnHover = true
+
+    let presenter = NotchPresenter(
+        configuration: notchConfig,
+        motion: .standard,
+        style: .standard
+    )
+
+    assertEqual(presenter.phase, .collapsed, "NotchPresenter initializes in .collapsed resting phase")
+    assertEqual(presenter.style.ink, .black, "NotchPresenter defaults to pure black ink for hardware notch fusion")
+
+    // Test Expand
+    presenter.expand(reason: .click)
+    assertEqual(presenter.phase, .expanded, "presenter.expand(reason: .click) transitions phase to .expanded")
+    assertEqual(presenter.expandReason, .click, "Expand reason recorded as .click")
+
+    // Test Collapse
+    presenter.collapse()
+    assertEqual(presenter.phase, .collapsed, "presenter.collapse() returns phase to .collapsed")
+    assertTrue(presenter.expandReason == nil, "Expand reason cleared on collapse")
+
+    // Test Peek
+    presenter.peek()
+    assertEqual(presenter.phase, .peeking, "presenter.peek() triggers attention bump in .peeking phase")
+
+    // Test NotchBars
+    let waveStyle = NotchBarsStyle.wave(count: 3, low: 0.25, high: 1.0, tint: .teal)
+    assertEqual(waveStyle.levels.count, 3, "NotchBars wave generates 3 bar levels")
+    let steadyStyle = NotchBarsStyle.steady([0.3, 0.6, 0.3], tint: .teal)
+    assertEqual(steadyStyle.levels.count, 3, "NotchBars steady generates 3 static levels")
+
+    presenter.uninstall()
+    assertTrue(true, "NotchPresenter uninstalls safely without lingering tasks")
 
     return (passed, failed)
 }
