@@ -116,16 +116,21 @@ public struct TextLLMConfiguration: Sendable {
             )
         }
 
-        let key = openAIKey ?? ""
+        EnvManager.shared.loadEnvFile()
+        let poolKey = EnvManager.shared.currentTextKey()
+        let key = envOpenAIKey
+            ?? KeychainManager.shared.readSecret(account: "pipsey-text-api-key")
+            ?? (!poolKey.isEmpty ? poolKey : nil)
+            ?? ""
         let base = savedBase
             ?? env["PIPSEY_TEXT_BASE_URL"]
             ?? env["ONEPAGER_AZURE_OPENAI_BASE_URL"]
-            ?? "https://api.openai.com/v1"
-        let defaultModel = base.contains("openai.azure.com") ? "gpt-5-mini" : "gpt-4o-mini"
+            ?? "https://api.groq.com/openai/v1"
+        let defaultModel = base.contains("groq.com") ? "openai/gpt-oss-120b" : (base.contains("openai.azure.com") ? "gpt-5-mini" : "gpt-4o-mini")
         let model = savedModel ?? env["PIPSEY_TEXT_MODEL"] ?? defaultModel
 
         return TextLLMConfiguration(
-            baseURL: URL(string: base) ?? URL(string: "https://api.openai.com/v1")!,
+            baseURL: URL(string: base) ?? URL(string: "https://api.groq.com/openai/v1")!,
             apiKey: key,
             model: model
         )
@@ -133,7 +138,7 @@ public struct TextLLMConfiguration: Sendable {
 }
 
 public actor HostedConversationClient: ConversationClientProtocol {
-    private let config: TextLLMConfiguration
+    private var config: TextLLMConfiguration
     private let urlSession: URLSession
 
     public init(config: TextLLMConfiguration = .loadDefault(), urlSession: URLSession = .shared) {
@@ -221,6 +226,7 @@ public actor HostedConversationClient: ConversationClientProtocol {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Pipsey/1.0 (Macintosh; Apple Silicon)", forHTTPHeaderField: "User-Agent")
         request.setValue(config.apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.timeoutInterval = config.timeoutSeconds
@@ -310,6 +316,7 @@ public actor HostedConversationClient: ConversationClientProtocol {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Pipsey/1.0 (Macintosh; Apple Silicon)", forHTTPHeaderField: "User-Agent")
         request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
         if config.isAzure {
             request.setValue(config.apiKey, forHTTPHeaderField: "api-key")
@@ -344,6 +351,23 @@ public actor HostedConversationClient: ConversationClientProtocol {
         }
 
         if let httpResponse = response as? HTTPURLResponse {
+            if httpResponse.statusCode == 429 {
+                let msg = String(data: data, encoding: .utf8) ?? "HTTP 429 Rate Limit"
+                print("⚠️ [Text LLM] HTTP 429 Rate Limit encountered. Checking key rotation pool...")
+                if EnvManager.shared.totalKeysCount > 1 {
+                    let nextKey = EnvManager.shared.rotateTextKey()
+                    self.config.apiKey = nextKey
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    return try await self.callOpenAI(systemPrompt: systemPrompt, userPrompt: userPrompt, history: history)
+                }
+                let fallbackModel = ProcessInfo.processInfo.environment["PIPSEY_TEXT_FALLBACK_MODEL"] ?? "openai/gpt-oss-20b"
+                if self.config.model != fallbackModel {
+                    print("⚠️ [Text LLM] Falling back to model: \(fallbackModel)")
+                    self.config.model = fallbackModel
+                    return try await self.callOpenAI(systemPrompt: systemPrompt, userPrompt: userPrompt, history: history)
+                }
+                throw ConversationError.serverError(429, msg)
+            }
             if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
                 throw ConversationError.unauthorized("LLM API key invalid")
             }

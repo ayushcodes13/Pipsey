@@ -76,25 +76,30 @@ public struct VLMConfiguration: Sendable {
         let defaults = UserDefaults.standard
         let env = ProcessInfo.processInfo.environment
 
+        EnvManager.shared.loadEnvFile()
+
         let savedBase = defaults.string(forKey: "pipsey_vlm_base_url")
         let savedModel = defaults.string(forKey: "pipsey_vlm_model")
 
+        let poolKey = EnvManager.shared.currentVLMKey()
         let envKey = env["PIPSEY_VLM_API_KEY"]
+            ?? env["GROQ_API_KEY"]
             ?? env["ONEPAGER_AZURE_OPENAI_API_KEY"]
             ?? env["AZURE_OPENAI_API_KEY"]
             ?? env["OPENAI_API_KEY"]
         let key = envKey
             ?? KeychainManager.shared.readSecret(account: "pipsey-vlm-api-key")
+            ?? (!poolKey.isEmpty ? poolKey : nil)
             ?? ""
         let base = savedBase
             ?? env["PIPSEY_VLM_BASE_URL"]
             ?? env["ONEPAGER_AZURE_OPENAI_BASE_URL"]
-            ?? "https://api.openai.com/v1"
-        let defaultModel = base.contains("openai.azure.com") ? "gpt-5-mini" : "gpt-4o-mini"
+            ?? "https://api.groq.com/openai/v1"
+        let defaultModel = base.contains("groq.com") ? "qwen/qwen3.8-27b" : (base.contains("openai.azure.com") ? "gpt-5-mini" : "gpt-4o-mini")
         let model = savedModel ?? env["PIPSEY_VLM_MODEL"] ?? defaultModel
 
         return VLMConfiguration(
-            baseURL: URL(string: base) ?? URL(string: "https://api.openai.com/v1")!,
+            baseURL: URL(string: base) ?? URL(string: "https://api.groq.com/openai/v1")!,
             apiKey: key,
             model: model
         )
@@ -102,7 +107,7 @@ public struct VLMConfiguration: Sendable {
 }
 
 public actor HostedVLMClient: ObserverClientProtocol {
-    private let config: VLMConfiguration
+    private var config: VLMConfiguration
     private let validator = ObservationValidator()
     private let urlSession: URLSession
 
@@ -129,6 +134,7 @@ public actor HostedVLMClient: ObserverClientProtocol {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Pipsey/1.0 (Macintosh; Apple Silicon)", forHTTPHeaderField: "User-Agent")
         request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
         if config.isAzure {
             request.setValue(config.apiKey, forHTTPHeaderField: "api-key")
@@ -258,6 +264,17 @@ public actor HostedVLMClient: ObserverClientProtocol {
         }
 
         if let httpResponse = response as? HTTPURLResponse {
+            if httpResponse.statusCode == 429 {
+                let msg = String(data: data, encoding: .utf8) ?? "HTTP 429 Rate Limit"
+                print("⚠️ [VLM] HTTP 429 Rate Limit encountered. Checking key rotation pool...")
+                if EnvManager.shared.totalKeysCount > 1 {
+                    let nextKey = EnvManager.shared.rotateVLMKey()
+                    self.config.apiKey = nextKey
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    return try await self.observe(manifest: manifest, frames: frames)
+                }
+                throw ObserverError.serverError(429, msg)
+            }
             if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
                 let msg = String(data: data, encoding: .utf8) ?? "Empty body"
                 print("⚠️ VLM HTTP \(httpResponse.statusCode) error body: \(msg)")
