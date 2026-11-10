@@ -824,11 +824,32 @@ public struct CompanionIslandView: View {
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: 58, height: 3.5)
-                    .shadow(color: Color(hex: "40F0D7").opacity(0.55), radius: 3, y: 1)
+                    .frame(
+                        width: viewModel.isHovering ? 68 : 58,
+                        height: viewModel.isHovering ? 4.5 : 3.5
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(
+                                Color.white.opacity(viewModel.isHovering ? 0.95 : 0.0),
+                                lineWidth: 1.0
+                            )
+                    )
+                    .shadow(
+                        color: viewModel.isHovering
+                            ? Color.white.opacity(0.85)
+                            : Color(hex: "40F0D7").opacity(0.55),
+                        radius: viewModel.isHovering ? 4 : 3,
+                        y: 1
+                    )
+                    .animation(.spring(response: 0.28, dampingFraction: 0.75), value: viewModel.isHovering)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
+            .onHover { hovering in
+                viewModel.isHovering = hovering
+            }
+            .help("Hold ⌥⌘ to ask")
             .onTapGesture {
                 Task { await viewModel.triggerSession() }
             }
