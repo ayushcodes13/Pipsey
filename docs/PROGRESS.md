@@ -25,6 +25,27 @@
 
 ## Engineering log
 
+### 2026-11-10 — Multi-Account Groq Cloud VLM & LLM Pipeline with Independent Rotation
+- **Problem Statement:**
+  - Need a high-performance, cost-effective inference engine supporting vision and fast reasoning across multiple accounts.
+  - VLM and Text LLMs consume tokens at vastly different rates (vision frames consume 1,000–2,000 tokens per capture, exhausting 8K TPM quickly). A shared key pointer would unnecessarily throttle text reasoning when only vision hit a limit.
+- **Deliverables & Implementation:**
+  1. **Groq Model Selection:**
+     - **Vision (VLM):** `qwen/qwen3.8-27b` (high fidelity visual grounder, accepts base64 image data up to 1000 tokens).
+     - **Text Explainer (LLM):** `openai/gpt-oss-120b` (reasoning model, generates structured explanations at ~467 tok/s) with fallback to `openai/gpt-oss-20b`.
+     - **Speech (STT / TTS):** Kept 100% on-device and free using Apple `SFSpeechRecognizer` and `AVSpeechSynthesizer`.
+  2. **Multi-Key Pool & Independent Rotation (`EnvManager.swift`):**
+     - Parses `/Users/devayushrout/Desktop/Pipsey/.env` supporting `GROQ_API_KEY_1`...`GROQ_API_KEY_N` or comma-separated lists.
+     - Maintains independent atomic index pointers: `currentVLMKey()` / `rotateVLMKey()` and `currentTextKey()` / `rotateTextKey()`.
+     - If `qwen/qwen3.8-27b` returns HTTP 429, it automatically rotates to the next VLM key without disturbing the Text LLM's active key.
+  3. **Cloudflare & Ingress Protection:**
+     - Configured `User-Agent: Pipsey/1.0 (Macintosh; Apple Silicon)` on all outbound requests in `ObserverClient.swift` and `ConversationClient.swift` to prevent 403 Forbidden responses.
+  4. **Empirical Verification:**
+     - Tested all 5 user Groq API keys against live Groq endpoints for both models.
+     - Verified end-to-end capture, visual observation (0.98 confidence), and explanation card synthesis in ~3.2 seconds.
+     - Automated test suite: 321 / 321 tests passing (`swift run PipseyTests`).
+     - Codesigned release bundle running live (`build/Pipsey.app`, PID 65172).
+
 ### 2026-11-10 — Implementation of The Aperture Jewel (Machined Optics in Liquid Glass)
 - **Problem Statement:**
   - Rather than copying Wispr Flow's single line or using generic floating pills, Pipsey required an original, brand-authentic, minimalist resting presence that provides zero distraction during deep work.
