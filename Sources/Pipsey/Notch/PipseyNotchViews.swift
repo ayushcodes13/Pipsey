@@ -565,18 +565,38 @@ public struct PipseyNotchExpandedView: View {
     // MARK: - State 5: Error
 
     private func errorView(message: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 13))
                     .foregroundStyle(Color.red)
                 Text(message)
                     .font(.system(size: 11.5, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.90))
-                    .lineLimit(2)
+                    .lineSpacing(2)
+                    .foregroundStyle(Color.white.opacity(0.92))
             }
 
             HStack {
+                if message.localizedCaseInsensitiveContains("screen recording") || message.localizedCaseInsensitiveContains("permission") {
+                    Button {
+                        PermissionCoordinator.shared.openScreenRecordingSettings()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 10))
+                            Text("Open System Settings")
+                                .font(.system(size: 10.5, weight: .semibold))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4.5)
+                        .background(Capsule().fill(Color(hex: "2DD4BF")))
+                        .foregroundStyle(Color.black)
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 Spacer()
+
                 Button("Dismiss") {
                     viewModel.resetToIdle()
                     onCollapse()

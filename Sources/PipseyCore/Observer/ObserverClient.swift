@@ -1,6 +1,6 @@
 import Foundation
 
-public enum ObserverError: Error, CustomStringConvertible, Sendable {
+public enum ObserverError: Error, LocalizedError, CustomStringConvertible, Sendable {
     case invalidEndpoint(String)
     case unauthorized
     case timeout
@@ -9,6 +9,10 @@ public enum ObserverError: Error, CustomStringConvertible, Sendable {
     case schemaValidationFailed([String])
     case frameLimitExceeded(Int)
     case unconfigured(String)
+
+    public var errorDescription: String? {
+        description
+    }
 
     public var description: String {
         switch self {

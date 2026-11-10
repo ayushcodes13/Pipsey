@@ -6,16 +6,20 @@ import ImageIO
 import AppKit
 import os
 
-public enum CaptureError: Error, CustomStringConvertible, Sendable {
+public enum CaptureError: Error, LocalizedError, CustomStringConvertible, Sendable {
     case permissionDenied(String)
     case noDisplayAvailable
     case streamInitializationFailed(String)
     case timeoutExceeded
     case cancelled
 
+    public var errorDescription: String? {
+        description
+    }
+
     public var description: String {
         switch self {
-        case .permissionDenied(let msg): return "Permission Denied: \(msg)"
+        case .permissionDenied(let msg): return msg
         case .noDisplayAvailable: return "No display available for capture"
         case .streamInitializationFailed(let msg): return "Stream Initialization Failed: \(msg)"
         case .timeoutExceeded: return "Capture exceeded maximum allowed duration (30s)"
@@ -160,10 +164,11 @@ public actor CaptureService {
             shareable = try await SCShareableContent.current
             PermissionCoordinator.shared.markScreenRecordingGranted()
         } catch {
+            _ = CGRequestScreenCaptureAccess()
             if !preflight {
-                throw CaptureError.permissionDenied("Screen recording permission declined in System Settings (Error -3801)")
+                throw CaptureError.permissionDenied("Screen Recording permission required. Please enable Pipsey in System Settings > Privacy & Security > Screen & System Audio Recording, then press ⌥⌘ again.")
             }
-            throw CaptureError.permissionDenied("Failed to access SCShareableContent: \(error.localizedDescription)")
+            throw CaptureError.permissionDenied("Screen Recording permission denied: \(error.localizedDescription)")
         }
 
         // Multi-monitor aware: select display containing user's cursor

@@ -10,7 +10,7 @@ public struct ChatMessage: Codable, Equatable, Sendable {
     }
 }
 
-public enum ConversationError: Error, CustomStringConvertible, Sendable {
+public enum ConversationError: Error, LocalizedError, CustomStringConvertible, Sendable {
     case unconfigured(String)
     case unauthorized(String)
     case timeout
@@ -18,6 +18,10 @@ public enum ConversationError: Error, CustomStringConvertible, Sendable {
     case serverError(Int, String)
     case schemaValidationFailed(String)
     case networkError(String)
+
+    public var errorDescription: String? {
+        description
+    }
 
     public var description: String {
         switch self {

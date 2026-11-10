@@ -2337,6 +2337,11 @@ public final class IslandViewModel: ObservableObject {
 
             // Tactile audio chime on start
             PipseySoundEffects.playCaptureStarted()
+        } catch let capErr as CaptureError {
+            if case .permissionDenied = capErr {
+                PermissionCoordinator.shared.openScreenRecordingSettings()
+            }
+            await coordinator.fail(error: capErr.localizedDescription, generation: gen)
         } catch {
             await coordinator.fail(error: error.localizedDescription, generation: gen)
         }
